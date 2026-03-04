@@ -15,14 +15,9 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 **Goal:** Earn yield by supplying USDC to Lenclaw's lending pool.
 
 **Key needs:**
-- Clear risk/return tradeoff via Senior and Junior tranches
 - Transparent pool statistics: TVL, utilization, APY, default rates
 - Easy deposit/withdraw with ERC-4626 share accounting
 - Confidence that repayments are enforced at the smart contract level
-
-**Tranche options:**
-- **Senior Tranche (80% of pool):** Lower yield, priority repayment, lower risk. Target audience: conservative LPs.
-- **Junior Tranche (20% of pool):** Higher yield, first-loss absorption, withdrawal cooldown. Target audience: risk-seeking LPs willing to underwrite agent credit risk.
 
 ### 2. Agent Operator
 
@@ -44,12 +39,11 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 ### Flow 1: Depositor Supplies Liquidity
 
 1. Connect wallet (MetaMask, WalletConnect, etc.)
-2. View pool dashboard: TVL, utilization rate, APY per tranche
-3. Choose tranche (Senior or Junior)
-4. Approve and deposit USDC
-5. Receive lcUSDC shares (ERC-4626 vault shares)
-6. Monitor position: accrued yield, share value, pool health
-7. Withdraw: redeem shares for USDC (Junior has cooldown period)
+2. View pool dashboard: TVL, utilization rate, APY
+3. Approve and deposit USDC
+4. Receive lcUSDC shares (ERC-4626 vault shares)
+5. Monitor position: accrued yield, share value, pool health
+6. Withdraw: redeem shares for USDC
 
 ### Flow 2: Agent Operator Registers Agent
 
@@ -77,7 +71,7 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 3. Delinquency period (e.g. 14 days) -- status: DELINQUENT, reputation penalty begins
 4. Default (e.g. 30 days without sufficient repayment) -- status: DEFAULT
 5. Reputation slashed, credit line revoked
-6. Junior tranche absorbs losses first, then senior if junior is depleted
+6. Pool absorbs losses, lockbox continues capturing any future revenue
 
 ---
 
@@ -87,7 +81,6 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 - **Smart Contracts:**
   - LenclawVault (ERC-4626 core lending pool)
-  - SeniorTranche and JuniorTranche (ERC-4626 tranched deposits)
   - AgentRegistry (ERC-8004 identity, reputation tracking)
   - RevenueLockbox (immutable per-agent revenue capture + auto-repayment)
   - CreditScorer (on-chain credit line calculation)
@@ -104,7 +97,7 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 - **Frontend (React/Vite/Tailwind):**
   - Landing page with protocol overview
   - Pool dashboard (TVL, APY, utilization)
-  - Deposit/withdraw for Senior and Junior tranches
+  - Deposit/withdraw for the lending pool
   - Agent registry browser
   - Agent onboarding multi-step form
   - Agent borrow/repay dashboard
@@ -137,17 +130,17 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 |                   |       |                   |       |                        |
 | Pages:            |       | Modules:          |       | Core:                  |
 |  - Home           |       |  - /auth (SIWE)   |       |  - LenclawVault        |
-|  - Dashboard      |       |  - /agent         |       |  - SeniorTranche       |
-|  - Lend           |       |  - /revenue       |       |  - JuniorTranche       |
-|  - Agent Registry |       |  - /credit        |       |  - AgentRegistry       |
-|  - Agent Onboard  |       |  - /pool          |       |  - RevenueLockbox      |
-|  - Borrow         |       |  - /monitoring    |       |  - CreditScorer        |
-|                   |       |                   |       |  - AgentCreditLine     |
-| Stack:            |       | Stack:            |       |                        |
-|  Tailwind CSS     |       |  Python 3.12+     |       | Stack:                 |
-|  wagmi + viem     |       |  Pydantic v2      |       |  Solidity 0.8.24+      |
-|  @tanstack/query  |       |  Alembic          |       |  OpenZeppelin          |
-|  React Router     |       |  web3.py          |       |  Foundry               |
+|  - Dashboard      |       |  - /agent         |       |  - AgentRegistry       |
+|  - Lend           |       |  - /revenue       |       |  - RevenueLockbox      |
+|  - Agent Registry |       |  - /credit        |       |  - CreditScorer        |
+|  - Agent Onboard  |       |  - /pool          |       |  - AgentCreditLine     |
+|  - Borrow         |       |  - /monitoring    |       |                        |
+|                   |       |                   |       | Stack:                 |
+| Stack:            |       | Stack:            |       |  Solidity 0.8.24+      |
+|  Tailwind CSS     |       |  Python 3.12+     |       |  OpenZeppelin          |
+|  wagmi + viem     |       |  Pydantic v2      |       |  Foundry               |
+|  @tanstack/query  |       |  Alembic          |       |                        |
+|  React Router     |       |  web3.py          |       |                        |
 +-------------------+       +-------------------+       +------------------------+
          |                           |                            |
          |                           v                            |
@@ -165,11 +158,11 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 1. **Immutable RevenueLockbox:** One contract deployed per agent. Cannot be upgraded or modified. This is the trust anchor -- even if agent code changes, the lockbox enforces repayment.
 
-2. **Tranched Risk:** Senior/Junior split gives depositors choice. Junior absorbs first losses, earning higher yield. Senior gets priority repayment.
+2. **Single Pool Architecture:** All depositors share one ERC-4626 vault. APY is determined by pool utilization. This simplifies the protocol and reduces smart contract surface area.
 
 3. **ERC-8004 Identity:** Each agent gets an on-chain identity (ERC-721-based) that accumulates reputation. This identity is portable and composable.
 
-4. **ERC-4626 Vaults:** Standard vault interface for deposits. Composable with other DeFi protocols.
+4. **ERC-4626 Vault:** Standard vault interface for deposits. Composable with other DeFi protocols.
 
 5. **Off-chain Credit Scoring:** The backend runs a more sophisticated credit scoring algorithm than what's feasible on-chain. The on-chain CreditScorer provides a floor/ceiling, while the backend provides the nuanced score.
 
@@ -193,8 +186,8 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 - `POST /agents/{id}/credit/repay` -- Manual repayment
 
 ### Pool
-- `GET /pool/stats` -- Pool statistics (TVL, utilization, active agents, total revenue)
-- `GET /pool/apy` -- Current APY for senior and junior tranches
+- `GET /pool/stats` -- Pool statistics (TVL, utilization, active agents, total depositors)
+- `GET /pool/apy` -- Current pool APY
 
 ### Monitoring
 - `GET /agents/{id}/health` -- Agent health status and alerts
@@ -206,8 +199,6 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 | Concept | Frontend | Backend | Contracts |
 |---------|----------|---------|-----------|
 | Lending pool | Pool / Vault | pool | LenclawVault |
-| Senior deposit | Senior Tranche | senior_tranche | SeniorTranche |
-| Junior deposit | Junior Tranche | junior_tranche | JuniorTranche |
 | AI agent | Agent | agent | Agent (struct) |
 | Agent identity | ERC-8004 ID | agent_id | agentId (uint256) |
 | Revenue capture | Lockbox | revenue_lockbox | RevenueLockbox |

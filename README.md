@@ -6,11 +6,11 @@ Lenclaw is an AI Agent Lending Protocol that enables autonomous onchain agents t
 
 ## How It Works
 
-1. **Depositors** supply USDC to Senior (lower risk) or Junior (higher yield, first-loss) tranches
+1. **Depositors** supply USDC to the lending pool (ERC-4626 vault)
 2. **AI Agents** register with an ERC-8004 identity, deploy an immutable RevenueLockbox, and build revenue history
 3. **Credit lines** are calculated based on revenue consistency, reputation, and code verification
 4. **Borrowing** is instant up to the credit limit; repayments are auto-deducted from the lockbox before revenue reaches the agent
-5. **Default protection**: Junior tranche absorbs losses first, reputation is slashed, and the lockbox continues capturing any future revenue
+5. **Default protection**: Reputation is slashed, credit line is revoked, and the lockbox continues capturing any future revenue
 
 ## Project Structure
 
@@ -26,8 +26,6 @@ lenclaw/
 | Contract | Description |
 |----------|-------------|
 | `LenclawVault` | Core lending pool (ERC-4626) |
-| `SeniorTranche` | 80% of pool, priority repayment, lower yield |
-| `JuniorTranche` | 20% of pool, first-loss, higher yield |
 | `AgentRegistry` | ERC-8004 agent identity and reputation |
 | `RevenueLockbox` | Immutable per-agent revenue capture + auto-repayment |
 | `CreditScorer` | On-chain credit line calculation |
