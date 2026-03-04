@@ -1,0 +1,27 @@
+[app]
+name = "lenclaw"
+env = "local"
+debug = true
+
+[server]
+host = "0.0.0.0"
+port = 8000
+
+[database]
+url = "postgresql+asyncpg://postgres:postgres@localhost:5432/lenclaw_db"
+echo = false
+pool_size = 5
+max_overflow = 10
+
+[auth]
+jwt_secret = "dev-secret-change-in-production"
+jwt_algorithm = "HS256"
+access_token_expire_minutes = 60
+nonce_expire_minutes = 10
+
+[web3]
+rpc_url = "https://mainnet.base.org"
+chain_id = 8453
+
+[cors]
+allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
