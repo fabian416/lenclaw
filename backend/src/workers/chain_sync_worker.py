@@ -120,7 +120,6 @@ class ChainSyncWorker(BaseWorker):
 
         deposit = PoolDeposit(
             depositor_address=event["depositor"],
-            tranche=event.get("tranche", "senior"),
             amount=Decimal(str(event["amount"])),
             shares=Decimal(str(event.get("shares", event["amount"]))),
             status=DepositStatus.ACTIVE,

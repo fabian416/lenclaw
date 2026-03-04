@@ -21,7 +21,6 @@ from src.credit.router import router as credit_router
 from src.db.session import close_db, init_db
 from src.monitoring.router import router as monitoring_router
 from src.pool.router import router as pool_router
-from src.market.router import router as market_router
 from src.revenue.router import router as revenue_router
 
 logging.basicConfig(
@@ -90,7 +89,6 @@ def create_app() -> FastAPI:
     app.include_router(revenue_router, prefix=api_prefix)
     app.include_router(credit_router, prefix=api_prefix)
     app.include_router(pool_router, prefix=api_prefix)
-    app.include_router(market_router, prefix=api_prefix)
     app.include_router(bridge_router, prefix=api_prefix)
     app.include_router(monitoring_router, prefix=api_prefix)
 

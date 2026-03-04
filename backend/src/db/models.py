@@ -48,11 +48,6 @@ class DepositStatus(str, enum.Enum):
     WITHDRAWN = "withdrawn"
 
 
-class TrancheType(str, enum.Enum):
-    SENIOR = "senior"
-    JUNIOR = "junior"
-
-
 class AlertSeverity(str, enum.Enum):
     INFO = "info"
     WARNING = "warning"
@@ -258,7 +253,6 @@ class PoolDeposit(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     depositor_address: Mapped[str] = mapped_column(Text, nullable=False, index=True)
-    tranche: Mapped[TrancheType] = mapped_column(Enum(TrancheType), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     shares: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     status: Mapped[DepositStatus] = mapped_column(
@@ -282,10 +276,7 @@ class PoolSnapshot(Base):
     )
     total_deposits: Mapped[Decimal] = mapped_column(Numeric(18, 6), default=0)
     total_borrowed: Mapped[Decimal] = mapped_column(Numeric(18, 6), default=0)
-    senior_tvl: Mapped[Decimal] = mapped_column(Numeric(18, 6), default=0)
-    junior_tvl: Mapped[Decimal] = mapped_column(Numeric(18, 6), default=0)
-    senior_apy_bps: Mapped[int] = mapped_column(Integer, default=0)
-    junior_apy_bps: Mapped[int] = mapped_column(Integer, default=0)
+    apy_bps: Mapped[int] = mapped_column(Integer, default=0)
     utilization_rate_bps: Mapped[int] = mapped_column(Integer, default=0)
     active_agents: Mapped[int] = mapped_column(Integer, default=0)
     snapshot_at: Mapped[datetime] = mapped_column(

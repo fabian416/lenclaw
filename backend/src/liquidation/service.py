@@ -195,7 +195,7 @@ class LiquidationService:
     ) -> Liquidation:
         """Settle a liquidation after auction completion.
 
-        Computes loss amounts and distributes to tranches (junior first).
+        Computes loss amounts and distributes to the pool.
         """
         liquidation = await self.get_liquidation(session, liquidation_id)
 
@@ -223,15 +223,12 @@ class LiquidationService:
             liquidation.recovery_rate_bps = int(
                 (recovered_amount * 10000) / liquidation.outstanding_debt
             )
-            # Junior tranche absorbs first loss
-            liquidation.junior_loss = loss  # Simplified; real impl checks junior balance
-            liquidation.senior_loss = Decimal("0")
+            liquidation.pool_loss = loss
             liquidation.status = LiquidationStatus.SETTLED
         else:
             # Complete write-off
             liquidation.loss_amount = liquidation.outstanding_debt
-            liquidation.junior_loss = liquidation.outstanding_debt
-            liquidation.senior_loss = Decimal("0")
+            liquidation.pool_loss = liquidation.outstanding_debt
             liquidation.recovery_rate_bps = 0
             liquidation.status = LiquidationStatus.WRITE_OFF
 
