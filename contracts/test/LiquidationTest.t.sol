@@ -8,8 +8,6 @@ import {CreditScorer} from "../src/CreditScorer.sol";
 import {RevenueLockbox} from "../src/RevenueLockbox.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
 import {LenclawVault} from "../src/LenclawVault.sol";
-import {JuniorTranche} from "../src/JuniorTranche.sol";
-import {SeniorTranche} from "../src/SeniorTranche.sol";
 import {DutchAuction} from "../src/DutchAuction.sol";
 import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 import {RecoveryManager} from "../src/RecoveryManager.sol";
@@ -21,8 +19,6 @@ contract LiquidationTest is Test {
     CreditScorer public scorer;
     LenclawVault public vault;
     AgentCreditLine public creditLine;
-    JuniorTranche public juniorTranche;
-    SeniorTranche public seniorTranche;
     DutchAuction public dutchAuction;
     LiquidationKeeper public keeper;
     RecoveryManager public recoveryManager;
@@ -45,19 +41,12 @@ contract LiquidationTest is Test {
             address(usdc), address(registry), address(scorer), address(vault), owner
         );
 
-        // Deploy tranches
-        juniorTranche = new JuniorTranche(IERC20(address(usdc)), address(vault), owner);
-        seniorTranche = new SeniorTranche(IERC20(address(usdc)), address(vault), owner);
-
-        // Deploy liquidation system (two-phase: deploy auction with temp address,
-        // then deploy manager, then update auction's recovery manager)
+        // Deploy liquidation system
         dutchAuction = new DutchAuction(address(usdc), address(this), owner);
         recoveryManager = new RecoveryManager(
             address(usdc),
             address(dutchAuction),
             address(registry),
-            address(juniorTranche),
-            address(seniorTranche),
             address(vault),
             owner
         );
@@ -75,9 +64,6 @@ contract LiquidationTest is Test {
         // Wire up permissions
         vault.authorizeBorrower(address(creditLine), true);
         recoveryManager.setKeeper(address(keeper));
-
-        // Allow RecoveryManager to call JuniorTranche.absorbLoss()
-        juniorTranche.setVault(address(recoveryManager));
 
         // Allow RecoveryManager to call registry.updateReputation()
         registry.setProtocol(address(recoveryManager));
@@ -108,21 +94,11 @@ contract LiquidationTest is Test {
         // Fund keeper bounty pool
         usdc.mint(address(keeper), 10_000e6);
 
-        // Seed junior tranche with deposits (for loss absorption)
-        usdc.mint(depositor, 200_000e6);
-        vm.startPrank(depositor);
-        usdc.approve(address(juniorTranche), 200_000e6);
-        juniorTranche.deposit(200_000e6, depositor);
-        vm.stopPrank();
-
         // Fund bidder
         usdc.mint(bidder, 500_000e6);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  Helper: put agent into DEFAULT status
-    // ═══════════════════════════════════════════════════════════
-
+    // Helper: put agent into DEFAULT status
     function _defaultAgent(uint256 borrowAmount) internal {
         creditLine.refreshCreditLine(agentId);
 
@@ -134,12 +110,9 @@ contract LiquidationTest is Test {
         creditLine.updateStatus(agentId);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  DutchAuction Tests
-    // ═══════════════════════════════════════════════════════════
+    // DutchAuction Tests
 
     function test_dutchAuction_createAuction() public {
-        // RecoveryManager or owner can create auctions
         uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
 
         DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
@@ -163,7 +136,6 @@ contract LiquidationTest is Test {
         // At t=duration/2, price should be midpoint
         vm.warp(block.timestamp + 3 hours); // half of 6 hours
         uint256 priceMid = dutchAuction.getCurrentPrice(auctionId);
-        // midpoint = startPrice - (startPrice - minPrice) / 2 = 15000 - 6000 = 9000
         assertEq(priceMid, 9_000e6);
 
         // At t=duration, price should be minPrice
@@ -267,9 +239,7 @@ contract LiquidationTest is Test {
         assertEq(remaining, 0);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  LiquidationKeeper Tests
-    // ═══════════════════════════════════════════════════════════
+    // LiquidationKeeper Tests
 
     function test_keeper_checkLiquidation_eligible() public {
         _defaultAgent(5_000e6);
@@ -305,7 +275,6 @@ contract LiquidationTest is Test {
         _defaultAgent(5_000e6);
 
         uint256 keeperBalanceBefore = usdc.balanceOf(keeperBot);
-        uint256 poolBalanceBefore = usdc.balanceOf(address(keeper));
 
         vm.prank(keeperBot);
         keeper.triggerLiquidation(agentId);
@@ -361,9 +330,7 @@ contract LiquidationTest is Test {
         keeper.setKeeperBounty(200, 2_000e6);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  RecoveryManager Tests
-    // ═══════════════════════════════════════════════════════════
+    // RecoveryManager Tests
 
     function test_recovery_startRecovery() public {
         _defaultAgent(5_000e6);
@@ -438,7 +405,7 @@ contract LiquidationTest is Test {
         assertEq(record.lossAmount, record.debtAmount);
     }
 
-    function test_recovery_lossDistributedToJunior() public {
+    function test_recovery_lossDistributedProportionally() public {
         _defaultAgent(5_000e6);
 
         vm.prank(keeperBot);
@@ -462,11 +429,11 @@ contract LiquidationTest is Test {
 
         record = recoveryManager.getRecovery(recoveryId);
 
-        // Should be partial recovery
+        // Should be partial recovery with proportional loss
         assertEq(uint8(record.status), uint8(RecoveryManager.RecoveryStatus.PARTIAL_RECOVERY));
         assertGt(record.lossAmount, 0);
-        // Junior absorbs losses first
-        assertGt(record.juniorLoss, 0);
+        // Loss is tracked in totalLosses aggregate
+        assertEq(recoveryManager.totalLosses(), record.lossAmount);
     }
 
     function test_recovery_reputationSlashedOnDefault() public {
@@ -517,9 +484,7 @@ contract LiquidationTest is Test {
         recoveryManager.startRecovery(agentId, 5_000e6);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  Integration: Full Liquidation Flow
-    // ═══════════════════════════════════════════════════════════
+    // Integration: Full Liquidation Flow
 
     function test_fullLiquidationFlow() public {
         // 1. Agent borrows
@@ -576,9 +541,7 @@ contract LiquidationTest is Test {
         assertLt(profile.reputationScore, 500, "Reputation should be slashed from 500");
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  Edge Cases
-    // ═══════════════════════════════════════════════════════════
+    // Edge Cases
 
     function test_auctionBidAtExactEndTime() public {
         uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);

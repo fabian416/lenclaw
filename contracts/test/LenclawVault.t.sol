@@ -9,8 +9,6 @@ import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {RevenueLockbox} from "../src/RevenueLockbox.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
-import {SeniorTranche} from "../src/SeniorTranche.sol";
-import {JuniorTranche} from "../src/JuniorTranche.sol";
 
 contract MockUSDC is ERC20 {
     constructor() ERC20("USD Coin", "USDC") {}
@@ -30,8 +28,6 @@ contract LenclawVaultTest is Test {
     AgentRegistry registry;
     CreditScorer scorer;
     AgentCreditLine creditLine;
-    SeniorTranche senior;
-    JuniorTranche junior;
 
     address owner = address(this);
     address depositor = makeAddr("depositor");
@@ -43,8 +39,6 @@ contract LenclawVaultTest is Test {
         vault = new LenclawVault(IERC20(address(usdc)), owner);
         scorer = new CreditScorer(address(registry), owner);
         creditLine = new AgentCreditLine(address(usdc), address(registry), address(scorer), address(vault), owner);
-        senior = new SeniorTranche(IERC20(address(usdc)), address(vault), owner);
-        junior = new JuniorTranche(IERC20(address(usdc)), address(vault), owner);
 
         vault.authorizeBorrower(address(creditLine), true);
 
@@ -112,46 +106,6 @@ contract LenclawVaultTest is Test {
         assertEq(lockbox.totalRepaid(), 500e6, "Repaid mismatch");
         assertEq(usdc.balanceOf(address(vault)), 500e6, "Vault should receive repayment");
         assertEq(usdc.balanceOf(agentWallet), 500e6, "Agent should receive remainder");
-    }
-
-    function test_seniorTranche_deposit() public {
-        uint256 depositAmount = 5000e6;
-
-        vm.startPrank(depositor);
-        usdc.approve(address(senior), depositAmount);
-        uint256 shares = senior.deposit(depositAmount, depositor);
-        vm.stopPrank();
-
-        assertGt(shares, 0, "Should receive sUSDC shares");
-        assertEq(senior.totalDeposited(), depositAmount, "Total deposited mismatch");
-    }
-
-    function test_juniorTranche_cooldown() public {
-        uint256 depositAmount = 2000e6;
-
-        vm.startPrank(depositor);
-        usdc.approve(address(junior), depositAmount);
-        uint256 shares = junior.deposit(depositAmount, depositor);
-
-        // Try to withdraw without cooldown - should fail
-        vm.expectRevert("JuniorTranche: cooldown not met");
-        junior.redeem(shares, depositor, depositor);
-
-        // Request withdrawal
-        junior.requestWithdrawal(shares);
-
-        // Still can't withdraw immediately
-        vm.expectRevert("JuniorTranche: cooldown not met");
-        junior.redeem(shares, depositor, depositor);
-
-        // Warp past cooldown
-        vm.warp(block.timestamp + 7 days + 1);
-
-        // Now should succeed
-        junior.redeem(shares, depositor, depositor);
-        vm.stopPrank();
-
-        assertEq(usdc.balanceOf(depositor), 100_000e6, "Should get full balance back");
     }
 
     function test_reputationUpdate() public {

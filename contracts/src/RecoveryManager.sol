@@ -9,9 +9,10 @@ import {DutchAuction} from "./DutchAuction.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 
 /// @title RecoveryManager - Coordinates full recovery process for defaulted positions
-/// @notice Receives auction proceeds from DutchAuction, distributes to tranches
-///         (junior first-loss, then senior), tracks recovery rates, and updates
-///         agent reputation. Handles partial recoveries gracefully.
+/// @notice Receives auction proceeds from DutchAuction, distributes to vault,
+///         tracks recovery rates, and updates agent reputation.
+///         Losses are distributed proportionally to all vault depositors via
+///         reduced share value.
 contract RecoveryManager is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -28,8 +29,6 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         uint256 debtAmount;          // Original outstanding debt
         uint256 recoveredAmount;     // Amount actually recovered from auction
         uint256 lossAmount;          // Unrecovered debt (debtAmount - recoveredAmount)
-        uint256 juniorLoss;          // Loss absorbed by junior tranche
-        uint256 seniorLoss;          // Loss absorbed by senior tranche (only if junior exhausted)
         uint256 auctionId;           // Associated DutchAuction ID
         uint256 startedAt;           // When recovery was initiated
         uint256 completedAt;         // When recovery was finalized
@@ -40,8 +39,6 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     DutchAuction public immutable dutchAuction;
     IAgentRegistry public immutable registry;
 
-    address public juniorTranche;
-    address public seniorTranche;
     address public vault;
     address public keeper;
 
@@ -55,13 +52,12 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     /// @notice Aggregate statistics
     uint256 public totalDebtProcessed;
     uint256 public totalAmountRecovered;
-    uint256 public totalJuniorLosses;
-    uint256 public totalSeniorLosses;
+    uint256 public totalLosses;
 
     /// @notice Reputation penalty for default (how much to slash on default)
     uint256 public defaultReputationPenalty = 200; // Subtract from 0-1000 score
 
-    // ── Events ──────────────────────────────────────────────────
+    // -- Events --
 
     event RecoveryStarted(
         uint256 indexed recoveryId,
@@ -78,8 +74,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     );
     event LossDistributed(
         uint256 indexed recoveryId,
-        uint256 juniorLoss,
-        uint256 seniorLoss
+        uint256 lossAmount
     );
     event ProceedsDistributed(
         uint256 indexed recoveryId,
@@ -88,47 +83,31 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     event ReputationSlashed(uint256 indexed agentId, uint256 newScore);
     event WriteOff(uint256 indexed recoveryId, uint256 indexed agentId, uint256 lossAmount);
 
-    // ── Constructor ─────────────────────────────────────────────
+    // -- Constructor --
 
     constructor(
         address _usdc,
         address _dutchAuction,
         address _registry,
-        address _juniorTranche,
-        address _seniorTranche,
         address _vault,
         address _owner
     ) Ownable(_owner) {
         require(_usdc != address(0), "RecoveryManager: zero usdc");
         require(_dutchAuction != address(0), "RecoveryManager: zero auction");
         require(_registry != address(0), "RecoveryManager: zero registry");
-        require(_juniorTranche != address(0), "RecoveryManager: zero junior");
-        require(_seniorTranche != address(0), "RecoveryManager: zero senior");
         require(_vault != address(0), "RecoveryManager: zero vault");
 
         usdc = IERC20(_usdc);
         dutchAuction = DutchAuction(_dutchAuction);
         registry = IAgentRegistry(_registry);
-        juniorTranche = _juniorTranche;
-        seniorTranche = _seniorTranche;
         vault = _vault;
     }
 
-    // ── Admin ───────────────────────────────────────────────────
+    // -- Admin --
 
     function setKeeper(address _keeper) external onlyOwner {
         require(_keeper != address(0), "RecoveryManager: zero address");
         keeper = _keeper;
-    }
-
-    function setJuniorTranche(address _juniorTranche) external onlyOwner {
-        require(_juniorTranche != address(0), "RecoveryManager: zero address");
-        juniorTranche = _juniorTranche;
-    }
-
-    function setSeniorTranche(address _seniorTranche) external onlyOwner {
-        require(_seniorTranche != address(0), "RecoveryManager: zero address");
-        seniorTranche = _seniorTranche;
     }
 
     function setVault(address _vault) external onlyOwner {
@@ -141,7 +120,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         defaultReputationPenalty = _penalty;
     }
 
-    // ── Recovery Lifecycle ──────────────────────────────────────
+    // -- Recovery Lifecycle --
 
     /// @notice Start the recovery process for a defaulted agent.
     ///         Creates a Dutch auction and records the recovery.
@@ -169,8 +148,6 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             debtAmount: debtAmount,
             recoveredAmount: 0,
             lossAmount: 0,
-            juniorLoss: 0,
-            seniorLoss: 0,
             auctionId: auctionId,
             startedAt: block.timestamp,
             completedAt: 0,
@@ -187,8 +164,9 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     }
 
     /// @notice Finalize recovery after auction settles or expires.
-    ///         Distributes proceeds to the vault, calculates losses,
-    ///         and allocates losses to tranches (junior first).
+    ///         Distributes proceeds to the vault and records losses.
+    ///         Losses are absorbed proportionally by all vault depositors
+    ///         (reflected as reduced share value in the ERC-4626 vault).
     /// @param recoveryId The recovery record to finalize
     function finalizeRecovery(uint256 recoveryId) external nonReentrant {
         RecoveryRecord storage recovery = recoveries[recoveryId];
@@ -208,7 +186,6 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
         uint256 recoveredAmount = 0;
         if (auction.status == DutchAuction.AuctionStatus.SETTLED) {
-            // Auction proceeds were sent to this contract by DutchAuction.bid()
             recoveredAmount = auction.settledPrice;
         }
 
@@ -222,7 +199,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             emit ProceedsDistributed(recoveryId, recoveredAmount);
         }
 
-        // Calculate and distribute losses
+        // Calculate losses
         if (recoveredAmount >= recovery.debtAmount) {
             // Full recovery (possibly at a premium)
             recovery.lossAmount = 0;
@@ -230,7 +207,13 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         } else {
             // Partial recovery or complete write-off
             recovery.lossAmount = recovery.debtAmount - recoveredAmount;
-            _distributeLoss(recoveryId, recovery.lossAmount);
+            totalLosses += recovery.lossAmount;
+
+            // Loss is proportionally distributed to all depositors via
+            // reduced totalAssets in the vault (the unrecovered debt
+            // reduces the vault's totalBorrowed without a corresponding
+            // repayment, lowering the share price for everyone equally).
+            emit LossDistributed(recoveryId, recovery.lossAmount);
 
             recovery.status = recoveredAmount > 0
                 ? RecoveryStatus.PARTIAL_RECOVERY
@@ -253,39 +236,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         }
     }
 
-    // ── Internal ────────────────────────────────────────────────
-
-    /// @dev Distribute loss to tranches: junior absorbs first, then senior
-    function _distributeLoss(uint256 recoveryId, uint256 lossAmount) internal {
-        RecoveryRecord storage recovery = recoveries[recoveryId];
-
-        // Junior tranche absorbs losses first
-        uint256 juniorBalance = usdc.balanceOf(juniorTranche);
-        uint256 juniorLoss;
-        uint256 seniorLoss;
-
-        if (juniorBalance >= lossAmount) {
-            // Junior can absorb the full loss
-            juniorLoss = lossAmount;
-            seniorLoss = 0;
-        } else {
-            // Junior absorbs what it can, senior absorbs the rest
-            juniorLoss = juniorBalance;
-            seniorLoss = lossAmount - juniorBalance;
-        }
-
-        recovery.juniorLoss = juniorLoss;
-        recovery.seniorLoss = seniorLoss;
-        totalJuniorLosses += juniorLoss;
-        totalSeniorLosses += seniorLoss;
-
-        // Notify junior tranche of loss (calls absorbLoss)
-        if (juniorLoss > 0) {
-            IJuniorTrancheLoss(juniorTranche).absorbLoss(juniorLoss);
-        }
-
-        emit LossDistributed(recoveryId, juniorLoss, seniorLoss);
-    }
+    // -- Internal --
 
     /// @dev Slash the agent's reputation on default
     function _slashReputation(uint256 agentId) internal {
@@ -308,7 +259,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         }
     }
 
-    // ── View Functions ──────────────────────────────────────────
+    // -- View Functions --
 
     /// @notice Get the recovery record for a given ID
     function getRecovery(uint256 recoveryId) external view returns (RecoveryRecord memory) {
@@ -335,9 +286,4 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         if (r.debtAmount == 0) return 0;
         rateBps = (r.recoveredAmount * 10000) / r.debtAmount;
     }
-}
-
-/// @notice Minimal interface for JuniorTranche loss absorption
-interface IJuniorTrancheLoss {
-    function absorbLoss(uint256 amount) external;
 }

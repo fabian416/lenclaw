@@ -8,8 +8,6 @@ import {CreditScorer} from "../src/CreditScorer.sol";
 import {RevenueLockbox} from "../src/RevenueLockbox.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
 import {LenclawVault} from "../src/LenclawVault.sol";
-import {SeniorTranche} from "../src/SeniorTranche.sol";
-import {JuniorTranche} from "../src/JuniorTranche.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Integration Test - Full lending protocol flow
@@ -20,8 +18,6 @@ contract IntegrationTest is Test {
     CreditScorer public scorer;
     LenclawVault public vault;
     AgentCreditLine public creditLine;
-    SeniorTranche public senior;
-    JuniorTranche public junior;
 
     address public owner = address(this);
     address public agentWallet = makeAddr("agent");
@@ -37,8 +33,6 @@ contract IntegrationTest is Test {
         creditLine = new AgentCreditLine(
             address(usdc), address(registry), address(scorer), address(vault), owner
         );
-        senior = new SeniorTranche(IERC20(address(usdc)), address(vault), owner);
-        junior = new JuniorTranche(IERC20(address(usdc)), address(vault), owner);
 
         vault.authorizeBorrower(address(creditLine), true);
 
@@ -173,25 +167,6 @@ contract IntegrationTest is Test {
 
         // Total assets = 700k
         assertEq(vault.totalAssets(), 700_000e6, "Total assets");
-    }
-
-    /// @notice Test tranche deposits
-    function test_trancheDeposits() public {
-        address trancheDepositor = makeAddr("trancheDepositor");
-        usdc.mint(trancheDepositor, 100_000e6);
-
-        vm.startPrank(trancheDepositor);
-        usdc.approve(address(senior), 80_000e6);
-        usdc.approve(address(junior), 20_000e6);
-
-        uint256 seniorShares = senior.deposit(80_000e6, trancheDepositor);
-        uint256 juniorShares = junior.deposit(20_000e6, trancheDepositor);
-        vm.stopPrank();
-
-        assertGt(seniorShares, 0, "Got senior shares");
-        assertGt(juniorShares, 0, "Got junior shares");
-        assertEq(senior.totalDeposited(), 80_000e6, "Senior TVL");
-        assertEq(junior.totalDeposited(), 20_000e6, "Junior TVL");
     }
 
     /// @notice Test revenue lockbox immutability - multiple processings

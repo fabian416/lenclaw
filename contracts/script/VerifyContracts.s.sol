@@ -15,8 +15,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///   LENCLAW_VAULT=<addr> \
 ///   CREDIT_SCORER=<addr> \
 ///   AGENT_CREDIT_LINE=<addr> \
-///   SENIOR_TRANCHE=<addr> \
-///   JUNIOR_TRANCHE=<addr> \
 ///   OWNER=<addr> \
 ///   ETHERSCAN_API_KEY=<key> \
 ///   forge script script/VerifyContracts.s.sol --chain base --verify
@@ -28,8 +26,6 @@ contract VerifyContracts is Script {
         address lenclawVault = vm.envAddress("LENCLAW_VAULT");
         address creditScorer = vm.envAddress("CREDIT_SCORER");
         address agentCreditLine = vm.envAddress("AGENT_CREDIT_LINE");
-        address seniorTranche = vm.envAddress("SENIOR_TRANCHE");
-        address juniorTranche = vm.envAddress("JUNIOR_TRANCHE");
         address owner = vm.envAddress("OWNER");
 
         console.log("=== Lenclaw Contract Verification ===");
@@ -42,8 +38,6 @@ contract VerifyContracts is Script {
         console.log("LenclawVault:", lenclawVault);
         console.log("CreditScorer:", creditScorer);
         console.log("AgentCreditLine:", agentCreditLine);
-        console.log("SeniorTranche:", seniorTranche);
-        console.log("JuniorTranche:", juniorTranche);
         console.log("");
 
         console.log("=== Verification Commands ===");
@@ -65,12 +59,6 @@ contract VerifyContracts is Script {
             agentCreditLine,
             abi.encode(usdc, agentRegistry, creditScorer, lenclawVault, owner)
         );
-
-        // SeniorTranche: constructor(IERC20 _usdc, address _vault, address _owner)
-        _logVerifyCommand("SeniorTranche", seniorTranche, abi.encode(usdc, lenclawVault, owner));
-
-        // JuniorTranche: constructor(IERC20 _usdc, address _vault, address _owner)
-        _logVerifyCommand("JuniorTranche", juniorTranche, abi.encode(usdc, lenclawVault, owner));
     }
 
     function _logVerifyCommand(string memory name, address contractAddr, bytes memory constructorArgs) internal pure {

@@ -8,8 +8,6 @@ import {LenclawVault} from "../src/LenclawVault.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
-import {SeniorTranche} from "../src/SeniorTranche.sol";
-import {JuniorTranche} from "../src/JuniorTranche.sol";
 
 /// @notice Mock USDC for local testing
 contract MockUSDC is ERC20 {
@@ -52,17 +50,10 @@ contract DeployLenclaw is Script {
             new AgentCreditLine(address(usdc), address(registry), address(scorer), address(vault), deployer);
         console.log("AgentCreditLine deployed at:", address(creditLine));
 
-        // 6. Deploy Tranches
-        SeniorTranche senior = new SeniorTranche(IERC20(address(usdc)), address(vault), deployer);
-        console.log("SeniorTranche deployed at:", address(senior));
-
-        JuniorTranche junior = new JuniorTranche(IERC20(address(usdc)), address(vault), deployer);
-        console.log("JuniorTranche deployed at:", address(junior));
-
-        // 7. Configure: authorize credit line as borrower
+        // 6. Configure: authorize credit line as borrower
         vault.authorizeBorrower(address(creditLine), true);
 
-        // 8. Mint some test USDC to deployer
+        // 7. Mint some test USDC to deployer
         usdc.mint(deployer, 1_000_000e6); // 1M USDC
 
         vm.stopBroadcast();
