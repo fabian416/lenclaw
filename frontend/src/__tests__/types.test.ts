@@ -50,8 +50,7 @@ describe("Agent type validation", () => {
 describe("Pool data validation", () => {
   it("has all required fields", () => {
     expect(MOCK_POOL_DATA).toHaveProperty("tvl")
-    expect(MOCK_POOL_DATA).toHaveProperty("seniorAPY")
-    expect(MOCK_POOL_DATA).toHaveProperty("juniorAPY")
+    expect(MOCK_POOL_DATA).toHaveProperty("apy")
     expect(MOCK_POOL_DATA).toHaveProperty("utilizationRate")
     expect(MOCK_POOL_DATA).toHaveProperty("activeAgents")
     expect(MOCK_POOL_DATA).toHaveProperty("totalRevenue")
@@ -59,8 +58,8 @@ describe("Pool data validation", () => {
     expect(MOCK_POOL_DATA).toHaveProperty("defaultRate")
   })
 
-  it("junior APY is higher than senior APY", () => {
-    expect(MOCK_POOL_DATA.juniorAPY).toBeGreaterThan(MOCK_POOL_DATA.seniorAPY)
+  it("apy is positive", () => {
+    expect(MOCK_POOL_DATA.apy).toBeGreaterThan(0)
   })
 
   it("utilization rate is between 0 and 100", () => {

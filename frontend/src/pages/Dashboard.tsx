@@ -115,19 +115,17 @@ export default function Dashboard() {
           delay={0}
         />
         <StatCard
-          label="Senior APY"
-          value={formatPercent(pool.seniorAPY)}
+          label="Pool APY"
+          value={formatPercent(pool.apy)}
           icon={TrendingUp}
           sublabel="stable"
           trend="neutral"
           delay={1}
         />
         <StatCard
-          label="Junior APY"
-          value={formatPercent(pool.juniorAPY)}
+          label="Utilization"
+          value={formatPercent(pool.utilizationRate)}
           icon={BarChart3}
-          sublabel="+2.1%"
-          trend="up"
           delay={2}
         />
         <StatCard
@@ -255,8 +253,8 @@ export default function Dashboard() {
             <CardContent className={`${riskExpanded ? '' : 'hidden md:block'}`}>
               <div className="space-y-4">
                 {[
-                  { label: "Senior Tranche Coverage", value: 142, color: "success" as const },
-                  { label: "Junior Tranche Buffer", value: 28, color: "primary" as const },
+                  { label: "Pool Coverage Ratio", value: 142, color: "success" as const },
+                  { label: "Loss Reserve Buffer", value: 28, color: "primary" as const },
                   { label: "Average Agent Score", value: 86, color: "primary" as const },
                 ].map((item, i) => (
                   <motion.div

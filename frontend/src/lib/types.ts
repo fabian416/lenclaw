@@ -1,5 +1,4 @@
 export type AgentStatus = "active" | "delinquent" | "default"
-export type TrancheType = "senior" | "junior"
 export type RepaymentStatus = "paid" | "upcoming" | "overdue"
 
 export interface Agent {
@@ -18,8 +17,7 @@ export interface Agent {
 
 export interface PoolData {
   tvl: number
-  seniorAPY: number
-  juniorAPY: number
+  apy: number
   utilizationRate: number
   activeAgents: number
   totalRevenue: number

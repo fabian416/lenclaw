@@ -1,21 +1,17 @@
 export const CHAIN_ID = 8453 // Base mainnet
 
 // Contract names align with PRODUCT_SPEC:
-// LenclawVault (ERC-4626 core), SeniorTranche, JuniorTranche,
-// AgentRegistry (ERC-8004), RevenueLockbox, CreditScorer, AgentCreditLine
+// LenclawVault (ERC-4626 core), AgentRegistry (ERC-8004), RevenueLockbox, CreditScorer, AgentCreditLine
 export const CONTRACTS = {
   LENCLAW_VAULT: "0x0000000000000000000000000000000000000000" as const,
   AGENT_REGISTRY: "0x0000000000000000000000000000000000000000" as const,
   USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const,
-  SENIOR_TRANCHE: "0x0000000000000000000000000000000000000000" as const,
-  JUNIOR_TRANCHE: "0x0000000000000000000000000000000000000000" as const,
   CREDIT_SCORER: "0x0000000000000000000000000000000000000000" as const,
 } as const
 
 export const MOCK_POOL_DATA = {
   tvl: 2_450_000,
-  seniorAPY: 8.5,
-  juniorAPY: 14.2,
+  apy: 10.2,
   utilizationRate: 72.4,
   activeAgents: 47,
   totalRevenue: 185_000,

@@ -5,93 +5,21 @@ import { Input } from "@/components/ui/input"
 import { StatCard } from "@/components/shared/StatCard"
 import { MOCK_POOL_DATA } from "@/lib/constants"
 import { formatUSD, formatPercent } from "@/lib/utils"
-import { DollarSign, TrendingUp, Shield, Zap, ArrowDownToLine, ArrowUpFromLine, X } from "lucide-react"
+import { DollarSign, TrendingUp, ArrowDownToLine, ArrowUpFromLine, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import type { TrancheType } from "@/lib/types"
-
-function TrancheCard({
-  type,
-  apy,
-  tvl,
-  description,
-  selected,
-  onSelect,
-}: {
-  type: TrancheType
-  apy: number
-  tvl: number
-  description: string
-  selected: boolean
-  onSelect: () => void
-}) {
-  const isSenior = type === "senior"
-
-  return (
-    <motion.button
-      onClick={onSelect}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 300 }}
-      className={`data-card rounded-2xl p-4 md:p-6 text-left transition-all w-full min-h-[44px] relative ${
-        selected ? "glow-border" : "border-primary/10"
-      }`}
-    >
-      {/* Selection indicator */}
-      {selected && (
-        <motion.div
-          layoutId="tranche-selector"
-          className="absolute inset-0 rounded-2xl border-2 border-primary/40 pointer-events-none"
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        />
-      )}
-      <div className="flex items-center gap-3 mb-3 md:mb-4">
-        <div className={`w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          isSenior
-            ? "bg-gradient-to-br from-blue-500/20 to-blue-600/5"
-            : "bg-gradient-to-br from-purple-500/20 to-purple-600/5"
-        }`}>
-          {isSenior ? (
-            <Shield className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
-          ) : (
-            <Zap className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-          )}
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-semibold mono-text capitalize text-sm md:text-base">{type} Tranche</h3>
-          <p className="text-[10px] md:text-xs text-muted-foreground truncate">{description}</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3 md:gap-4">
-        <div>
-          <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-0.5 md:mb-1">APY</div>
-          <div className={`text-lg md:text-xl font-bold mono-text ${isSenior ? "text-blue-400" : "text-purple-400"}`}>
-            {formatPercent(apy)}
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-0.5 md:mb-1">TVL</div>
-          <div className="text-lg md:text-xl font-bold mono-text text-foreground">{formatUSD(tvl)}</div>
-        </div>
-      </div>
-    </motion.button>
-  )
-}
 
 export default function LendPage() {
-  const [selectedTranche, setSelectedTranche] = useState<TrancheType>("senior")
   const [amount, setAmount] = useState("")
   const [action, setAction] = useState<"deposit" | "withdraw">("deposit")
   const [mobileFormOpen, setMobileFormOpen] = useState(false)
 
   const pool = MOCK_POOL_DATA
-  const currentAPY = selectedTranche === "senior" ? pool.seniorAPY : pool.juniorAPY
 
   const userPosition = {
-    senior: { shares: 12_500, value: 13_200, earned: 700 },
-    junior: { shares: 5_000, value: 5_800, earned: 800 },
+    shares: 17_500,
+    value: 19_000,
+    earned: 1_500,
   }
-
-  const pos = userPosition[selectedTranche]
 
   return (
     <motion.div
@@ -107,40 +35,19 @@ export default function LendPage() {
         className="mb-6 md:mb-8"
       >
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mono-text mb-1.5 md:mb-2">Lend</h1>
-        <p className="text-muted-foreground text-xs md:text-sm">Deposit USDC into tranches to earn yield from AI agent repayments</p>
+        <p className="text-muted-foreground text-xs md:text-sm">Deposit USDC into the lending pool to earn yield from AI agent repayments</p>
       </motion.div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+      <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
         <StatCard label="Total TVL" value={formatUSD(pool.tvl)} icon={DollarSign} delay={0} />
-        <StatCard label="Senior APY" value={formatPercent(pool.seniorAPY)} icon={TrendingUp} sublabel="Low risk" delay={1} />
-        <StatCard label="Junior APY" value={formatPercent(pool.juniorAPY)} icon={TrendingUp} sublabel="Higher risk" delay={2} />
-        <StatCard label="Utilization" value={formatPercent(pool.utilizationRate)} icon={DollarSign} delay={3} />
+        <StatCard label="Pool APY" value={formatPercent(pool.apy)} icon={TrendingUp} delay={1} />
+        <StatCard label="Utilization" value={formatPercent(pool.utilizationRate)} icon={DollarSign} delay={2} />
       </div>
 
       <div className="grid md:grid-cols-5 gap-4 md:gap-6">
-        {/* Left: Tranche Selection + Position */}
+        {/* Left: Position */}
         <div className="md:col-span-3 space-y-4 md:space-y-6">
-          {/* Tranche Selection */}
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <TrancheCard
-              type="senior"
-              apy={pool.seniorAPY}
-              tvl={pool.tvl * 0.7}
-              description="First-loss protection, stable returns"
-              selected={selectedTranche === "senior"}
-              onSelect={() => setSelectedTranche("senior")}
-            />
-            <TrancheCard
-              type="junior"
-              apy={pool.juniorAPY}
-              tvl={pool.tvl * 0.3}
-              description="Higher yield, absorbs first losses"
-              selected={selectedTranche === "junior"}
-              onSelect={() => setSelectedTranche("junior")}
-            />
-          </div>
-
           {/* Your Position */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -150,33 +57,24 @@ export default function LendPage() {
             <Card className="data-card rounded-2xl border-primary/15">
               <CardHeader>
                 <CardTitle className="mono-text text-sm">
-                  Your {selectedTranche === "senior" ? "Senior" : "Junior"} Position
+                  Your Position
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={selectedTranche}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.2 }}
-                    className="grid grid-cols-3 gap-3 md:gap-4"
-                  >
-                    <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
-                      <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-1">lcUSDC Shares</div>
-                      <div className="text-base md:text-lg font-bold mono-text">{formatUSD(pos.shares)}</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
-                      <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-1">Current Value</div>
-                      <div className="text-base md:text-lg font-bold mono-text">{formatUSD(pos.value)}</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-                      <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-1">Earned</div>
-                      <div className="text-base md:text-lg font-bold mono-text text-emerald-400">+{formatUSD(pos.earned)}</div>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
+                <div className="grid grid-cols-3 gap-3 md:gap-4">
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-1">lcUSDC Shares</div>
+                    <div className="text-base md:text-lg font-bold mono-text">{formatUSD(userPosition.shares)}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-1">Current Value</div>
+                    <div className="text-base md:text-lg font-bold mono-text">{formatUSD(userPosition.value)}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                    <div className="text-[10px] md:text-xs text-muted-foreground mono-text mb-1">Earned</div>
+                    <div className="text-base md:text-lg font-bold mono-text text-emerald-400">+{formatUSD(userPosition.earned)}</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -229,7 +127,7 @@ export default function LendPage() {
                     />
                     <button
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary mono-text font-semibold hover:underline px-2 py-1 rounded-md hover:bg-primary/10 transition-colors"
-                      onClick={() => setAmount(action === "deposit" ? "10000" : String(pos.shares))}
+                      onClick={() => setAmount(action === "deposit" ? "10000" : String(userPosition.shares))}
                     >
                       MAX
                     </button>
@@ -238,12 +136,8 @@ export default function LendPage() {
 
                 <div className="space-y-2 text-xs mono-text p-3 rounded-xl bg-muted/20 border border-border/30">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tranche</span>
-                    <span className="text-foreground capitalize">{selectedTranche}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Current APY</span>
-                    <span className="text-primary">{formatPercent(currentAPY)}</span>
+                    <span className="text-primary">{formatPercent(pool.apy)}</span>
                   </div>
                   <AnimatePresence>
                     {action === "deposit" && amount && (
@@ -255,7 +149,7 @@ export default function LendPage() {
                       >
                         <span className="text-muted-foreground">Est. Annual Yield</span>
                         <span className="text-emerald-400 font-semibold">
-                          +{formatUSD(parseFloat(amount || "0") * (currentAPY / 100))}
+                          +{formatUSD(parseFloat(amount || "0") * (pool.apy / 100))}
                         </span>
                       </motion.div>
                     )}
@@ -367,52 +261,23 @@ export default function LendPage() {
                       />
                       <button
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-primary mono-text font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-primary/10"
-                        onClick={() => setAmount(action === "deposit" ? "10000" : String(pos.shares))}
+                        onClick={() => setAmount(action === "deposit" ? "10000" : String(userPosition.shares))}
                       >
                         MAX
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedTranche("senior")}
-                      className={`flex-1 py-3 px-4 rounded-xl text-sm mono-text font-medium transition-all flex items-center justify-center gap-2 min-h-[44px] ${
-                        selectedTranche === "senior"
-                          ? "bg-blue-500/10 border border-blue-500/30 text-blue-400"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <Shield className="w-4 h-4" />
-                      Senior
-                    </button>
-                    <button
-                      onClick={() => setSelectedTranche("junior")}
-                      className={`flex-1 py-3 px-4 rounded-xl text-sm mono-text font-medium transition-all flex items-center justify-center gap-2 min-h-[44px] ${
-                        selectedTranche === "junior"
-                          ? "bg-purple-500/10 border border-purple-500/30 text-purple-400"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <Zap className="w-4 h-4" />
-                      Junior
-                    </button>
-                  </div>
-
                   <div className="space-y-2 text-xs mono-text p-3 rounded-xl bg-muted/50 border border-border">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tranche</span>
-                      <span className="text-foreground capitalize">{selectedTranche}</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Current APY</span>
-                      <span className="text-primary">{formatPercent(currentAPY)}</span>
+                      <span className="text-primary">{formatPercent(pool.apy)}</span>
                     </div>
                     {action === "deposit" && amount && (
                       <div className="flex justify-between pt-2 border-t border-border/30">
                         <span className="text-muted-foreground">Est. Annual Yield</span>
                         <span className="text-emerald-400 font-semibold">
-                          +{formatUSD(parseFloat(amount || "0") * (currentAPY / 100))}
+                          +{formatUSD(parseFloat(amount || "0") * (pool.apy / 100))}
                         </span>
                       </div>
                     )}

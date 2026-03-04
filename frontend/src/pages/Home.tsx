@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ArrowRight, Bot, Shield, Zap, TrendingUp, Lock, Globe } from "lucide-react"
+import { ArrowRight, Bot, Shield, TrendingUp, Lock, Globe } from "lucide-react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { MOCK_POOL_DATA } from "@/lib/constants"
@@ -111,7 +111,7 @@ export default function Home() {
             {[
               { label: "TVL", value: formatUSD(MOCK_POOL_DATA.tvl) },
               { label: "Active Agents", value: formatCompact(MOCK_POOL_DATA.activeAgents) },
-              { label: "Senior APY", value: `${MOCK_POOL_DATA.seniorAPY}%` },
+              { label: "Pool APY", value: `${MOCK_POOL_DATA.apy}%` },
               { label: "Revenue Generated", value: formatUSD(MOCK_POOL_DATA.totalRevenue) },
             ].map((stat, i) => (
               <motion.div
@@ -212,7 +212,7 @@ export default function Home() {
                     <div className="relative z-10">
                       <div className="flex items-center mb-4 md:mb-6">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center mr-3">
-                          <Zap className="w-5 h-5 text-primary" />
+                          <TrendingUp className="w-5 h-5 text-primary" />
                         </div>
                         <h3 className="text-lg md:text-xl font-bold mono-text">For Lenders</h3>
                         <motion.div
@@ -224,16 +224,16 @@ export default function Home() {
                         </motion.div>
                       </div>
                       <p className="text-muted-foreground text-sm leading-relaxed mb-4 md:mb-6">
-                        Deposit USDC into Senior or Junior tranches. Earn yield from AI agent loan repayments with risk-adjusted returns.
+                        Deposit USDC into the lending pool. Earn yield from AI agent loan repayments with transparent risk metrics.
                       </p>
                       <div className="space-y-2 text-xs mono-text">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Senior APY</span>
-                          <span className="text-primary">{MOCK_POOL_DATA.seniorAPY}%</span>
+                          <span className="text-muted-foreground">Pool APY</span>
+                          <span className="text-primary">{MOCK_POOL_DATA.apy}%</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Junior APY</span>
-                          <span className="text-emerald-400">{MOCK_POOL_DATA.juniorAPY}%</span>
+                          <span className="text-muted-foreground">Utilization</span>
+                          <span className="text-emerald-400">{MOCK_POOL_DATA.utilizationRate}%</span>
                         </div>
                       </div>
                     </div>

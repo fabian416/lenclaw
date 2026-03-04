@@ -10,7 +10,6 @@ import { shortenAddress } from "@/lib/utils"
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/lend", label: "Lend" },
-  { to: "/market", label: "Market" },
   { to: "/agents", label: "Agents" },
   { to: "/borrow", label: "Borrow" },
 ]
