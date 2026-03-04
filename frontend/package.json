@@ -17,6 +17,8 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/vite": "^4.1.10",
     "@tanstack/react-query": "^5.60.0",
+    "@wagmi/connectors": "^5.7.0",
+    "@wagmi/core": "^2.16.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.12.1",
@@ -26,9 +28,7 @@
     "react-router-dom": "^7.9.3",
     "tailwind-merge": "^3.3.0",
     "viem": "^2.40.3",
-    "wagmi": "^2.12.0",
-    "@wagmi/core": "^2.16.0",
-    "@wagmi/connectors": "^5.7.0"
+    "wagmi": "^2.12.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.17",
@@ -37,6 +37,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
     "typescript": "~5.6.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vite-plugin-pwa": "^0.21.2"
   }
 }

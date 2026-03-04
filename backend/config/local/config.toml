@@ -25,3 +25,48 @@ chain_id = 8453
 
 [cors]
 allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
+
+# ---------- Worker System ---------- #
+
+[workers.redis]
+url = "redis://localhost:6379/0"
+max_connections = 20
+socket_timeout = 5.0
+socket_connect_timeout = 5.0
+
+[workers.queues]
+default = "lenclaw:default"
+revenue_sync = "lenclaw:revenue_sync"
+credit_scoring = "lenclaw:credit_scoring"
+monitoring = "lenclaw:monitoring"
+chain_sync = "lenclaw:chain_sync"
+dead_letter = "lenclaw:dead_letter"
+
+[workers.schedule]
+revenue_sync_interval = 300        # 5 minutes
+credit_scoring_interval = 3600     # 1 hour
+monitoring_interval = 900          # 15 minutes
+chain_sync_interval = 60           # 1 minute
+
+[workers.concurrency]
+revenue_sync = 4
+credit_scoring = 2
+monitoring = 2
+chain_sync = 4
+
+[workers.circuit_breaker]
+failure_threshold = 5
+recovery_timeout = 60.0
+half_open_max_calls = 3
+
+[workers.retry]
+max_retries = 5
+base_delay = 1.0
+max_delay = 60.0
+exponential_base = 2.0
+
+[workers.rate_limiter]
+rpc_rate = 10.0
+rpc_burst = 20
+api_rate = 50.0
+api_burst = 100

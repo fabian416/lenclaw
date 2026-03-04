@@ -1,0 +1,36 @@
+# Lenclaw ZK Prover - Python Dependencies
+#
+# Install: pip install -r requirements.txt
+#
+# Requires nargo CLI to be installed separately:
+#   curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+#   noirup
+
+# CLI framework
+click>=8.1.0,<9.0.0
+
+# JSON handling and data validation
+pydantic>=2.0.0,<3.0.0
+
+# Cryptographic primitives (Poseidon hash, field arithmetic)
+py_ecc>=7.0.0,<8.0.0
+
+# Web3 integration for on-chain submission
+web3>=6.0.0,<7.0.0
+
+# Hex encoding utilities
+eth-abi>=5.0.0,<6.0.0
+eth-utils>=4.0.0,<5.0.0
+
+# TOML config parsing
+toml>=0.10.0,<1.0.0
+
+# Testing
+pytest>=7.0.0,<9.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+
+# Type checking
+mypy>=1.0.0,<2.0.0
+
+# Rich console output
+rich>=13.0.0,<14.0.0

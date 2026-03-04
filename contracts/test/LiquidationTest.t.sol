@@ -1,0 +1,637 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test, console} from "forge-std/Test.sol";
+import {ERC20Mock} from "./mocks/ERC20Mock.sol";
+import {AgentRegistry} from "../src/AgentRegistry.sol";
+import {CreditScorer} from "../src/CreditScorer.sol";
+import {RevenueLockbox} from "../src/RevenueLockbox.sol";
+import {AgentCreditLine} from "../src/AgentCreditLine.sol";
+import {LenclawVault} from "../src/LenclawVault.sol";
+import {JuniorTranche} from "../src/JuniorTranche.sol";
+import {SeniorTranche} from "../src/SeniorTranche.sol";
+import {DutchAuction} from "../src/DutchAuction.sol";
+import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
+import {RecoveryManager} from "../src/RecoveryManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract LiquidationTest is Test {
+    ERC20Mock public usdc;
+    AgentRegistry public registry;
+    CreditScorer public scorer;
+    LenclawVault public vault;
+    AgentCreditLine public creditLine;
+    JuniorTranche public juniorTranche;
+    SeniorTranche public seniorTranche;
+    DutchAuction public dutchAuction;
+    LiquidationKeeper public keeper;
+    RecoveryManager public recoveryManager;
+
+    address public owner = address(this);
+    address public agentWallet = makeAddr("agent");
+    address public depositor = makeAddr("depositor");
+    address public keeperBot = makeAddr("keeperBot");
+    address public bidder = makeAddr("bidder");
+
+    uint256 public agentId;
+
+    function setUp() public {
+        // Deploy core contracts
+        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        registry = new AgentRegistry(owner);
+        vault = new LenclawVault(IERC20(address(usdc)), owner);
+        scorer = new CreditScorer(address(registry), owner);
+        creditLine = new AgentCreditLine(
+            address(usdc), address(registry), address(scorer), address(vault), owner
+        );
+
+        // Deploy tranches
+        juniorTranche = new JuniorTranche(IERC20(address(usdc)), address(vault), owner);
+        seniorTranche = new SeniorTranche(IERC20(address(usdc)), address(vault), owner);
+
+        // Deploy liquidation system (two-phase: deploy auction with temp address,
+        // then deploy manager, then update auction's recovery manager)
+        dutchAuction = new DutchAuction(address(usdc), address(this), owner);
+        recoveryManager = new RecoveryManager(
+            address(usdc),
+            address(dutchAuction),
+            address(registry),
+            address(juniorTranche),
+            address(seniorTranche),
+            address(vault),
+            owner
+        );
+        // Update the DutchAuction to point at the real RecoveryManager
+        dutchAuction.setRecoveryManager(address(recoveryManager));
+
+        keeper = new LiquidationKeeper(
+            address(creditLine),
+            address(registry),
+            address(usdc),
+            address(recoveryManager),
+            owner
+        );
+
+        // Wire up permissions
+        vault.authorizeBorrower(address(creditLine), true);
+        recoveryManager.setKeeper(address(keeper));
+
+        // Allow RecoveryManager to call JuniorTranche.absorbLoss()
+        juniorTranche.setVault(address(recoveryManager));
+
+        // Allow RecoveryManager to call registry.updateReputation()
+        registry.setProtocol(address(recoveryManager));
+
+        // Register agent with lockbox and revenue
+        bytes32 codeHash = keccak256("agent-code");
+        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent");
+        RevenueLockbox lockbox = new RevenueLockbox(
+            agentWallet, address(vault), agentId, address(usdc), 5000
+        );
+        registry.setLockbox(agentId, address(lockbox));
+
+        // Give lockbox revenue so credit line is non-zero
+        usdc.mint(address(lockbox), 50_000e6);
+        lockbox.processRevenue();
+
+        // Seed vault with liquidity
+        usdc.mint(depositor, 1_000_000e6);
+        vm.startPrank(depositor);
+        usdc.approve(address(vault), 1_000_000e6);
+        vault.deposit(1_000_000e6, depositor);
+        vm.stopPrank();
+
+        // Approve vault -> creditLine for drawdowns
+        vm.prank(address(vault));
+        usdc.approve(address(creditLine), type(uint256).max);
+
+        // Fund keeper bounty pool
+        usdc.mint(address(keeper), 10_000e6);
+
+        // Seed junior tranche with deposits (for loss absorption)
+        usdc.mint(depositor, 200_000e6);
+        vm.startPrank(depositor);
+        usdc.approve(address(juniorTranche), 200_000e6);
+        juniorTranche.deposit(200_000e6, depositor);
+        vm.stopPrank();
+
+        // Fund bidder
+        usdc.mint(bidder, 500_000e6);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  Helper: put agent into DEFAULT status
+    // ═══════════════════════════════════════════════════════════
+
+    function _defaultAgent(uint256 borrowAmount) internal {
+        creditLine.refreshCreditLine(agentId);
+
+        vm.prank(agentWallet);
+        creditLine.drawdown(agentId, borrowAmount);
+
+        // Warp past default period (30 days)
+        vm.warp(block.timestamp + 31 days);
+        creditLine.updateStatus(agentId);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  DutchAuction Tests
+    // ═══════════════════════════════════════════════════════════
+
+    function test_dutchAuction_createAuction() public {
+        // RecoveryManager or owner can create auctions
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
+        assertEq(auction.agentId, agentId);
+        assertEq(auction.debtAmount, 10_000e6);
+        assertEq(uint8(auction.status), uint8(DutchAuction.AuctionStatus.ACTIVE));
+
+        // Start price = 150% of debt
+        assertEq(auction.startPrice, 15_000e6);
+        // Min price = 30% of debt
+        assertEq(auction.minPrice, 3_000e6);
+    }
+
+    function test_dutchAuction_priceDecaysLinearly() public {
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        // At t=0, price should be startPrice
+        uint256 priceAtStart = dutchAuction.getCurrentPrice(auctionId);
+        assertEq(priceAtStart, 15_000e6);
+
+        // At t=duration/2, price should be midpoint
+        vm.warp(block.timestamp + 3 hours); // half of 6 hours
+        uint256 priceMid = dutchAuction.getCurrentPrice(auctionId);
+        // midpoint = startPrice - (startPrice - minPrice) / 2 = 15000 - 6000 = 9000
+        assertEq(priceMid, 9_000e6);
+
+        // At t=duration, price should be minPrice
+        vm.warp(block.timestamp + 3 hours);
+        uint256 priceEnd = dutchAuction.getCurrentPrice(auctionId);
+        assertEq(priceEnd, 3_000e6);
+    }
+
+    function test_dutchAuction_bidSettlesAuction() public {
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        // Warp 2 hours into auction
+        vm.warp(block.timestamp + 2 hours);
+        uint256 currentPrice = dutchAuction.getCurrentPrice(auctionId);
+        assertGt(currentPrice, 0);
+
+        // Bidder bids
+        vm.startPrank(bidder);
+        usdc.approve(address(dutchAuction), currentPrice);
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+
+        DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
+        assertEq(uint8(auction.status), uint8(DutchAuction.AuctionStatus.SETTLED));
+        assertEq(auction.buyer, bidder);
+        assertEq(auction.settledPrice, currentPrice);
+    }
+
+    function test_dutchAuction_cannotBidAfterExpiry() public {
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        // Warp past auction duration
+        vm.warp(block.timestamp + 7 hours);
+
+        vm.startPrank(bidder);
+        usdc.approve(address(dutchAuction), 15_000e6);
+        vm.expectRevert("DutchAuction: expired");
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+    }
+
+    function test_dutchAuction_markExpired() public {
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        // Cannot expire before duration
+        vm.expectRevert("DutchAuction: not yet expired");
+        dutchAuction.markExpired(auctionId);
+
+        // Warp past duration
+        vm.warp(block.timestamp + 7 hours);
+        dutchAuction.markExpired(auctionId);
+
+        DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
+        assertEq(uint8(auction.status), uint8(DutchAuction.AuctionStatus.EXPIRED));
+        assertFalse(dutchAuction.hasActiveAuction(agentId));
+    }
+
+    function test_dutchAuction_noDuplicateAuctions() public {
+        dutchAuction.createAuction(agentId, 10_000e6);
+
+        vm.expectRevert("DutchAuction: auction already active for agent");
+        dutchAuction.createAuction(agentId, 5_000e6);
+    }
+
+    function test_dutchAuction_onlyAuthorizedCanCreate() public {
+        vm.prank(makeAddr("random"));
+        vm.expectRevert("DutchAuction: not authorized");
+        dutchAuction.createAuction(agentId, 10_000e6);
+    }
+
+    function test_dutchAuction_setParameters() public {
+        dutchAuction.setParameters(20000, 12 hours, 5000);
+
+        // Create auction with new params
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+        DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
+
+        assertEq(auction.startPrice, 20_000e6);  // 200%
+        assertEq(auction.minPrice, 5_000e6);     // 50%
+        assertEq(auction.duration, 12 hours);
+    }
+
+    function test_dutchAuction_setParameters_onlyOwner() public {
+        vm.prank(makeAddr("nonOwner"));
+        vm.expectRevert();
+        dutchAuction.setParameters(20000, 12 hours, 5000);
+    }
+
+    function test_dutchAuction_getRemainingTime() public {
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        uint256 remaining = dutchAuction.getRemainingTime(auctionId);
+        assertEq(remaining, 6 hours);
+
+        vm.warp(block.timestamp + 2 hours);
+        remaining = dutchAuction.getRemainingTime(auctionId);
+        assertEq(remaining, 4 hours);
+
+        vm.warp(block.timestamp + 5 hours);
+        remaining = dutchAuction.getRemainingTime(auctionId);
+        assertEq(remaining, 0);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  LiquidationKeeper Tests
+    // ═══════════════════════════════════════════════════════════
+
+    function test_keeper_checkLiquidation_eligible() public {
+        _defaultAgent(5_000e6);
+
+        (bool eligible, uint256 debt) = keeper.checkLiquidation(agentId);
+        assertTrue(eligible);
+        assertGt(debt, 0);
+    }
+
+    function test_keeper_checkLiquidation_notDefaulted() public {
+        // Agent is ACTIVE, not defaulted
+        creditLine.refreshCreditLine(agentId);
+        vm.prank(agentWallet);
+        creditLine.drawdown(agentId, 1_000e6);
+
+        (bool eligible,) = keeper.checkLiquidation(agentId);
+        assertFalse(eligible);
+    }
+
+    function test_keeper_checkLiquidation_alreadyLiquidated() public {
+        _defaultAgent(5_000e6);
+
+        // Trigger first liquidation
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        // Should not be eligible again
+        (bool eligible,) = keeper.checkLiquidation(agentId);
+        assertFalse(eligible);
+    }
+
+    function test_keeper_triggerLiquidation_paysBounty() public {
+        _defaultAgent(5_000e6);
+
+        uint256 keeperBalanceBefore = usdc.balanceOf(keeperBot);
+        uint256 poolBalanceBefore = usdc.balanceOf(address(keeper));
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        uint256 keeperBalanceAfter = usdc.balanceOf(keeperBot);
+        assertGt(keeperBalanceAfter, keeperBalanceBefore, "Keeper should receive bounty");
+
+        // Bounty should be 1% of debt, capped at 1000e6
+        uint256 bountyPaid = keeperBalanceAfter - keeperBalanceBefore;
+        assertLe(bountyPaid, 1_000e6, "Bounty should be capped");
+    }
+
+    function test_keeper_triggerLiquidation_revertsIfNotEligible() public {
+        // Agent not defaulted yet
+        creditLine.refreshCreditLine(agentId);
+        vm.prank(agentWallet);
+        creditLine.drawdown(agentId, 1_000e6);
+
+        vm.prank(keeperBot);
+        vm.expectRevert("LiquidationKeeper: not eligible for liquidation");
+        keeper.triggerLiquidation(agentId);
+    }
+
+    function test_keeper_fundAndWithdrawBountyPool() public {
+        uint256 initialBalance = usdc.balanceOf(address(keeper));
+
+        // Fund more
+        usdc.mint(owner, 5_000e6);
+        usdc.approve(address(keeper), 5_000e6);
+        keeper.fundBountyPool(5_000e6);
+
+        assertEq(usdc.balanceOf(address(keeper)), initialBalance + 5_000e6);
+
+        // Withdraw
+        keeper.withdrawBountyPool(owner, 1_000e6);
+        assertEq(usdc.balanceOf(address(keeper)), initialBalance + 4_000e6);
+    }
+
+    function test_keeper_setKeeperBounty() public {
+        keeper.setKeeperBounty(200, 2_000e6);
+        assertEq(keeper.keeperBountyBps(), 200);
+        assertEq(keeper.maxBountyAmount(), 2_000e6);
+    }
+
+    function test_keeper_setKeeperBounty_tooHigh() public {
+        vm.expectRevert("LiquidationKeeper: bounty too high");
+        keeper.setKeeperBounty(600, 1_000e6); // > 5%
+    }
+
+    function test_keeper_setKeeperBounty_onlyOwner() public {
+        vm.prank(makeAddr("nonOwner"));
+        vm.expectRevert();
+        keeper.setKeeperBounty(200, 2_000e6);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  RecoveryManager Tests
+    // ═══════════════════════════════════════════════════════════
+
+    function test_recovery_startRecovery() public {
+        _defaultAgent(5_000e6);
+
+        uint256 debt = creditLine.getOutstanding(agentId);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        // Verify recovery was created
+        uint256 recoveryId = recoveryManager.getActiveRecovery(agentId);
+        assertGt(recoveryId, 0, "Recovery should be active");
+
+        RecoveryManager.RecoveryRecord memory record = recoveryManager.getRecovery(recoveryId);
+        assertEq(record.agentId, agentId);
+        assertEq(record.debtAmount, debt);
+        assertEq(uint8(record.status), uint8(RecoveryManager.RecoveryStatus.AUCTION_ACTIVE));
+    }
+
+    function test_recovery_finalizeAfterAuctionSettled() public {
+        _defaultAgent(5_000e6);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        uint256 recoveryId = recoveryManager.getActiveRecovery(agentId);
+        RecoveryManager.RecoveryRecord memory record = recoveryManager.getRecovery(recoveryId);
+        uint256 auctionId = record.auctionId;
+
+        // Bidder settles auction at current price
+        vm.warp(block.timestamp + 1 hours);
+        uint256 currentPrice = dutchAuction.getCurrentPrice(auctionId);
+
+        vm.startPrank(bidder);
+        usdc.approve(address(dutchAuction), currentPrice);
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+
+        // Finalize recovery
+        uint256 vaultBalanceBefore = usdc.balanceOf(address(vault));
+        recoveryManager.finalizeRecovery(recoveryId);
+        uint256 vaultBalanceAfter = usdc.balanceOf(address(vault));
+
+        // Proceeds should be forwarded to vault
+        assertEq(vaultBalanceAfter - vaultBalanceBefore, currentPrice);
+
+        record = recoveryManager.getRecovery(recoveryId);
+        assertEq(record.recoveredAmount, currentPrice);
+        assertGt(record.completedAt, 0);
+    }
+
+    function test_recovery_finalizeAfterAuctionExpired() public {
+        _defaultAgent(5_000e6);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        uint256 recoveryId = recoveryManager.getActiveRecovery(agentId);
+        RecoveryManager.RecoveryRecord memory record = recoveryManager.getRecovery(recoveryId);
+        uint256 auctionId = record.auctionId;
+
+        // Let auction expire
+        vm.warp(block.timestamp + 7 hours);
+        dutchAuction.markExpired(auctionId);
+
+        // Finalize recovery (write-off)
+        recoveryManager.finalizeRecovery(recoveryId);
+
+        record = recoveryManager.getRecovery(recoveryId);
+        assertEq(record.recoveredAmount, 0);
+        assertEq(uint8(record.status), uint8(RecoveryManager.RecoveryStatus.WRITE_OFF));
+        assertEq(record.lossAmount, record.debtAmount);
+    }
+
+    function test_recovery_lossDistributedToJunior() public {
+        _defaultAgent(5_000e6);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        uint256 recoveryId = recoveryManager.getActiveRecovery(agentId);
+        RecoveryManager.RecoveryRecord memory record = recoveryManager.getRecovery(recoveryId);
+        uint256 auctionId = record.auctionId;
+
+        // Bidder buys at min price (partial recovery)
+        vm.warp(block.timestamp + 6 hours);
+        uint256 currentPrice = dutchAuction.getCurrentPrice(auctionId);
+
+        vm.startPrank(bidder);
+        usdc.approve(address(dutchAuction), currentPrice);
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+
+        // Finalize
+        recoveryManager.finalizeRecovery(recoveryId);
+
+        record = recoveryManager.getRecovery(recoveryId);
+
+        // Should be partial recovery
+        assertEq(uint8(record.status), uint8(RecoveryManager.RecoveryStatus.PARTIAL_RECOVERY));
+        assertGt(record.lossAmount, 0);
+        // Junior absorbs losses first
+        assertGt(record.juniorLoss, 0);
+    }
+
+    function test_recovery_reputationSlashedOnDefault() public {
+        // Get initial reputation
+        IAgentRegistry.AgentProfile memory profileBefore = registry.getAgent(agentId);
+        uint256 repBefore = profileBefore.reputationScore;
+
+        _defaultAgent(5_000e6);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        // Reputation should be slashed
+        IAgentRegistry.AgentProfile memory profileAfter = registry.getAgent(agentId);
+        assertLt(profileAfter.reputationScore, repBefore, "Reputation should decrease");
+    }
+
+    function test_recovery_aggregateStats() public {
+        _defaultAgent(5_000e6);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        uint256 totalDebt = recoveryManager.totalDebtProcessed();
+        assertGt(totalDebt, 0, "Should track total debt");
+    }
+
+    function test_recovery_onlyKeeperOrOwnerCanStart() public {
+        vm.prank(makeAddr("random"));
+        vm.expectRevert("RecoveryManager: not authorized");
+        recoveryManager.startRecovery(agentId, 10_000e6);
+    }
+
+    function test_recovery_overallRecoveryRate() public {
+        // Initially zero
+        uint256 rate = recoveryManager.overallRecoveryRate();
+        assertEq(rate, 0);
+    }
+
+    function test_recovery_noDuplicateRecovery() public {
+        _defaultAgent(5_000e6);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        // Try to start another recovery for same agent
+        vm.expectRevert("RecoveryManager: recovery already active");
+        recoveryManager.startRecovery(agentId, 5_000e6);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  Integration: Full Liquidation Flow
+    // ═══════════════════════════════════════════════════════════
+
+    function test_fullLiquidationFlow() public {
+        // 1. Agent borrows
+        creditLine.refreshCreditLine(agentId);
+        vm.prank(agentWallet);
+        creditLine.drawdown(agentId, 10_000e6);
+
+        // 2. Agent defaults (no repayment for 31+ days)
+        vm.warp(block.timestamp + 31 days);
+        creditLine.updateStatus(agentId);
+        assertEq(uint8(creditLine.getStatus(agentId)), uint8(AgentCreditLine.Status.DEFAULT));
+
+        // 3. Keeper detects default and triggers liquidation
+        (bool eligible,) = keeper.checkLiquidation(agentId);
+        assertTrue(eligible, "Agent should be eligible for liquidation");
+
+        uint256 keeperBalBefore = usdc.balanceOf(keeperBot);
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+        uint256 keeperBounty = usdc.balanceOf(keeperBot) - keeperBalBefore;
+        assertGt(keeperBounty, 0, "Keeper should receive bounty");
+
+        // 4. Dutch auction is running
+        uint256 recoveryId = recoveryManager.getActiveRecovery(agentId);
+        RecoveryManager.RecoveryRecord memory record = recoveryManager.getRecovery(recoveryId);
+        uint256 auctionId = record.auctionId;
+        assertTrue(dutchAuction.hasActiveAuction(agentId));
+
+        // 5. Bidder purchases the position at current price (after 2 hours)
+        vm.warp(block.timestamp + 2 hours);
+        uint256 bidPrice = dutchAuction.getCurrentPrice(auctionId);
+        assertGt(bidPrice, 0);
+
+        vm.startPrank(bidder);
+        usdc.approve(address(dutchAuction), bidPrice);
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+
+        assertFalse(dutchAuction.hasActiveAuction(agentId));
+
+        // 6. Recovery manager finalizes and distributes proceeds
+        uint256 vaultBalBefore = usdc.balanceOf(address(vault));
+        recoveryManager.finalizeRecovery(recoveryId);
+        uint256 vaultBalAfter = usdc.balanceOf(address(vault));
+
+        assertEq(vaultBalAfter - vaultBalBefore, bidPrice, "Vault should receive proceeds");
+
+        record = recoveryManager.getRecovery(recoveryId);
+        assertGt(record.completedAt, 0, "Recovery should be completed");
+        assertGt(recoveryManager.totalAmountRecovered(), 0);
+
+        // 7. Verify reputation was slashed
+        IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
+        assertLt(profile.reputationScore, 500, "Reputation should be slashed from 500");
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  Edge Cases
+    // ═══════════════════════════════════════════════════════════
+
+    function test_auctionBidAtExactEndTime() public {
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        // Warp to exactly the end time
+        vm.warp(block.timestamp + 6 hours);
+
+        uint256 price = dutchAuction.getCurrentPrice(auctionId);
+        assertEq(price, 3_000e6, "Should be at min price at exact end");
+
+        // Bid should still work at exact end time
+        vm.startPrank(bidder);
+        usdc.approve(address(dutchAuction), price);
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+
+        DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
+        assertEq(uint8(auction.status), uint8(DutchAuction.AuctionStatus.SETTLED));
+    }
+
+    function test_cannotFinalizeWhileAuctionActive() public {
+        _defaultAgent(5_000e6);
+
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        uint256 recoveryId = recoveryManager.getActiveRecovery(agentId);
+
+        // Auction is still active, cannot finalize
+        vm.expectRevert("RecoveryManager: auction still active");
+        recoveryManager.finalizeRecovery(recoveryId);
+    }
+
+    function test_zeroDebtCannotCreateAuction() public {
+        vm.expectRevert("DutchAuction: zero debt");
+        dutchAuction.createAuction(agentId, 0);
+    }
+
+    function test_auctionProceedsGoToRecoveryManager() public {
+        uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
+
+        uint256 rmBalBefore = usdc.balanceOf(address(recoveryManager));
+
+        vm.startPrank(bidder);
+        uint256 price = dutchAuction.getCurrentPrice(auctionId);
+        usdc.approve(address(dutchAuction), price);
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+
+        uint256 rmBalAfter = usdc.balanceOf(address(recoveryManager));
+        assertEq(rmBalAfter - rmBalBefore, price, "Proceeds go to RecoveryManager");
+    }
+}
+
+// Needed to import the interface used in the test
+import {IAgentRegistry} from "../src/interfaces/IAgentRegistry.sol";

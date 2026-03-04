@@ -1,0 +1,35 @@
+{
+  "name": "@lenclaw/tee-attestation-service",
+  "version": "0.1.0",
+  "description": "TEE attestation service for Lenclaw agent code integrity verification",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "lint": "eslint src/ --ext .ts",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "ethers": "^6.13.0",
+    "node-cron": "^3.0.3",
+    "winston": "^3.14.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.5.0",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "eslint": "^9.9.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.12",
+    "ts-jest": "^29.2.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

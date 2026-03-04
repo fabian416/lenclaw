@@ -30,6 +30,9 @@ dependencies = [
     "httpx>=0.28.0",
     "orjson>=3.10.0",
     "python-multipart>=0.0.18",
+    "redis[hiredis]>=5.0.0",
+    "structlog>=24.1.0",
+    "prometheus-client>=0.21.0",
 ]
 
 [project.optional-dependencies]

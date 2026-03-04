@@ -1,0 +1,62 @@
+# =============================================================================
+# Docker ignore - Exclude from build context
+# =============================================================================
+
+# Version control
+.git
+.gitignore
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Node
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.local
+
+# Python
+backend/__pycache__
+backend/**/__pycache__
+backend/**/*.pyc
+backend/.mypy_cache
+backend/.pytest_cache
+backend/.ruff_cache
+backend/htmlcov
+backend/.coverage
+**/__pycache__
+**/*.pyc
+
+# Foundry / Contracts
+contracts/out
+contracts/cache
+contracts/lib
+
+# Infrastructure (don't include in app builds)
+.github
+.claude
+
+# Misc
+*.md
+!frontend/README.md
+!backend/README.md
+.env
+.env.*
+!.env.example
+docker-compose*.yml
+Caddyfile
+Makefile
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agent directories
+agents/
+bridge/
+tee/
+zk/

@@ -1,0 +1,96 @@
+# =============================================================================
+# Lenclaw - Dev Override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Caddy - Dev: use localhost, no HTTPS
+  # ---------------------------------------------------------------------------
+  caddy:
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    deploy:
+      resources:
+        limits:
+          memory: 0
+          cpus: "0"
+
+  # ---------------------------------------------------------------------------
+  # Frontend - Dev: Vite dev server with hot reload (replaces nginx)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 0
+          cpus: "0"
+
+  # ---------------------------------------------------------------------------
+  # Backend - Dev: uvicorn with --reload, volume mount for hot reload
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: base
+    command: ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/config:/app/config
+      - ./backend/tests:/app/tests
+      - ./backend/alembic.ini:/app/alembic.ini
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=local
+      - DEBUG=true
+    deploy:
+      resources:
+        limits:
+          memory: 0
+          cpus: "0"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL - Dev: expose port for local tooling
+  # ---------------------------------------------------------------------------
+  postgres:
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 0
+          cpus: "0"
+
+  # ---------------------------------------------------------------------------
+  # Redis - Dev: expose port for local tooling
+  # ---------------------------------------------------------------------------
+  redis:
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 0
+          cpus: "0"
