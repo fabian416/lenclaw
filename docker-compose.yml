@@ -35,7 +35,7 @@ services:
   # Frontend - React SPA served by nginx
   # ---------------------------------------------------------------------------
   frontend:
-    image: ghcr.io/${GITHUB_OWNER:-lucholeonel}/lenclaw/frontend:${IMAGE_VERSION:-production}
+    image: ghcr.io/lucholeonel/lenclaw/frontend:production
     container_name: lenclaw_frontend
     restart: always
     networks:
@@ -55,7 +55,7 @@ services:
   # Backend - FastAPI + Gunicorn/Uvicorn
   # ---------------------------------------------------------------------------
   backend:
-    image: ghcr.io/${GITHUB_OWNER:-lucholeonel}/lenclaw/backend:${IMAGE_VERSION:-production}
+    image: ghcr.io/lucholeonel/lenclaw/backend:production
     container_name: lenclaw_backend
     restart: always
     command: >

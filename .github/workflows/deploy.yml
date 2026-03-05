@@ -6,8 +6,8 @@
 name: Build & Deploy
 
 env:
-  IMAGE_TAG_BACKEND: ghcr.io/${{ github.repository_owner }}/lenclaw/backend
-  IMAGE_TAG_FRONTEND: ghcr.io/${{ github.repository_owner }}/lenclaw/frontend
+  IMAGE_TAG_BACKEND: ghcr.io/lucholeonel/lenclaw/backend
+  IMAGE_TAG_FRONTEND: ghcr.io/lucholeonel/lenclaw/frontend
   IMAGE_VERSION: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
 on:
