@@ -1,13 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#ffffff"/>
-  <!-- Door body - rectangular, sharp corners -->
-  <rect x="96" y="31" width="301" height="430" rx="16" fill="#ea580c"/>
-  <!-- Doorknob -->
-  <circle cx="354" cy="256" r="25" fill="white" opacity="0.9"/>
-  <!-- Three claw marks -->
-  <path d="M144 400 Q190 240 173 82" stroke="white" stroke-width="43" stroke-linecap="round" fill="none"/>
-  <path d="M224 404 Q256 230 248 82" stroke="white" stroke-width="43" stroke-linecap="round" fill="none"/>
-  <path d="M302 400 Q298 216 312 82" stroke="white" stroke-width="43" stroke-linecap="round" fill="none"/>
-  <!-- Floor line extending right -->
-  <line x1="384" y1="447" x2="496" y2="447" stroke="#ea580c" stroke-width="40" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#ffffff"/>
+  <rect x="6" y="2" width="19" height="27" rx="1" fill="#ea580c"/>
+  <circle cx="22" cy="16" r="1.6" fill="white" opacity="0.9"/>
+  <path d="M9 25 Q12 15 11 5" stroke="white" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+  <path d="M14 25.5 Q16 14.5 15.5 5" stroke="white" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+  <path d="M19 25 Q18.5 13.5 19.5 5" stroke="white" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+  <line x1="24" y1="27.5" x2="31.5" y2="27.5" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
 </svg>
