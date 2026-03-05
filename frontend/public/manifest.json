@@ -4,8 +4,8 @@
   "description": "Credit Infrastructure for AI Agents — Revenue-backed credit lines for autonomous AI agents",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#8b5cf6",
-  "background_color": "#0a0e1a",
+  "theme_color": "#ea580c",
+  "background_color": "#0a0a0a",
   "orientation": "portrait-primary",
   "categories": ["finance", "defi"],
   "icons": [

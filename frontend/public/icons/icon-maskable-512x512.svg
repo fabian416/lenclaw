@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Maskable icon with safe zone padding (inner 80%) -->
-  <rect width="512" height="512" fill="#0a0e1a"/>
-  <circle cx="192" cy="218" r="32" fill="#8b5cf6"/>
-  <circle cx="320" cy="218" r="32" fill="#8b5cf6"/>
-  <path d="M170 290 Q256 352 342 290" stroke="#8b5cf6" stroke-width="14" fill="none" stroke-linecap="round"/>
-  <rect x="128" y="134" width="256" height="10" rx="5" fill="#8b5cf6" opacity="0.25"/>
-  <circle cx="256" cy="112" r="10" fill="#8b5cf6" opacity="0.4"/>
+  <!-- Maskable icon - safe zone padding (inner 80%) -->
+  <rect width="512" height="512" fill="#0a0a0a"/>
+  <!-- Three claw marks (centered in safe zone) -->
+  <path d="M166 374 Q192 256 230 138" stroke="#ea580c" stroke-width="38" stroke-linecap="round" fill="none"/>
+  <path d="M230 374 Q256 256 288 138" stroke="#ea580c" stroke-width="38" stroke-linecap="round" fill="none"/>
+  <path d="M288 374 Q318 256 348 138" stroke="#ea580c" stroke-width="38" stroke-linecap="round" fill="none"/>
+  <!-- Inner glow -->
+  <path d="M166 374 Q192 256 230 138" stroke="#f97316" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.4"/>
+  <path d="M230 374 Q256 256 288 138" stroke="#f97316" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.4"/>
+  <path d="M288 374 Q318 256 348 138" stroke="#f97316" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.4"/>
 </svg>
