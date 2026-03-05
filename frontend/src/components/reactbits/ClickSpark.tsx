@@ -26,16 +26,16 @@ export function ClickSpark({
       const rect = e.currentTarget.getBoundingClientRect()
       const x = e.clientX - rect.left
       const y = e.clientY - rect.top
-      const radius = 28
+      const distance = 28
 
       const newSparks = Array.from({ length: sparkCount }, (_, i) => {
-        const angle = ((360 / sparkCount) * i * Math.PI) / 180
+        const angle = (i / sparkCount) * 2 * Math.PI
         return {
           id: Date.now() + i,
           x,
           y,
-          tx: Math.cos(angle) * radius,
-          ty: Math.sin(angle) * radius,
+          tx: Math.cos(angle) * distance,
+          ty: Math.sin(angle) * distance,
         }
       })
 
@@ -60,18 +60,12 @@ export function ClickSpark({
             width: 4,
             height: 4,
             backgroundColor: sparkColor,
-            "--spark-tx": `${spark.tx}px`,
-            "--spark-ty": `${spark.ty}px`,
+            "--tx": `${spark.tx}px`,
+            "--ty": `${spark.ty}px`,
             animation: "spark-fly 0.5s ease-out forwards",
           } as React.CSSProperties}
         />
       ))}
-      <style>{`
-        @keyframes spark-fly {
-          0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          100% { opacity: 0; transform: translate(calc(-50% + var(--spark-tx)), calc(-50% + var(--spark-ty))) scale(0); }
-        }
-      `}</style>
     </div>
   )
 }

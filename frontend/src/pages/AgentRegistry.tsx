@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import type { AgentStatus } from "@/lib/types"
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
-import { ScrollFloat } from "@/components/reactbits/ScrollFloat"
+import { TextScramble } from "@/components/reactbits/TextScramble"
 
 function ReputationScore({ score }: { score: number }) {
   const getColor = (s: number) => {
@@ -49,14 +49,14 @@ export default function AgentRegistry() {
       className="max-w-6xl mx-auto px-6 py-8 md:py-12"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 md:mb-10">
-        <ScrollFloat>
+        <AnimatedContent>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-white">Agent Registry</h1>
             <p className="text-white/50 text-sm">
               Browse registered AI agents with on-chain identity and credit history
             </p>
           </div>
-        </ScrollFloat>
+        </AnimatedContent>
         <Button asChild className="w-full md:w-auto bg-[#14f195] text-black font-semibold hover:bg-[#14f195]/90 rounded-lg">
           <Link to="/agents/onboard" className="flex items-center justify-center gap-2">
             <Plus className="w-4 h-4" />
@@ -149,7 +149,7 @@ export default function AgentRegistry() {
 
                   {/* Footer */}
                   <div className="flex items-center justify-between text-xs text-white/30 pt-3 border-t border-white/[0.06]">
-                    <span className="mono-text">{shortenAddress(agent.walletAddress)}</span>
+                    <TextScramble text={shortenAddress(agent.walletAddress)} trigger="mount" speed={40} />
                     <span>Since {formatDate(agent.registeredAt)}</span>
                   </div>
                 </SpotlightCard>

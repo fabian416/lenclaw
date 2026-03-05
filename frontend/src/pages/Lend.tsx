@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
 import { Magnet } from "@/components/reactbits/Magnet"
 import { ClickSpark } from "@/components/reactbits/ClickSpark"
+import { SpotlightButton } from "@/components/reactbits/SpotlightButton"
+import { BorderBeam } from "@/components/reactbits/BorderBeam"
 
 export default function LendPage() {
   const [amount, setAmount] = useState("")
@@ -71,6 +73,7 @@ export default function LendPage() {
 
         {/* Right: Deposit/Withdraw Form -- desktop */}
         <div className="hidden md:block md:col-span-2">
+          <BorderBeam duration={8}>
           <SpotlightCard className="p-6 sticky top-24">
             <div className="flex gap-1 w-full p-1 bg-white/[0.04] rounded-lg mb-5">
               <button
@@ -109,7 +112,7 @@ export default function LendPage() {
                     className="pr-16 text-lg h-12 mono-text bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
                   />
                   <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#14f195] font-semibold hover:underline px-2 py-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#14f195] font-semibold hover:text-[#14f195]/70 px-2 py-1 transition-colors duration-200"
                     onClick={() => setAmount(action === "deposit" ? "10000" : String(userPosition.shares))}
                   >
                     MAX
@@ -141,23 +144,24 @@ export default function LendPage() {
 
               <Magnet strength={0.15}>
                 <ClickSpark>
-                  <Button className="w-full font-semibold h-11 bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg" size="lg">
+                  <SpotlightButton className="w-full font-semibold h-11 px-4 py-2.5 bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg cursor-pointer text-sm">
                     {action === "deposit" ? (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center justify-center gap-2">
                         <ArrowDownToLine className="w-4 h-4" />
                         Deposit USDC
                       </span>
                     ) : (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center justify-center gap-2">
                         <ArrowUpFromLine className="w-4 h-4" />
                         Withdraw
                       </span>
                     )}
-                  </Button>
+                  </SpotlightButton>
                 </ClickSpark>
               </Magnet>
             </div>
           </SpotlightCard>
+          </BorderBeam>
         </div>
       </div>
 
@@ -242,7 +246,7 @@ export default function LendPage() {
                         inputMode="decimal"
                       />
                       <button
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#14f195] font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#14f195] font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-[#14f195]/70 transition-colors duration-200"
                         onClick={() => setAmount(action === "deposit" ? "10000" : String(userPosition.shares))}
                       >
                         MAX

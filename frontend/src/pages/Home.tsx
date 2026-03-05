@@ -5,15 +5,18 @@ import { motion } from "framer-motion"
 import { MOCK_POOL_DATA } from "@/lib/constants"
 import { SplitText } from "@/components/reactbits/SplitText"
 import { ShinyText } from "@/components/reactbits/ShinyText"
-import { CountUp } from "@/components/reactbits/CountUp"
 import { Aurora } from "@/components/reactbits/Aurora"
 import { Squares } from "@/components/reactbits/Squares"
 import { RotatingText } from "@/components/reactbits/RotatingText"
 import { TiltedCard } from "@/components/reactbits/TiltedCard"
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
-import { StarBorder } from "@/components/reactbits/StarBorder"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
 import { Marquee } from "@/components/reactbits/Marquee"
+
+import { NumberTicker } from "@/components/reactbits/NumberTicker"
+import { TextReveal } from "@/components/reactbits/TextReveal"
+import { SpotlightButton } from "@/components/reactbits/SpotlightButton"
+import { BorderBeam } from "@/components/reactbits/BorderBeam"
 
 export default function Home() {
   return (
@@ -58,14 +61,14 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="flex flex-col sm:flex-row gap-3 mt-10 relative z-10"
           >
-            <StarBorder>
-              <Button asChild size="lg" className="font-semibold bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg">
-                <Link to="/lend" className="flex items-center gap-2">
+            <Link to="/lend">
+              <SpotlightButton className="font-semibold bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg px-6 py-2.5 text-sm cursor-pointer">
+                <span className="flex items-center gap-2">
                   Deposit USDC
                   <ArrowRight className="w-4 h-4" />
-                </Link>
-              </Button>
-            </StarBorder>
+                </span>
+              </SpotlightButton>
+            </Link>
             <Button asChild variant="outline" size="lg" className="font-medium border-white/20 hover:border-[#14f195]/50 bg-transparent text-white rounded-lg">
               <Link to="/agents/onboard" className="flex items-center gap-2">
                 <Bot className="w-4 h-4" />
@@ -74,30 +77,38 @@ export default function Home() {
             </Button>
           </motion.div>
 
-          {/* Stats with CountUp */}
+          {/* Stats with NumberTicker */}
           <AnimatedContent delay={0.3} className="relative z-10">
-            <div className="mt-20 md:mt-28 grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.06] rounded-xl overflow-hidden border border-white/[0.08]">
-              {[
-                { label: "TVL", value: MOCK_POOL_DATA.tvl, prefix: "$", format: true },
-                { label: "Active Agents", value: MOCK_POOL_DATA.activeAgents, prefix: "", format: false },
-                { label: "Pool APY", value: MOCK_POOL_DATA.apy, suffix: "%", decimals: 1 },
-                { label: "Revenue Generated", value: MOCK_POOL_DATA.totalRevenue, prefix: "$", format: true },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-[#0a0a0a] p-5 md:p-6">
-                  <div className="text-[10px] text-white/40 mb-2 uppercase tracking-widest">{stat.label}</div>
-                  <div className="text-xl md:text-2xl font-semibold mono-text text-white">
-                    <CountUp
-                      target={stat.value}
-                      prefix={stat.prefix || ""}
-                      suffix={stat.suffix || ""}
-                      decimals={stat.decimals || 0}
-                      duration={2}
-                    />
+            <BorderBeam duration={8}>
+              <div className="mt-20 md:mt-28 grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.06] rounded-xl overflow-hidden border border-white/[0.08]">
+                {[
+                  { label: "TVL", value: MOCK_POOL_DATA.tvl, prefix: "$" },
+                  { label: "Active Agents", value: MOCK_POOL_DATA.activeAgents },
+                  { label: "Pool APY", value: MOCK_POOL_DATA.apy, suffix: "%" },
+                  { label: "Revenue Generated", value: MOCK_POOL_DATA.totalRevenue, prefix: "$" },
+                ].map((stat) => (
+                  <div key={stat.label} className="bg-[#0a0a0a] p-5 md:p-6">
+                    <div className="text-[10px] text-white/40 mb-2 uppercase tracking-widest">{stat.label}</div>
+                    <div className="text-xl md:text-2xl font-semibold mono-text text-white">
+                      <NumberTicker
+                        value={stat.value}
+                        prefix={stat.prefix || ""}
+                        suffix={stat.suffix || ""}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </BorderBeam>
           </AnimatedContent>
+        </section>
+
+        {/* Mission Statement */}
+        <section className="pb-16 md:pb-24">
+          <TextReveal
+            text="Building the credit infrastructure for the autonomous economy. Every agent should have access to capital."
+            className="max-w-3xl"
+          />
         </section>
 
         {/* How It Works */}
@@ -227,21 +238,33 @@ export default function Home() {
         {/* Marquee */}
         <section className="pb-16 md:pb-24">
           <Marquee speed={25} pauseOnHover className="py-4 text-white/20 text-sm font-medium tracking-widest uppercase">
-            <span>Base</span>
+            <span>Protocol Revenue: <span className="text-[#14f195]/40">$2.4M+</span></span>
             <span className="text-[#14f195]/30">&#x2022;</span>
-            <span>Arbitrum</span>
+            <span>Active Agents: <span className="text-[#14f195]/40">847</span></span>
             <span className="text-[#14f195]/30">&#x2022;</span>
-            <span>Optimism</span>
+            <span>TVL: <span className="text-[#14f195]/40">$12M+</span></span>
             <span className="text-[#14f195]/30">&#x2022;</span>
-            <span>Ethereum</span>
+            <span>Avg APY: <span className="text-[#14f195]/40">12.4%</span></span>
             <span className="text-[#14f195]/30">&#x2022;</span>
-            <span>Base</span>
+            <span>Loans Originated: <span className="text-[#14f195]/40">$8.2M+</span></span>
             <span className="text-[#14f195]/30">&#x2022;</span>
-            <span>Arbitrum</span>
+            <span>Avg Credit Score: <span className="text-[#14f195]/40">782</span></span>
             <span className="text-[#14f195]/30">&#x2022;</span>
-            <span>Optimism</span>
+            <span>Default Rate: <span className="text-[#14f195]/40">2.1%</span></span>
             <span className="text-[#14f195]/30">&#x2022;</span>
-            <span>Ethereum</span>
+            <span>Protocol Revenue: <span className="text-[#14f195]/40">$2.4M+</span></span>
+            <span className="text-[#14f195]/30">&#x2022;</span>
+            <span>Active Agents: <span className="text-[#14f195]/40">847</span></span>
+            <span className="text-[#14f195]/30">&#x2022;</span>
+            <span>TVL: <span className="text-[#14f195]/40">$12M+</span></span>
+            <span className="text-[#14f195]/30">&#x2022;</span>
+            <span>Avg APY: <span className="text-[#14f195]/40">12.4%</span></span>
+            <span className="text-[#14f195]/30">&#x2022;</span>
+            <span>Loans Originated: <span className="text-[#14f195]/40">$8.2M+</span></span>
+            <span className="text-[#14f195]/30">&#x2022;</span>
+            <span>Avg Credit Score: <span className="text-[#14f195]/40">782</span></span>
+            <span className="text-[#14f195]/30">&#x2022;</span>
+            <span>Default Rate: <span className="text-[#14f195]/40">2.1%</span></span>
           </Marquee>
         </section>
       </main>

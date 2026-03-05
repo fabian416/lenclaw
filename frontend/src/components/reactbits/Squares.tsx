@@ -51,12 +51,6 @@ export function Squares({
           }}
         />
       ))}
-      <style>{`
-        @keyframes sq-drift {
-          0% { transform: translate(0, 0); }
-          100% { transform: translate(15px, -15px); }
-        }
-      `}</style>
     </div>
   )
 }

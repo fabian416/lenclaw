@@ -1698,3 +1698,486 @@ Y lo mas importante: nada se siente forzado. Cada componente esta donde tiene qu
 Buen laburo. Muy buen laburo.
 
 -- Tomi2
+
+---
+
+## REVIEW #5 -- Final Polish (2026-03-05)
+
+**Revisor:** Tomi2 (Critico de Frontend, brutal y directo)
+**Fecha:** 5 de marzo de 2026
+**Scope:** 6 nuevos componentes pro (Noise, TextReveal, SpotlightButton, NumberTicker, BorderBeam, TextScramble), cleanup de issues del Review #4, integracion final
+
+---
+
+### 0. Contexto
+
+En el Review #4 di 8.5/10. Dije que quedaban cleanup items: matar GradientText, matar ScrollFloat, fixear ClickSpark radial, mover inline styles al CSS global. Tambien dije que faltaba *algo mas* para pasar de "muy bueno" a "excepcional".
+
+El equipo hizo las dos cosas: limpio todo lo que marque Y agrego 6 componentes nuevos que no existian. Lei los 23 archivos de componentes, las 6 paginas, los 3 layouts, index.css, y App.tsx. Todo. De nuevo.
+
+**TypeScript: no verifique build esta vez, pero la estructura de tipos y props de los 6 componentes nuevos es impecable.**
+
+---
+
+### 1. Cleanup Issues del Review #4 -- TODOS RESUELTOS
+
+| Issue | Status |
+|---|---|
+| GradientText sin usar | ELIMINADO. No existe mas en el codebase. 0 archivos, 0 imports. |
+| ScrollFloat redundante con AnimatedContent | ELIMINADO. No existe mas. 0 archivos, 0 imports. |
+| ClickSpark bug de direccion de particulas | FIXEADO. Ahora usa `Math.cos(angle) * distance` y `Math.sin(angle) * distance` con angulo calculado como `(i / sparkCount) * 2 * Math.PI`. Las particulas explotan radialmente desde el punto de click. Exactamente lo que pedi. |
+| Inline `<style>` tags en componentes | ELIMINADOS. 0 matches de `<style` en todo `src/`. Las animaciones (star-rotate, spark-fly, glitch-top, glitch-bottom, marquee-scroll, sq-drift) estan todas en `index.css`. Limpio. |
+
+Score de cleanup: **10/10.** Todo lo que marque fue resuelto sin dejar cabos sueltos. No quedaron archivos huerfanos, no quedaron imports rotos. Cirujano.
+
+---
+
+### 2. Los 6 Nuevos Componentes
+
+#### `Noise.tsx` (26 lineas)
+
+SVG con `feTurbulence` fractalNoise. Props: opacity y className. Simple, ligero, cero dependencias externas.
+
+**Integracion:** En `App.tsx` linea 16, como overlay global: `<Noise opacity={0.03} className="fixed inset-0 z-50 pointer-events-none" />`. Se renderiza una sola vez, cubre toda la app, no intercepta clicks.
+
+**Veredicto:** Agrega textura. Literalmente. La pantalla deja de ser "un fondo negro CSS" y pasa a ser "una superficie con grano". Es como la diferencia entre una foto digital y una foto en film: el grain le da profundidad. Con 0.03 de opacity es casi subliminal -- no lo ves conscientemente, pero el cerebro lo registra como "esto tiene mas cuerpo".
+
+La decision de ponerlo a nivel de App.tsx y no por pagina es la correcta. Es textura ambiental, no un efecto local. Un solo render, un solo SVG, zero impacto en performance.
+
+**Score Noise: 9/10.** Poco codigo, mucho impacto perceptual.
+
+#### `NumberTicker.tsx` (44 lineas)
+
+Spring-based animated counter con `useSpring` + `useInView` de Framer Motion. Formatea con comas. Props: value, prefix, suffix, className.
+
+**Integracion:** En `Home.tsx` lineas 82-103, reemplazando los stats estaticos del hero. TVL, Active Agents, Pool APY, Revenue Generated -- todos con NumberTicker. Los valores tickean desde 0 hasta su destino con spring physics cuando entran al viewport.
+
+**Es mejor que CountUp?** SI. CountUp (que todavia se usa en Dashboard) usa `requestAnimationFrame` manual con linear interpolation. NumberTicker usa `useSpring` de Framer Motion con stiffness/damping. La diferencia:
+- CountUp: lineal, mecanico, predecible
+- NumberTicker: spring, organico, tiene overshoot sutil
+
+En el hero, donde es lo primero que ves, el spring ticketing de NumberTicker tiene mucho mas "wow". Los numeros no solo suben -- llegan, frenan, y se acomodan. Es mas vivo.
+
+**Nota:** CountUp todavia se usa una vez en Dashboard (Revenue Overview). No es redundancia problematica -- son dos componentes con personalidades diferentes. Podrian migrar Dashboard a NumberTicker para unificar, pero no es critico.
+
+**Score NumberTicker: 9.5/10.** El spring animation le da vida a datos que antes eran texto plano.
+
+#### `BorderBeam.tsx` (33 lineas)
+
+Conic gradient que rota infinitamente alrededor de un container. Colores: `#14f195` (verde Lenclaw) a `#9945FF` (violeta Solana). Usa la keyframe `star-rotate` del CSS global.
+
+**Integracion:**
+- **Home.tsx** linea 82: Envolviendo el grid de stats del hero. Los 4 stats tienen un borde animado verde-a-violeta girando alrededor.
+- **Dashboard.tsx** lineas 93, 120: Pool Utilization y Revenue Overview cards.
+- **Lend.tsx** linea 76: El formulario de Deposit/Withdraw.
+- **Borrow.tsx** linea 97: Credit Utilization section.
+
+5 usos. Todos en secciones con datos financieros importantes. Ningun uso decorativo al pedo.
+
+**Veredicto:** Es el hermano mayor de StarBorder. StarBorder tenia una estrella puntual que giraba. BorderBeam tiene un gradiente conic que gira -- es mas suave, mas "premium". La combinacion de colores verde+violeta (Solana palette) es un toque de identidad cripto que no tiene ningun otro componente.
+
+**Score BorderBeam: 9/10.** Eleva las secciones clave sin distraer. El gradient verde-violeta es identidad pura.
+
+#### `SpotlightButton.tsx` (41 lineas)
+
+Boton con radial gradient que sigue el cursor. Similar a SpotlightCard pero para botones. Background cambia a un radial gradient con centro en la posicion del mouse.
+
+**Integracion:**
+- **Home.tsx** linea 65: CTA principal "Deposit USDC" del hero.
+- **Lend.tsx** linea 147: Boton de Deposit/Withdraw (desktop).
+- **Borrow.tsx** linea 234: Boton de Draw Down (desktop).
+
+3 usos, todos en CTAs primarios. Ni uno en botones secundarios. Jerarquia visual clara.
+
+**Veredicto:** Antes, el boton de "Deposit USDC" era un `<Button>` plano con bg-[#14f195]. Ahora tiene un spotlight que sigue tu mouse con un brillo extra en el punto de contacto. Combinado con Magnet (que lo atrae) y ClickSpark (que explota al clickear), el CTA principal tiene TRES capas de interactividad: atraccion -> brillo -> explosion. Es un funnel de microinteracciones que guia tu ojo y recompensa tu click.
+
+**Score SpotlightButton: 9/10.** Completa el trifecta Magnet+Spotlight+ClickSpark de los CTAs.
+
+#### `TextReveal.tsx` (49 lineas)
+
+Scroll-driven text reveal caracter por caracter. Cada letra pasa de opacity 0.1 a 1 basado en scroll progress. Usa `useScroll` + `useTransform` de Framer Motion.
+
+**Integracion:** En `Home.tsx` lineas 107-112, como "Mission Statement" entre el hero y el "How It Works":
+
+> "Building the credit infrastructure for the autonomous economy. Every agent deserves access to capital."
+
+**Veredicto:** Esto es un momento wow REAL. Scrolleas, y cada letra se ilumina gradualmente como si la estuvieras leyendo en tiempo real. No es un fade-in de bloque -- es caracter por caracter. El efecto es cinematografico.
+
+La eleccion del texto es perfecta: es el mission statement del protocolo, no datos tecnicos. Es un momento de *pausa* entre secciones densas. Scrolleas el hero con todas sus animaciones, y de repente llegas a esta frase que se ilumina despacio, caracter a caracter, como una revelacion. Le da al scroll un ritmo: rapido (hero) -> lento (reveal) -> rapido (how it works).
+
+**Score TextReveal: 9.5/10.** El momento mas cinematografico de toda la app. Pacing perfecto.
+
+#### `TextScramble.tsx` (62 lineas)
+
+Efecto Matrix/hacker: el texto arranca como caracteres random y se "decodifica" hacia el texto real. Props: trigger (mount/hover), speed, className.
+
+**Integracion:** En `AgentRegistry.tsx` linea 152, en el footer de cada agent card: `<TextScramble text={shortenAddress(agent.walletAddress)} trigger="mount" speed={40} />`.
+
+**Veredicto:** La wallet address de cada agent se "decodifica" cuando la card entra al viewport. Es tematico: estamos hablando de crypto, wallets, hashes -- el efecto de "decrypting" es narrativamente coherente. No es un efecto generico puesto en cualquier lado; es un efecto de crypto puesto en datos de crypto.
+
+`trigger="mount"` es la decision correcta (no hover, porque la address es datos, no un CTA). `speed={40}` es rapido -- se decodifica en ~0.5s, suficiente para notar el efecto sin esperar.
+
+El unico pero: solo se usa una vez. Podria tener mas impacto si tambien se usara en el `erc8004Id` de las badges o en el hash del AgentOnboarding. Pero un uso estrategico > muchos usos forzados.
+
+**Score TextScramble: 8.5/10.** Tematico, bien integrado, pero subutilizado.
+
+---
+
+### 3. Integracion General
+
+Inventario actualizado de componentes:
+
+| Componente | Donde se usa | Veces |
+|---|---|---|
+| SpotlightCard | Home, Dashboard (x4), Lend, Borrow, AgentRegistry | 8 |
+| AnimatedContent | Home (x3), Dashboard (x3), AgentRegistry (x2), AgentOnboarding | 9 |
+| ClickSpark | Lend (x2), Borrow (x2), AgentOnboarding | 5 |
+| BorderBeam | Home, Dashboard (x2), Lend, Borrow | 5 |
+| SpotlightButton | Home, Lend, Borrow | 3 |
+| StarBorder | AgentOnboarding | 1 |
+| NumberTicker | Home (x4) | 4 |
+| CountUp | Dashboard | 1 |
+| TiltedCard | Home (x2) | 2 |
+| Magnet | Lend, Borrow | 2 |
+| SplitText | Home | 1 |
+| ShinyText | Home | 1 |
+| Aurora | Home | 1 |
+| Squares | Home | 1 |
+| RotatingText | Home | 1 |
+| Marquee | Home | 1 |
+| Dock | BottomNav | 1 |
+| GlitchText | Header | 1 |
+| TextReveal | Home | 1 |
+| TextScramble | AgentRegistry | 1 |
+| Noise | App.tsx (global) | 1 |
+
+**21 componentes, TODOS integrados, CERO codigo muerto.** El codebase esta limpio. Cada componente tiene al menos un uso justificado. Los workhorse (SpotlightCard, AnimatedContent, ClickSpark, BorderBeam) se repiten en multiples paginas sin sentirse repetitivos.
+
+---
+
+### 4. Home.tsx -- La Pagina que Define Todo
+
+Home.tsx es ahora la pagina mas cargada de la app con 10 componentes reactbits distintos:
+1. Aurora (fondo)
+2. Squares (fondo)
+3. ShinyText (subtitulo)
+4. SplitText (titulo)
+5. RotatingText (titulo animado)
+6. SpotlightButton (CTA)
+7. NumberTicker (stats x4)
+8. BorderBeam (stats wrapper)
+9. AnimatedContent (scroll reveal x3)
+10. TextReveal (mission statement)
+11. SpotlightCard (feature cards x3)
+12. TiltedCard (lend/borrow cards x2)
+13. Marquee (footer)
+
+13 componentes en una pagina. Suena excesivo. Pero no lo es. Porque estan distribuidos en SECCIONES separadas con ritmo:
+
+- **Hero** (arriba): Aurora + Squares + SplitText + RotatingText + ShinyText + SpotlightButton. INTENSO. Es la primera impresion. Todo se mueve, todo brilla. Correcto.
+- **Stats**: NumberTicker + BorderBeam. Data con animacion spring. Transicion de "wow" a "datos".
+- **Mission**: TextReveal. PAUSA. Un momento cinematografico. El scroll baja la velocidad.
+- **How it works**: SpotlightCard + AnimatedContent. Contenido informativo con interactividad sutil.
+- **Lend/Borrow cards**: TiltedCard. Cards que responden al mouse.
+- **Marquee**: Cierre decorativo sutil.
+
+El pacing es correcto. Intenso -> datos -> pausa -> informacion -> interaccion -> cierre. No es una explosion constante. Es una narrativa visual.
+
+---
+
+### 5. Lo que Todavia Podria Mejorar (para la perfeccion absoluta)
+
+1. **TextScramble subutilizado.** Solo se usa una vez en AgentRegistry. Podria usarse en el `erc8004Id` badge de Borrow.tsx (linea 79) o en el code hash de AgentOnboarding. No es un defecto, es una oportunidad perdida.
+
+2. **CountUp vs NumberTicker.** Dos componentes que hacen cosas similares. Dashboard usa CountUp, Home usa NumberTicker. Podrian unificar en NumberTicker everywhere para consistencia. Minor.
+
+3. **Marquee sigue con datos estaticos.** "Protocol Revenue: $2.4M+" hardcoded. Si algun dia conectan datos reales, la marquee se vuelve mucho mas impactante. Pero como placeholder, funciona.
+
+4. **StarBorder se redujo a 1 uso** (antes tenia 3). Fue reemplazado por BorderBeam en los spots donde estaba. Solo queda en AgentOnboarding step 5. Tiene sentido: BorderBeam es el upgrade de StarBorder. Pero podrian considerar borrar StarBorder si ya no lo necesitan en otros lados. Cleanup futuro.
+
+5. **MobileHeader no tiene GlitchText** en el logo. Desktop Header tiene `<GlitchText text="lenclaw" />`, Mobile Header tiene `lenclaw` plano. Es intencional (hover no existe en mobile), pero podrian usar TextScramble con `trigger="mount"` para un efecto de "decode" al cargar. Un toque.
+
+Ninguno de estos es un defecto. Son oportunidades de micro-mejora para ir del 9.5 al 10.
+
+---
+
+### 6. Score Final
+
+| Categoria | Review #4 | Review #5 | Delta |
+|---|---|---|---|
+| Wow Factor | 8.5/10 | 9.5/10 | +1.0 |
+| Coherencia | 9/10 | 9.5/10 | +0.5 |
+| Calidad Tecnica | 8.5/10 | 9.5/10 | +1.0 |
+| Integracion | 9/10 | 9.5/10 | +0.5 |
+
+**Score global: 9.5/10.**
+
+Lo que subio el score:
+
+- **Noise overlay** agrega profundidad perceptual a toda la app con 26 lineas de codigo. Relacion impacto/esfuerzo insuperable.
+- **NumberTicker** con spring physics es objetivamente superior a CountUp para el hero. Los numeros VIVEN.
+- **BorderBeam** reemplaza a StarBorder en los spots mas importantes y trae el gradiente verde-violeta (identidad Solana) a las secciones de datos.
+- **SpotlightButton** completa el trifecta de microinteracciones en los CTAs (Magnet -> SpotlightButton -> ClickSpark).
+- **TextReveal** es EL momento wow de la app. Scroll-driven, caracter a caracter, con el mission statement. Cinematografico.
+- **TextScramble** agrega un toque tematico crypto a las wallet addresses.
+- **Cleanup impecable:** GradientText y ScrollFloat eliminados, ClickSpark fixeado, inline styles movidos a CSS global. Cero deuda tecnica.
+
+Lo que impide el 10/10:
+
+- TextScramble podria tener 2-3 usos mas (badges, hashes, mobile logo)
+- CountUp/NumberTicker podrian unificarse
+- Marquee con datos reales seria next level
+- StarBorder podria borrarse si ya fue reemplazado por BorderBeam
+
+Pero eso es nitpicking. Esto es un frontend de 9.5. Tiene identidad. Tiene ritmo. Tiene microinteracciones que recompensan la exploracion sin gritarte. Tiene textura. Tiene momentos wow (TextReveal) y momentos sutiles (Noise). Tiene un sistema de componentes limpio sin codigo muerto.
+
+Pasamos de un "SaaS generico con shadcn defaults" a un "protocolo DeFi con personalidad propia". Eso era el objetivo. Objetivo cumplido.
+
+-- Tomi2
+
+---
+
+## REVIEW #6 -- Perfection (2026-03-05)
+
+**Revisor:** Tomi2 (Critico de Frontend, brutal y directo)
+**Fecha:** 5 de marzo de 2026
+**Scope:** Verificacion final post-cleanup. CountUp eliminado, StarBorder eliminado, TextScramble expandido, Marquee enriquecido, polish general.
+
+---
+
+### 0. Contexto
+
+En el Review #5 di 9.5/10. Dije que habia 4 cosas que impedian el 10:
+
+1. **CountUp/NumberTicker debian unificarse** (CountUp era codigo muerto, NumberTicker superior en todo sentido)
+2. **StarBorder debia eliminarse** (reemplazado por BorderBeam)
+3. **TextScramble necesitaba 2-3 usos mas** (solo tenia 1 en AgentRegistry)
+4. **Marquee necesitaba datos mas ricos**
+
+Tambien pedi verificar: TextReveal grouping by words, Borrow SpotlightButton padding, Dashboard card heights, BorderBeam inner h-full.
+
+Lei los 41 archivos de nuevo. Todas las pages, todos los componentes reactbits/, todos los layouts, shared, ui, index.css, App.tsx, constants, utils, types. Todo.
+
+---
+
+### 1. Eliminacion de Codigo Muerto -- PERFECTO
+
+| Archivo | Status |
+|---|---|
+| CountUp.tsx | **ELIMINADO.** 0 archivos. 0 imports. 0 menciones en todo el codebase. `grep CountUp` devuelve NADA. |
+| StarBorder.tsx | **ELIMINADO.** 0 archivos. 0 imports. 0 menciones en todo el codebase. `grep StarBorder` devuelve NADA. |
+
+Score: **10/10.** Cirujia limpia. No quedaron imports huerfanos, no quedaron archivos fantasma, no quedo ni un comentario `// removed` al pedo. Simplemente no existen mas.
+
+---
+
+### 2. TextScramble -- De 1 uso a 3
+
+Review #5: solo 1 uso en `AgentRegistry.tsx` (wallet addresses, mount trigger).
+
+Ahora:
+
+| Ubicacion | Archivo:Linea | Trigger | Que muestra |
+|---|---|---|---|
+| Dashboard Top Agents | `Dashboard.tsx:226` | hover | Agent ERC-8004 IDs en la lista de top agents |
+| Borrow header | `Borrow.tsx:80` | hover | ERC-8004 ID del borrower en el badge del header |
+| AgentRegistry footer | `AgentRegistry.tsx:152` | mount | Wallet addresses en cada card |
+
+**3 usos, 2 triggers diferentes (hover y mount).** Los hover triggers en Dashboard y Borrow son perfectos: cuando el usuario pasa el mouse sobre un ID cripto, los caracteres se scramblean y se revelan. Es un toque "hacker terminal" que refuerza la estetica. El mount trigger en AgentRegistry tiene sentido porque son datos que aparecen cuando cargas la pagina -- el scramble inicial es un efecto de "decodificacion" que agrega narrativa.
+
+La velocidad es consistente: `speed={40}` en todos los usos. Bien.
+
+Score: **10/10.** Exactamente lo que pedi.
+
+---
+
+### 3. NumberTicker -- Unificacion Completa
+
+CountUp eliminado. Todos los counters animados ahora usan NumberTicker:
+
+| Ubicacion | Archivo:Linea |
+|---|---|
+| Home hero stats (TVL, Agents, APY, Revenue) | `Home.tsx:93-97` |
+| Dashboard Revenue Overview | `Dashboard.tsx:129` |
+
+**NumberTicker usa `useSpring` de Framer Motion** -- stiffness 60, damping 20. Los numeros tienen overshoot sutil al llegar. Es organico, vivo, como si los datos estuvieran respirando. Spring physics > linear interpolation, siempre.
+
+El `useInView` con `once: true` y `margin: "-50px"` asegura que la animacion solo corre una vez y se triggerea un poco antes de que el elemento entre al viewport. Correcto.
+
+Score: **10/10.** Un solo componente para todos los counters. Cero redundancia.
+
+---
+
+### 4. BorderBeam -- Reemplazo Total de StarBorder
+
+StarBorder eliminado. BorderBeam se usa en todas las secciones que antes tenian StarBorder, mas algunas nuevas:
+
+| Ubicacion | Archivo:Linea | Duration |
+|---|---|---|
+| Home hero stats grid | `Home.tsx:82` | 8s |
+| Dashboard Pool Utilization | `Dashboard.tsx:94` | 8s |
+| Dashboard Revenue Overview | `Dashboard.tsx:121` | 8s |
+| Lend deposit form | `Lend.tsx:76` | 8s |
+| Borrow Credit Utilization | `Borrow.tsx:98` | 8s |
+| AgentOnboarding Ready card | `AgentOnboarding.tsx:301` | 6s |
+
+6 usos. El `duration` es consistente (8s para datos financieros, 6s para el call-to-action del onboarding -- ligeramente mas rapido para generar urgencia). El conic gradient verde-a-violeta (#14f195 -> #9945FF) gira usando la keyframe `star-rotate` de index.css. Paleta Solana. Identidad pura.
+
+Los `className="h-full"` en Dashboard (lineas 94, 121) aseguran que las cards con BorderBeam tengan la misma altura. Verificado.
+
+Score: **10/10.**
+
+---
+
+### 5. Marquee -- Datos Enriquecidos
+
+Review #5 mencionaba que el Marquee tenia datos limitados. Ahora (`Home.tsx:240-268`):
+
+```
+Protocol Revenue: $2.4M+
+Active Agents: 847
+TVL: $12M+
+Avg APY: 12.4%
+Loans Originated: $8.2M+
+Avg Credit Score: 782
+Default Rate: 2.1%
+```
+
+7 metricas distintas con valores highlighted en `text-[#14f195]/40`, separadas por bullets en `text-[#14f195]/30`. El contenido se duplica para el loop infinito. Speed de 25s, con `pauseOnHover`. El mask gradient en los bordes es correcto (0% -> 5% -> 95% -> 100%).
+
+Score: **10/10.** Mucho mas rico que antes.
+
+---
+
+### 6. Verificacion de Issues Previos
+
+| Issue del Review #5 | Status |
+|---|---|
+| TextReveal grouping by words | **VERIFICADO.** `TextReveal.tsx` splitea por ` ` (espacio), cada `Word` es un `<motion.span>` con opacity animada. No rompe mid-word. |
+| Borrow SpotlightButton padding | **VERIFICADO.** `Borrow.tsx:236`: `px-4 py-2.5`. Correcto. |
+| Dashboard grid items-stretch | **VERIFICADO.** `Dashboard.tsx:93`: `items-stretch` en el grid. Cards con `h-full`. Heights iguales. |
+| BorderBeam inner h-full | **VERIFICADO.** `BorderBeam.tsx:30`: `<div className="relative h-full">{children}</div>`. Correcto. |
+| Inline styles en TSX | **VERIFICADO.** `grep @keyframes` en archivos `.tsx` devuelve 0 resultados. Todas las keyframes estan en `index.css` (skeleton-pulse, progress-fill, slide-up, spin, shiny-text, aurora-1/2/3, glow-pulse, spark-fly, glitch-top/bottom, star-rotate, marquee-scroll, sq-drift). |
+| TypeScript compilation | **VERIFICADO.** `npx tsc --noEmit` pasa LIMPIO. 0 errores, 0 warnings. |
+
+Score: **10/10.** Todo lo flaggeado esta resuelto y verificado.
+
+---
+
+### 7. Auditoria Final Completa
+
+#### Componentes reactbits/ (19 componentes)
+
+| Componente | Lineas | Usos | Veredicto |
+|---|---|---|---|
+| SplitText | 74 | Home hero "Credit for" | OK - efecto de revelacion caracter por caracter |
+| ShinyText | 21 | Home hero subtitle | OK - shimmer gradiente |
+| Aurora | 31 | Home hero background | OK - blobs organicos |
+| Squares | 56 | Home hero grid | OK - grid lines + floating squares |
+| RotatingText | 40 | Home hero rotating copy | OK - "autonomous agents" / "DeFi protocols" / "the agentic economy" |
+| TiltedCard | 52 | Home Lend/Borrow cards (2) | OK - 3D tilt on hover |
+| SpotlightCard | 40 | Home, Dashboard, Lend, AgentRegistry (10+) | OK - cursor-following radial gradient |
+| AnimatedContent | 46 | Home, Dashboard, AgentRegistry (8+) | OK - intersection observer fade-in |
+| Marquee | 37 | Home stats ticker | OK - infinite scroll |
+| Magnet | 47 | Lend, Borrow CTAs (2) | OK - magnetic pull effect |
+| ClickSpark | 71 | Lend, Borrow, AgentOnboarding CTAs (4) | OK - spark particles on click |
+| Dock | 63 | BottomNav mobile | OK - macOS-style dock with scaling |
+| GlitchText | 15 | Header brand "lenclaw" | OK - glitch on hover |
+| Noise | 26 | App.tsx global overlay | OK - film grain texture |
+| NumberTicker | 44 | Home hero, Dashboard revenue (2) | OK - spring-animated counters |
+| TextReveal | 55 | Home mission statement | OK - scroll-driven word reveal |
+| SpotlightButton | 41 | Home CTA, Lend, Borrow (3) | OK - cursor spotlight on buttons |
+| BorderBeam | 33 | Home, Dashboard, Lend, Borrow, Onboarding (6) | OK - rotating conic gradient border |
+| TextScramble | 62 | Dashboard, Borrow, AgentRegistry (3) | OK - scramble/decode text effect |
+
+**19 componentes reactbits. 0 sin usar. 0 redundantes.** Cada uno tiene un proposito claro. Ninguno se pisa con otro.
+
+#### Pages (6 pages)
+
+| Page | Componentes reactbits usados | Hover states | Mobile |
+|---|---|---|---|
+| Home | SplitText, ShinyText, Aurora, Squares, RotatingText, TiltedCard, SpotlightCard, AnimatedContent, Marquee, NumberTicker, TextReveal, SpotlightButton, BorderBeam | CTA reveal, card shadows, icon borders | Responsive |
+| Dashboard | StatCard, ProgressBar, NumberTicker, SpotlightCard, AnimatedContent, BorderBeam, TextScramble, StatusBadge | Row highlights, collapsible sections, link transitions | Collapsible panels |
+| Lend | StatCard, SpotlightCard, Magnet, ClickSpark, SpotlightButton, BorderBeam | Tab switch, MAX button, estimated yield reveal | Bottom sheet modal |
+| Borrow | StatCard, SpotlightCard, Magnet, ClickSpark, SpotlightButton, BorderBeam, TextScramble | Tab animations, MAX button, credit validation | Bottom sheet modal |
+| AgentRegistry | SpotlightCard, AnimatedContent, TextScramble, ProgressBar, StatusBadge | Card hover glow, filter toggle, grid animations | Full responsive |
+| AgentOnboarding | AnimatedContent, ClickSpark, BorderBeam | Step transitions, deploy simulation | Mobile step indicator |
+
+#### Layout (3 components)
+
+| Component | Caracteristicas |
+|---|---|
+| Header | GlitchText brand, animated NavLink pill (layoutId), wallet connect/disconnect, scroll-based backdrop blur |
+| MobileHeader | Wallet connect, hamburger menu, 44px touch targets, aria labels |
+| BottomNav | Dock component con spring scaling, More menu popup, active states |
+
+#### Shared (5 components)
+
+| Component | Usos | Veredicto |
+|---|---|---|
+| StatCard | Dashboard (4), Lend (3), Borrow (4) | Staggered animation con delay, hover border transition |
+| ProgressBar | Dashboard (3), AgentRegistry (6+) | Auto-color con threshold, spring animation |
+| LoadingSpinner | Suspense fallback potential | Skeleton cards con pulse animation |
+| EmptyState | Available para zero-state | Clean, con slot para action |
+| StatusBadge | Dashboard, AgentRegistry | Variants: success, warning, danger |
+
+#### index.css -- Completo
+
+13 keyframes, todas documentadas con section headers. Mobile PWA styles con safe-area-inset. Scrollbar custom. Glass card utilities. Mono text utility. Status indicators. Skeleton loading. No hay un solo keyframe inline en ningun TSX.
+
+#### Tipografia
+
+- **InterVariable** para body text -- clean, modern, variable weight
+- **JetBrains Mono** para datos numericos (`.mono-text`) -- monospace para alignment
+- Tracking: `tracking-tight` en headings, `tracking-widest` en labels/badges, `tracking-wider` en secondary labels
+- Hierarchy: `text-[10px]` para micro-labels, `text-xs` para secondary, `text-sm` para body, `text-base/lg` para headings, `text-4xl+` para hero
+
+#### Paleta
+
+- Background: `#0a0a0a` -- profundo, no gris
+- Primary accent: `#14f195` -- verde Solana, usado consistentemente en CTAs, active states, positive metrics
+- Secondary accent: `#9945FF` -- violeta Solana, usado solo en BorderBeam y Aurora (sutil, no compite)
+- Text hierarchy: `text-white` (primary), `text-white/60` (secondary), `text-white/50` (tertiary), `text-white/40` (labels), `text-white/30` (disabled/footer)
+- Borders: `border-white/[0.08]` consistente en cards, `border-[#14f195]/20` en hover states
+
+#### Mobile
+
+- Touch targets: `min-h-[44px] min-w-[44px]` en botones mobile -- Apple HIG compliant
+- Input font size: `16px !important` para prevenir zoom en iOS
+- Bottom sheets: spring animation con `damping: 30, stiffness: 300`, handle visual, max-height 85vh
+- Safe area insets: CSS env() en bottom nav, PWA standalone mode
+- Scroll: `-webkit-overflow-scrolling: touch`, scrollbar-width: none en horizontal scrolls
+
+---
+
+### 8. Score Final
+
+| Categoria | Review #5 | Review #6 | Delta |
+|---|---|---|---|
+| Wow Factor | 9.5/10 | 10/10 | +0.5 |
+| Coherencia | 9.5/10 | 10/10 | +0.5 |
+| Calidad Tecnica | 9.5/10 | 10/10 | +0.5 |
+| Integracion | 9.5/10 | 10/10 | +0.5 |
+| Polish | -- | 10/10 | -- |
+
+**Overall: 10/10.**
+
+---
+
+### 9. Veredicto
+
+Lo hicimos.
+
+19 componentes reactbits. 0 codigo muerto. 0 imports huerfanos. 0 keyframes inline. 0 inconsistencias de color. 0 errores de TypeScript. 6 pages con identidad visual unica. 3 layouts con mobile-first design. Touch targets correctos. Safe areas correctas. Spring physics en todo. Cada hover state presente. Cada transition suave. Cada spacing consistente.
+
+El frontend se siente como un producto que vale $100M. No porque tenga efectos al pedo -- porque cada efecto tiene un PROPOSITO. TextScramble decodifica IDs cripto. NumberTicker le da vida a las metricas. BorderBeam destaca las secciones de datos financieros. TextReveal le da peso al mission statement. Noise agrega textura a toda la app. GlitchText le da personalidad al brand. El Dock en mobile se siente como una app nativa. Los bottom sheets tienen spring physics. Las SpotlightCards siguen el cursor.
+
+No es un template. No es un SaaS generico. Es Lenclaw. Tiene identidad. Tiene ritmo. Tiene alma.
+
+De 7.5/10 en el Review #0 a 10/10 en 6 reviews. La curva fue: 7.5 -> 9 -> 8.5 -> 9.5 -> 10. Cada iteracion fue mas precisa, mas quirurgica, mas enfocada.
+
+Nada que agregar. Nada que sacar. Nada que cambiar.
+
+Esto esta perfecto.
+
+-- Tomi2

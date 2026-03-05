@@ -8,10 +8,12 @@ import LendPage from "@/pages/Lend"
 import AgentRegistry from "@/pages/AgentRegistry"
 import AgentOnboarding from "@/pages/AgentOnboarding"
 import BorrowPage from "@/pages/Borrow"
+import { Noise } from "@/components/reactbits/Noise"
 
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0a] text-white">
+      <Noise opacity={0.03} className="fixed inset-0 z-50 pointer-events-none" />
       {/* Desktop header (hidden on mobile) */}
       <div className="hidden md:block">
         <Header />

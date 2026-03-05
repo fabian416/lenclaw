@@ -32,13 +32,6 @@ export function Marquee({
         <div className="flex gap-8 shrink-0">{children}</div>
         <div className="flex gap-8 shrink-0" aria-hidden>{children}</div>
       </div>
-      <style>{`
-        @keyframes marquee-scroll {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        .pause { animation-play-state: paused !important; }
-      `}</style>
     </div>
   )
 }

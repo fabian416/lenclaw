@@ -142,6 +142,74 @@
   50% { box-shadow: 0 0 40px rgba(20, 241, 149, 0.1); }
 }
 
+@keyframes spark-fly {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); }
+}
+
+@keyframes glitch-top {
+  0% { transform: translate(0); }
+  25% { transform: translate(-2px, -1px); }
+  50% { transform: translate(2px, 1px); }
+  75% { transform: translate(-1px, 2px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes glitch-bottom {
+  0% { transform: translate(0); }
+  25% { transform: translate(2px, 1px); }
+  50% { transform: translate(-2px, -1px); }
+  75% { transform: translate(1px, -2px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes star-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes sq-drift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(15px, -15px); }
+}
+
+.glitch-text {
+  position: relative;
+}
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+.glitch-text::before {
+  color: #14f195;
+  clip-path: inset(0 0 60% 0);
+}
+.glitch-text::after {
+  color: #9945FF;
+  clip-path: inset(40% 0 0 0);
+}
+.glitch-text:hover::before {
+  opacity: 0.8;
+  animation: glitch-top 0.3s steps(2, end) infinite;
+}
+.glitch-text:hover::after {
+  opacity: 0.8;
+  animation: glitch-bottom 0.3s steps(2, end) infinite;
+}
+
+.pause { animation-play-state: paused !important; }
+
 /* ======================================== */
 /*  MONOSPACE DATA TEXT                     */
 /* ======================================== */

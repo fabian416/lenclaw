@@ -16,9 +16,11 @@ import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Link } from "react-router-dom"
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { CountUp } from "@/components/reactbits/CountUp"
+import { NumberTicker } from "@/components/reactbits/NumberTicker"
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
+import { BorderBeam } from "@/components/reactbits/BorderBeam"
+import { TextScramble } from "@/components/reactbits/TextScramble"
 
 function UtilizationRing({ value, size = 120, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2
@@ -88,58 +90,62 @@ export default function Dashboard() {
 
       {/* Utilization & Revenue */}
       <AnimatedContent delay={0.1}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-10">
-          <SpotlightCard className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Activity className="w-4 h-4 text-[#14f195]/50" />
-              <h3 className="text-sm font-medium text-white">Pool Utilization</h3>
-            </div>
-            <div className="flex flex-col items-center mb-6">
-              <UtilizationRing value={pool.utilizationRate} />
-              <span className="text-xs text-white/40 mono-text mt-3">
-                {formatUSD(pool.totalLoans)} / {formatUSD(pool.tvl)}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-white/[0.04]">
-                <span className="text-[10px] text-white/40 block mb-1 uppercase tracking-wider">Total Loans</span>
-                <div className="font-semibold text-sm mono-text text-white">{formatUSD(pool.totalLoans)}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-10 items-stretch">
+          <BorderBeam duration={8} className="h-full">
+            <SpotlightCard className="p-6 h-full">
+              <div className="flex items-center gap-2 mb-6">
+                <Activity className="w-4 h-4 text-[#14f195]/50" />
+                <h3 className="text-sm font-medium text-white">Pool Utilization</h3>
               </div>
-              <div className="p-3 rounded-lg bg-white/[0.04]">
-                <span className="text-[10px] text-white/40 block mb-1 uppercase tracking-wider">Default Rate</span>
-                <div className={`text-sm font-semibold mono-text ${pool.defaultRate > 5 ? "text-red-400" : "text-[#14f195]"}`}>
-                  {formatPercent(pool.defaultRate)}
+              <div className="flex flex-col items-center mb-6">
+                <UtilizationRing value={pool.utilizationRate} />
+                <span className="text-xs text-white/40 mono-text mt-3">
+                  {formatUSD(pool.totalLoans)} / {formatUSD(pool.tvl)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg bg-white/[0.04]">
+                  <span className="text-[10px] text-white/40 block mb-1 uppercase tracking-wider">Total Loans</span>
+                  <div className="font-semibold text-sm mono-text text-white">{formatUSD(pool.totalLoans)}</div>
+                </div>
+                <div className="p-3 rounded-lg bg-white/[0.04]">
+                  <span className="text-[10px] text-white/40 block mb-1 uppercase tracking-wider">Default Rate</span>
+                  <div className={`text-sm font-semibold mono-text ${pool.defaultRate > 5 ? "text-red-400" : "text-[#14f195]"}`}>
+                    {formatPercent(pool.defaultRate)}
+                  </div>
                 </div>
               </div>
-            </div>
-          </SpotlightCard>
+            </SpotlightCard>
+          </BorderBeam>
 
-          <SpotlightCard className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <DollarSign className="w-4 h-4 text-[#14f195]/50" />
-              <h3 className="text-sm font-medium text-white">Revenue Overview</h3>
-            </div>
-            <div className="flex items-end justify-between mb-6">
-              <span className="text-3xl font-bold mono-text text-white">
-                <CountUp target={pool.totalRevenue} prefix="$" duration={2} />
-              </span>
-              <span className="text-xs text-[#14f195] mono-text px-2 py-1 rounded-md bg-[#14f195]/10">
-                +18.3% MoM
-              </span>
-            </div>
-            <div className="space-y-0 divide-y divide-white/[0.06]">
-              {[
-                { label: "Agent Revenue (30d)", value: formatUSD(pool.totalRevenue) },
-                { label: "Protocol Fees (30d)", value: formatUSD(pool.totalRevenue * 0.05) },
-                { label: "Lender Distributions", value: formatUSD(pool.totalRevenue * 0.85) },
-              ].map((item) => (
-                <div key={item.label} className="flex justify-between items-center text-sm py-3">
-                  <span className="text-white/50">{item.label}</span>
-                  <span className="font-medium mono-text text-white">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </SpotlightCard>
+          <BorderBeam duration={8} className="h-full">
+            <SpotlightCard className="p-6 h-full">
+              <div className="flex items-center gap-2 mb-6">
+                <DollarSign className="w-4 h-4 text-[#14f195]/50" />
+                <h3 className="text-sm font-medium text-white">Revenue Overview</h3>
+              </div>
+              <div className="flex items-end justify-between mb-6">
+                <span className="text-3xl font-bold mono-text text-white">
+                  <NumberTicker value={pool.totalRevenue} prefix="$" />
+                </span>
+                <span className="text-xs text-[#14f195] mono-text px-2 py-1 rounded-md bg-[#14f195]/10">
+                  +18.3% MoM
+                </span>
+              </div>
+              <div className="space-y-0 divide-y divide-white/[0.06]">
+                {[
+                  { label: "Agent Revenue (30d)", value: formatUSD(pool.totalRevenue) },
+                  { label: "Protocol Fees (30d)", value: formatUSD(pool.totalRevenue * 0.05) },
+                  { label: "Lender Distributions", value: formatUSD(pool.totalRevenue * 0.85) },
+                ].map((item) => (
+                  <div key={item.label} className="flex justify-between items-center text-sm py-3 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors duration-200">
+                    <span className="text-white/50">{item.label}</span>
+                    <span className="font-medium mono-text text-white">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </SpotlightCard>
+          </BorderBeam>
         </div>
       </AnimatedContent>
 
@@ -209,7 +215,7 @@ export default function Dashboard() {
                 {topAgents.map((agent) => (
                   <div
                     key={agent.id}
-                    className="flex items-center justify-between py-3"
+                    className="flex items-center justify-between py-3 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors duration-200"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
@@ -217,7 +223,7 @@ export default function Dashboard() {
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-medium truncate text-white">{agent.name}</div>
-                        <div className="text-xs text-white/30 mono-text">{agent.erc8004Id}</div>
+                        <div className="text-xs text-white/30"><TextScramble text={agent.erc8004Id} trigger="hover" speed={40} /></div>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-3">

@@ -20,7 +20,7 @@ import { shortenAddress } from "@/lib/utils"
 import type { OnboardingFormData } from "@/lib/types"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
 import { ClickSpark } from "@/components/reactbits/ClickSpark"
-import { StarBorder } from "@/components/reactbits/StarBorder"
+import { BorderBeam } from "@/components/reactbits/BorderBeam"
 
 const STEPS = [
   { id: 1, title: "Connect Wallet", icon: Wallet, description: "Link the agent's operator wallet" },
@@ -298,7 +298,7 @@ export default function AgentOnboarding() {
             {/* Step 5: Activate */}
             {step === 5 && (
               <div className="space-y-5">
-                <StarBorder>
+                <BorderBeam duration={6}>
                   <div className="text-center py-4 px-4">
                     <div className="w-12 h-12 rounded-full bg-[#14f195]/10 border border-[#14f195]/20 flex items-center justify-center mx-auto mb-4">
                       <CheckCircle2 className="w-6 h-6 text-[#14f195]" />
@@ -308,7 +308,7 @@ export default function AgentOnboarding() {
                       Your agent is configured. Activate to register on-chain and start building credit history.
                     </p>
                   </div>
-                </StarBorder>
+                </BorderBeam>
 
                 <div className="divide-y divide-white/[0.06] rounded-lg bg-white/[0.04] overflow-hidden">
                   {[

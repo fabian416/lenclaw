@@ -18,9 +18,11 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
-import { StarBorder } from "@/components/reactbits/StarBorder"
 import { Magnet } from "@/components/reactbits/Magnet"
 import { ClickSpark } from "@/components/reactbits/ClickSpark"
+import { SpotlightButton } from "@/components/reactbits/SpotlightButton"
+import { BorderBeam } from "@/components/reactbits/BorderBeam"
+import { TextScramble } from "@/components/reactbits/TextScramble"
 
 function CreditRing({ value, size = 120, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2
@@ -75,7 +77,7 @@ export default function BorrowPage() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate text-white">{borrower.agentName}</h1>
-            <Badge variant="outline" className="text-[10px] mono-text flex-shrink-0">{borrower.erc8004Id}</Badge>
+            <Badge variant="outline" className="text-[10px] flex-shrink-0"><TextScramble text={borrower.erc8004Id} trigger="hover" speed={40} /></Badge>
           </div>
           <p className="text-sm text-white/50">Agent Credit Dashboard</p>
         </div>
@@ -93,7 +95,7 @@ export default function BorrowPage() {
         {/* Left Column */}
         <div className="md:col-span-3 space-y-6">
           {/* Credit Utilization */}
-          <StarBorder>
+          <BorderBeam duration={8}>
             <div className="border border-white/[0.08] bg-white/[0.03] rounded-xl p-6">
               <h3 className="text-sm font-medium mb-5 text-white">Credit Utilization</h3>
               <div className="flex flex-col items-center">
@@ -103,7 +105,7 @@ export default function BorrowPage() {
                 </span>
               </div>
             </div>
-          </StarBorder>
+          </BorderBeam>
 
           {/* Revenue Lockbox */}
           <motion.div
@@ -144,7 +146,7 @@ export default function BorrowPage() {
             </div>
             <div className="space-y-0 divide-y divide-white/[0.06]">
               {borrower.repaymentSchedule.map((entry, i) => (
-                <div key={i} className="flex items-center justify-between py-3">
+                <div key={i} className="flex items-center justify-between py-3 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors duration-200">
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                       entry.status === "paid" ? "bg-[#14f195]" : "bg-amber-400"
@@ -194,7 +196,7 @@ export default function BorrowPage() {
                     className="pr-16 text-lg h-12 mono-text bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
                   />
                   <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#14f195] font-semibold px-2 py-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#14f195] font-semibold px-2 py-1 hover:text-[#14f195]/70 transition-colors duration-200"
                     onClick={() => setDrawAmount(String(borrower.availableCredit))}
                   >
                     MAX
@@ -230,16 +232,16 @@ export default function BorrowPage() {
 
               <Magnet strength={0.15}>
                 <ClickSpark>
-                  <Button
-                    className="w-full font-semibold h-11 bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg"
-                    size="lg"
-                    disabled={!drawAmount || parseFloat(drawAmount) > borrower.availableCredit}
+                  <SpotlightButton
+                    className={`w-full font-semibold h-11 px-4 py-2.5 bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg cursor-pointer text-sm ${
+                      !drawAmount || parseFloat(drawAmount) > borrower.availableCredit ? "opacity-50 pointer-events-none" : ""
+                    }`}
                   >
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center justify-center gap-2">
                       <ArrowDownToLine className="w-4 h-4" />
                       Draw Down
                     </span>
-                  </Button>
+                  </SpotlightButton>
                 </ClickSpark>
               </Magnet>
 
@@ -321,7 +323,7 @@ export default function BorrowPage() {
                         inputMode="decimal"
                       />
                       <button
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#14f195] font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#14f195] font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-[#14f195]/70 transition-colors duration-200"
                         onClick={() => setDrawAmount(String(borrower.availableCredit))}
                       >
                         MAX
