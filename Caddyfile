@@ -3,8 +3,8 @@
 # Auto HTTPS, security headers, subdomain routing
 # =============================================================================
 
-# Frontend - lenclaw.io
-{$DOMAIN:localhost} {
+# Frontend - lenclaw.xyz
+lenclaw.xyz {
 	encode gzip zstd
 
 	header {
@@ -20,9 +20,9 @@
 	reverse_proxy frontend:80
 }
 
-# Backend API - api.lenclaw.io
+# Backend API - api.lenclaw.xyz
 # CORS is handled by FastAPI middleware — do NOT add CORS headers here
-api.{$DOMAIN:localhost} {
+api.lenclaw.xyz {
 	encode gzip zstd
 
 	header {
