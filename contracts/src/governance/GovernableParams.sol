@@ -13,8 +13,8 @@ abstract contract GovernableParams {
     /// @notice Protocol fee in basis points (e.g., 1000 = 10%)
     uint256 public protocolFeeBps;
 
-    /// @notice Cooldown period for junior tranche withdrawals (in seconds)
-    uint256 public juniorCooldownPeriod;
+    /// @notice Cooldown period for pool withdrawals (in seconds)
+    uint256 public withdrawalCooldownPeriod;
 
     /// @notice Maximum utilization rate in basis points (e.g., 9000 = 90%)
     uint256 public maxUtilizationBps;
@@ -26,7 +26,7 @@ abstract contract GovernableParams {
 
     event GovernanceTransferred(address indexed previousGovernance, address indexed newGovernance);
     event ProtocolFeeBpsUpdated(uint256 oldValue, uint256 newValue);
-    event JuniorCooldownPeriodUpdated(uint256 oldValue, uint256 newValue);
+    event WithdrawalCooldownPeriodUpdated(uint256 oldValue, uint256 newValue);
     event MaxUtilizationBpsUpdated(uint256 oldValue, uint256 newValue);
     event MinCreditScoreUpdated(uint256 oldValue, uint256 newValue);
 
@@ -52,13 +52,13 @@ abstract contract GovernableParams {
 
     /// @param _governance The governance address (typically the timelock controller)
     /// @param _protocolFeeBps Initial protocol fee in basis points
-    /// @param _juniorCooldownPeriod Initial junior tranche cooldown period
+    /// @param _withdrawalCooldownPeriod Initial pool withdrawal cooldown period
     /// @param _maxUtilizationBps Initial max utilization rate in basis points
     /// @param _minCreditScore Initial minimum credit score
     constructor(
         address _governance,
         uint256 _protocolFeeBps,
-        uint256 _juniorCooldownPeriod,
+        uint256 _withdrawalCooldownPeriod,
         uint256 _maxUtilizationBps,
         uint256 _minCreditScore
     ) {
@@ -69,7 +69,7 @@ abstract contract GovernableParams {
 
         governance = _governance;
         protocolFeeBps = _protocolFeeBps;
-        juniorCooldownPeriod = _juniorCooldownPeriod;
+        withdrawalCooldownPeriod = _withdrawalCooldownPeriod;
         maxUtilizationBps = _maxUtilizationBps;
         minCreditScore = _minCreditScore;
     }
@@ -94,12 +94,12 @@ abstract contract GovernableParams {
         emit ProtocolFeeBpsUpdated(old, _protocolFeeBps);
     }
 
-    /// @notice Update the junior tranche cooldown period
-    /// @param _juniorCooldownPeriod New cooldown period in seconds
-    function setJuniorCooldownPeriod(uint256 _juniorCooldownPeriod) external onlyGovernance {
-        uint256 old = juniorCooldownPeriod;
-        juniorCooldownPeriod = _juniorCooldownPeriod;
-        emit JuniorCooldownPeriodUpdated(old, _juniorCooldownPeriod);
+    /// @notice Update the pool withdrawal cooldown period
+    /// @param _withdrawalCooldownPeriod New cooldown period in seconds
+    function setWithdrawalCooldownPeriod(uint256 _withdrawalCooldownPeriod) external onlyGovernance {
+        uint256 old = withdrawalCooldownPeriod;
+        withdrawalCooldownPeriod = _withdrawalCooldownPeriod;
+        emit WithdrawalCooldownPeriodUpdated(old, _withdrawalCooldownPeriod);
     }
 
     /// @notice Update the maximum utilization rate (max 100% = 10000 bps)

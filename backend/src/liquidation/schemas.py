@@ -41,8 +41,6 @@ class LiquidationResponse(BaseModel):
     outstanding_debt: Decimal
     recovered_amount: Decimal
     loss_amount: Decimal
-    junior_loss: Decimal
-    senior_loss: Decimal
     recovery_rate_bps: int
     status: LiquidationStatus
     trigger_tx_hash: str | None

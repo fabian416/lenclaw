@@ -98,8 +98,6 @@ class TestPoolSchemas:
         r = PoolStatsResponse(
             total_deposits=Decimal("1000000"),
             total_borrowed=Decimal("500000"),
-            senior_tvl=Decimal("800000"),
-            junior_tvl=Decimal("200000"),
             utilization_rate_percent=Decimal("50.00"),
             active_agents=10,
             total_depositors=25,
@@ -108,12 +106,11 @@ class TestPoolSchemas:
 
     def test_pool_apy_response_shape(self):
         r = PoolAPYResponse(
-            senior_apy_percent=Decimal("8.50"),
-            junior_apy_percent=Decimal("14.20"),
-            base_rate_bps=400,
+            apy_percent=Decimal("10.50"),
+            base_rate_bps=600,
             utilization_rate_percent=Decimal("72.40"),
         )
-        assert r.senior_apy_percent < r.junior_apy_percent
+        assert r.apy_percent == Decimal("10.50")
 
 
 class TestRevenueSchemas:
@@ -155,13 +152,11 @@ class TestFrontendBackendAlignment:
         - GET /api/v1/agents/{id}/credit -> CreditLineResponse
         """
         # Verify pool stats shape matches what frontend expects (PoolData type)
-        # Frontend: tvl, seniorAPY, juniorAPY, utilizationRate, activeAgents
-        # Backend: total_deposits, senior_apy_percent, junior_apy_percent, utilization_rate_percent, active_agents
+        # Frontend: tvl, apy, utilizationRate, activeAgents
+        # Backend: total_deposits, apy_percent, utilization_rate_percent, active_agents
         stats = PoolStatsResponse(
             total_deposits=Decimal("2450000"),
             total_borrowed=Decimal("1820000"),
-            senior_tvl=Decimal("1960000"),
-            junior_tvl=Decimal("490000"),
             utilization_rate_percent=Decimal("72.40"),
             active_agents=47,
             total_depositors=120,

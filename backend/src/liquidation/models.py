@@ -75,12 +75,6 @@ class Liquidation(Base):
     loss_amount: Mapped[Decimal] = mapped_column(
         Numeric(18, 6), default=Decimal("0")
     )
-    junior_loss: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6), default=Decimal("0")
-    )
-    senior_loss: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6), default=Decimal("0")
-    )
     recovery_rate_bps: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[LiquidationStatus] = mapped_column(
         Enum(LiquidationStatus), default=LiquidationStatus.PENDING

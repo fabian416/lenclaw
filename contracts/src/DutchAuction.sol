@@ -9,7 +9,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /// @title DutchAuction - Dutch auction for defaulted AI agent credit positions
 /// @notice Price starts high and decays linearly over a configurable duration.
 ///         Any bidder can purchase the defaulted position at the current price.
-///         Proceeds are forwarded to the RecoveryManager for tranche distribution.
+///         Proceeds are forwarded to the RecoveryManager for proportional distribution.
 contract DutchAuction is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 

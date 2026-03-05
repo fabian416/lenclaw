@@ -15,7 +15,7 @@ contract MockGovernableParams is GovernableParams {
         GovernableParams(
             _governance,
             1000, // 10% protocol fee
-            7 days, // 7 day junior cooldown
+            7 days, // 7 day withdrawal cooldown
             9000, // 90% max utilization
             300 // min credit score 300
         )
@@ -148,7 +148,7 @@ contract GovernanceTest is Test {
 
     function test_paramsInitialValues() public view {
         assertEq(params.protocolFeeBps(), 1000);
-        assertEq(params.juniorCooldownPeriod(), 7 days);
+        assertEq(params.withdrawalCooldownPeriod(), 7 days);
         assertEq(params.maxUtilizationBps(), 9000);
         assertEq(params.minCreditScore(), 300);
         assertEq(params.governance(), address(timelock));
@@ -184,10 +184,10 @@ contract GovernanceTest is Test {
         assertEq(params.protocolFeeBps(), 500);
     }
 
-    function test_paramsSetJuniorCooldown() public {
+    function test_paramsSetWithdrawalCooldown() public {
         vm.prank(address(timelock));
-        params.setJuniorCooldownPeriod(14 days);
-        assertEq(params.juniorCooldownPeriod(), 14 days);
+        params.setWithdrawalCooldownPeriod(14 days);
+        assertEq(params.withdrawalCooldownPeriod(), 14 days);
     }
 
     function test_paramsSetMaxUtilization() public {
