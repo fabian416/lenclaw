@@ -1,34 +1,26 @@
 # =============================================================================
-# Lenclaw - Dev Override
+# Lenclaw - Local Development
 # Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # =============================================================================
 
+name: lenclaw-local
+
 services:
   # ---------------------------------------------------------------------------
-  # Caddy - Dev: use localhost, no HTTPS
-  # ---------------------------------------------------------------------------
-  caddy:
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-    deploy:
-      resources:
-        limits: {}
-
-  # ---------------------------------------------------------------------------
-  # Frontend - Dev: Vite dev server with hot reload (replaces nginx)
+  # Frontend - Vite dev server with hot reload
   # ---------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       target: dev
+    image: lenclaw-frontend:dev
     command: ["npm", "run", "dev"]
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
       - ./frontend/index.html:/app/index.html
       - ./frontend/vite.config.ts:/app/vite.config.ts
-      - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
       - ./frontend/tsconfig.json:/app/tsconfig.json
     ports:
       - "3001:3001"
@@ -43,14 +35,17 @@ services:
         limits: {}
 
   # ---------------------------------------------------------------------------
-  # Backend - Dev: uvicorn with --reload, volume mount for hot reload
+  # Backend - uvicorn with --reload
   # ---------------------------------------------------------------------------
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
       target: deps
-    command: ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    image: lenclaw-backend:dev
+    command: >
+      sh -c "alembic -c alembic.ini upgrade head &&
+             python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./backend/src:/app/src
       - ./backend/config:/app/config
@@ -66,7 +61,7 @@ services:
         limits: {}
 
   # ---------------------------------------------------------------------------
-  # PostgreSQL - Dev: expose port for local tooling
+  # PostgreSQL - expose port for local tooling
   # ---------------------------------------------------------------------------
   postgres:
     ports:
@@ -76,11 +71,21 @@ services:
         limits: {}
 
   # ---------------------------------------------------------------------------
-  # Redis - Dev: expose port for local tooling
+  # Redis - expose port for local tooling
   # ---------------------------------------------------------------------------
   redis:
     ports:
       - "6380:6379"
+    deploy:
+      resources:
+        limits: {}
+
+  # ---------------------------------------------------------------------------
+  # Caddy - disabled in dev (access services directly)
+  # ---------------------------------------------------------------------------
+  caddy:
+    profiles:
+      - proxy
     deploy:
       resources:
         limits: {}

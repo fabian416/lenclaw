@@ -1,85 +1,34 @@
 # =============================================================================
-# Lenclaw - Caddy Reverse Proxy Configuration
-# Automatic HTTPS, security headers, rate limiting, compression
+# Lenclaw - Caddy Reverse Proxy
+# Auto HTTPS, security headers, subdomain routing
 # =============================================================================
 
-{
-	# Global options
-	email admin@lenclaw.io
-	# Uncomment for local dev (disables HTTPS):
-	# auto_https off
-}
-
-# Domain - change to your production domain
-:80 {
-	# -------------------------------------------------------------------------
-	# Compression
-	# -------------------------------------------------------------------------
+# Frontend - lenclaw.io
+{$DOMAIN:localhost} {
 	encode gzip zstd
 
-	# -------------------------------------------------------------------------
-	# Security Headers
-	# -------------------------------------------------------------------------
 	header {
-		X-Frame-Options "SAMEORIGIN"
-		X-Content-Type-Options "nosniff"
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
 		X-XSS-Protection "1; mode=block"
-		Referrer-Policy "strict-origin-when-cross-origin"
+		Referrer-Policy strict-origin-when-cross-origin
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.base.org wss://*.base.org https://*.infura.io https://*.alchemy.com; frame-ancestors 'self'"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		-Server
 	}
 
-	# -------------------------------------------------------------------------
-	# CORS for frontend origins
-	# -------------------------------------------------------------------------
-	@cors_preflight method OPTIONS
-	handle @cors_preflight {
-		header Access-Control-Allow-Origin "{http.request.header.Origin}"
-		header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-		header Access-Control-Allow-Headers "Content-Type, Authorization"
-		header Access-Control-Allow-Credentials "true"
-		header Access-Control-Max-Age "86400"
-		respond "" 204
+	reverse_proxy frontend:80
+}
+
+# Backend API - api.lenclaw.io
+# CORS is handled by FastAPI middleware — do NOT add CORS headers here
+api.{$DOMAIN:localhost} {
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options nosniff
+		-Server
 	}
 
-	# -------------------------------------------------------------------------
-	# Rate Limiting
-	# -------------------------------------------------------------------------
-	rate_limit {
-		zone api_limit {
-			key {remote_host}
-			events 100
-			window 1m
-		}
-	}
-
-	# -------------------------------------------------------------------------
-	# API routes -> Backend
-	# -------------------------------------------------------------------------
-	handle /api/* {
-		reverse_proxy backend:8000
-	}
-
-	# Health endpoint -> Backend
-	handle /health {
-		reverse_proxy backend:8000
-	}
-
-	# -------------------------------------------------------------------------
-	# All other routes -> Frontend
-	# -------------------------------------------------------------------------
-	handle {
-		reverse_proxy frontend:80
-	}
-
-	# -------------------------------------------------------------------------
-	# Logging
-	# -------------------------------------------------------------------------
-	log {
-		output stdout
-		format json
-		level INFO
-	}
+	reverse_proxy backend:8000
 }

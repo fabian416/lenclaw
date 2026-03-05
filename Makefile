@@ -21,6 +21,10 @@ dev:
 dev-detach:
 	$(COMPOSE_DEV) up --build -d
 
+## Start only infra (postgres + redis) for local development
+db:
+	$(COMPOSE_DEV) up -d postgres redis
+
 # ---------------------------------------------------------------------------
 # Production
 # ---------------------------------------------------------------------------
@@ -64,10 +68,11 @@ ps:
 ## Run all tests (frontend + backend + contracts)
 test: test-frontend test-backend test-contracts
 
-## Run frontend linting and tests
+## Run frontend linting and type check
 test-frontend:
 	cd frontend && npm run lint
-	@echo "--- Frontend lint passed ---"
+	cd frontend && npx tsc --noEmit
+	@echo "--- Frontend checks passed ---"
 
 ## Run backend linting and tests
 test-backend:
@@ -87,11 +92,11 @@ test-contracts:
 
 ## Run Alembic database migrations
 migrate:
-	$(COMPOSE_PROD) exec backend python -m alembic upgrade head
+	$(COMPOSE_PROD) exec backend alembic -c alembic.ini upgrade head
 
 ## Create a new migration (usage: make migration MSG="add users table")
 migration:
-	$(COMPOSE_PROD) exec backend python -m alembic revision --autogenerate -m "$(MSG)"
+	$(COMPOSE_PROD) exec backend alembic -c alembic.ini revision --autogenerate -m "$(MSG)"
 
 # ---------------------------------------------------------------------------
 # Shell Access

@@ -1,107 +1,96 @@
 # =============================================================================
-# Lenclaw - Deploy Pipeline
-# On push to main: build Docker images, push to ghcr.io, deploy
+# Lenclaw - Build & Deploy Pipeline
+# On push to main/develop: build Docker images, push to ghcr.io, deploy
 # =============================================================================
 
-name: Deploy
+name: Build & Deploy
+
+env:
+  IMAGE_TAG_BACKEND: ghcr.io/${{ github.repository_owner }}/lenclaw/backend
+  IMAGE_TAG_FRONTEND: ghcr.io/${{ github.repository_owner }}/lenclaw/frontend
+  IMAGE_VERSION: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
 on:
   push:
-    branches: [main]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
-
-permissions:
-  contents: read
-  packages: write
+    branches:
+      - main
+      - develop
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Build and push Docker images
+  # Build and push Frontend image
   # ---------------------------------------------------------------------------
-  build-frontend:
-    name: Build Frontend Image
+  build_frontend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
+      - name: Docker Buildx Install
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Build and Push Frontend Image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-backend:
-    name: Build Backend Image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.IMAGE_TAG_FRONTEND }}:${{ env.IMAGE_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   # ---------------------------------------------------------------------------
-  # Deploy (placeholder - customize for your infrastructure)
+  # Build and push Backend image
+  # ---------------------------------------------------------------------------
+  build_backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Buildx Install
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_TAG_BACKEND }}:${{ env.IMAGE_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Deploy (only on main)
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-frontend, build-backend]
+    needs: [build_frontend, build_backend]
+    if: github.ref == 'refs/heads/main'
     environment: production
 
     steps:
@@ -111,16 +100,15 @@ jobs:
       - name: Deploy
         run: |
           echo "=========================================="
-          echo " DEPLOY PLACEHOLDER"
+          echo " DEPLOY"
           echo "=========================================="
           echo ""
-          echo "Frontend image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:latest"
-          echo "Backend image:  ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:latest"
+          echo "Frontend image: ${{ env.IMAGE_TAG_FRONTEND }}:production"
+          echo "Backend image:  ${{ env.IMAGE_TAG_BACKEND }}:production"
           echo ""
           echo "Replace this step with your deployment strategy:"
           echo "  - docker compose pull && docker compose up -d"
           echo "  - kubectl apply -f k8s/"
-          echo "  - aws ecs update-service"
           echo "  - SSH + docker compose on VPS"
           echo ""
           echo "=========================================="
