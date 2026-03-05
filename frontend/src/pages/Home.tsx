@@ -237,34 +237,34 @@ export default function Home() {
 
         {/* Marquee */}
         <section className="pb-16 md:pb-24">
-          <Marquee speed={25} pauseOnHover className="py-4 text-muted-foreground/40 text-sm font-medium tracking-widest uppercase">
-            <span>Protocol Revenue: <span className="text-primary/50">$2.4M+</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Active Agents: <span className="text-primary/50">847</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>TVL: <span className="text-primary/50">$12M+</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Avg APY: <span className="text-primary/50">12.4%</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Loans Originated: <span className="text-primary/50">$8.2M+</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Avg Credit Score: <span className="text-primary/50">782</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Default Rate: <span className="text-primary/50">2.1%</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Protocol Revenue: <span className="text-primary/50">$2.4M+</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Active Agents: <span className="text-primary/50">847</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>TVL: <span className="text-primary/50">$12M+</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Avg APY: <span className="text-primary/50">12.4%</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Loans Originated: <span className="text-primary/50">$8.2M+</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Avg Credit Score: <span className="text-primary/50">782</span></span>
-            <span className="text-primary/30">&#x2022;</span>
-            <span>Default Rate: <span className="text-primary/50">2.1%</span></span>
+          <Marquee speed={25} pauseOnHover className="py-4 text-muted-foreground dark:text-muted-foreground/40 text-sm font-medium tracking-widest uppercase">
+            <span>Protocol Revenue: <span className="text-primary dark:text-primary/50">$2.4M+</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Active Agents: <span className="text-primary dark:text-primary/50">847</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>TVL: <span className="text-primary dark:text-primary/50">$12M+</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Avg APY: <span className="text-primary dark:text-primary/50">12.4%</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Loans Originated: <span className="text-primary dark:text-primary/50">$8.2M+</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Avg Credit Score: <span className="text-primary dark:text-primary/50">782</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Default Rate: <span className="text-primary dark:text-primary/50">2.1%</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Protocol Revenue: <span className="text-primary dark:text-primary/50">$2.4M+</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Active Agents: <span className="text-primary dark:text-primary/50">847</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>TVL: <span className="text-primary dark:text-primary/50">$12M+</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Avg APY: <span className="text-primary dark:text-primary/50">12.4%</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Loans Originated: <span className="text-primary dark:text-primary/50">$8.2M+</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Avg Credit Score: <span className="text-primary dark:text-primary/50">782</span></span>
+            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
+            <span>Default Rate: <span className="text-primary dark:text-primary/50">2.1%</span></span>
           </Marquee>
         </section>
       </main>
