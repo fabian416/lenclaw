@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <!-- Maskable icon - safe zone padding (inner 80%) -->
-  <rect width="512" height="512" fill="#0a0a0a"/>
-  <!-- Three claw marks (centered in safe zone) -->
-  <path d="M166 374 Q192 256 230 138" stroke="#ea580c" stroke-width="38" stroke-linecap="round" fill="none"/>
-  <path d="M230 374 Q256 256 288 138" stroke="#ea580c" stroke-width="38" stroke-linecap="round" fill="none"/>
-  <path d="M288 374 Q318 256 348 138" stroke="#ea580c" stroke-width="38" stroke-linecap="round" fill="none"/>
-  <!-- Inner glow -->
-  <path d="M166 374 Q192 256 230 138" stroke="#f97316" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.4"/>
-  <path d="M230 374 Q256 256 288 138" stroke="#f97316" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.4"/>
-  <path d="M288 374 Q318 256 348 138" stroke="#f97316" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.4"/>
+  <rect width="512" height="512" fill="#ffffff"/>
+  <!-- Door body (centered in safe zone) -->
+  <rect x="102" y="72" width="308" height="369" rx="40" fill="#ea580c"/>
+  <!-- Doorknob -->
+  <circle cx="349" cy="282" r="23" fill="white"/>
+  <!-- Three claw scratch marks -->
+  <path d="M154 380 Q190 250 226 114" stroke="white" stroke-width="33" stroke-linecap="round" fill="none"/>
+  <path d="M205 380 Q236 250 267 114" stroke="white" stroke-width="33" stroke-linecap="round" fill="none"/>
+  <path d="M256 380 Q282 250 308 114" stroke="white" stroke-width="33" stroke-linecap="round" fill="none"/>
 </svg>

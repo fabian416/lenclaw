@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#ea580c",
-  "background_color": "#0a0a0a",
+  "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "categories": ["finance", "defi"],
   "icons": [
