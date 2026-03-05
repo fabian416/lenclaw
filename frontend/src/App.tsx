@@ -11,7 +11,7 @@ import BorrowPage from "@/pages/Borrow"
 
 export default function App() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#0a0a0a] text-white">
       {/* Desktop header (hidden on mobile) */}
       <div className="hidden md:block">
         <Header />

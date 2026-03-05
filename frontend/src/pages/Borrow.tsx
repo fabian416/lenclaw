@@ -17,25 +17,29 @@ import {
   X,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
+import { StarBorder } from "@/components/reactbits/StarBorder"
+import { Magnet } from "@/components/reactbits/Magnet"
+import { ClickSpark } from "@/components/reactbits/ClickSpark"
 
 function CreditRing({ value, size = 120, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const percent = Math.min(Math.max(value, 0), 100)
 
-  const getColorClass = (p: number) => {
-    if (p > 90) return "text-red-500"
-    if (p > 75) return "text-amber-500"
-    return "text-foreground"
+  const getStrokeColor = (p: number) => {
+    if (p > 90) return "#ef4444"
+    if (p > 75) return "#f59e0b"
+    return "#14f195"
   }
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" className="text-muted" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" className="text-white/[0.06]" strokeWidth={strokeWidth} />
         <motion.circle
-          cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor"
-          className={getColorClass(percent)}
+          cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke={getStrokeColor(percent)}
           strokeWidth={strokeWidth} strokeLinecap="round" strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: circumference - (percent / 100) * circumference }}
@@ -43,8 +47,8 @@ function CreditRing({ value, size = 120, strokeWidth = 8 }: { value: number; siz
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold mono-text">{value.toFixed(1)}%</span>
-        <span className="text-[10px] text-muted-foreground">utilized</span>
+        <span className="text-2xl font-bold mono-text text-white">{value.toFixed(1)}%</span>
+        <span className="text-[10px] text-white/40">utilized</span>
       </div>
     </div>
   )
@@ -65,15 +69,15 @@ export default function BorrowPage() {
     >
       {/* Agent Header */}
       <div className="flex items-center gap-3 mb-8 md:mb-10">
-        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-          <Bot className="w-5 h-5 text-muted-foreground" />
+        <div className="w-10 h-10 rounded-full bg-white/[0.05] border border-[#14f195]/20 flex items-center justify-center flex-shrink-0">
+          <Bot className="w-5 h-5 text-[#14f195]/60" />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate">{borrower.agentName}</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate text-white">{borrower.agentName}</h1>
             <Badge variant="outline" className="text-[10px] mono-text flex-shrink-0">{borrower.erc8004Id}</Badge>
           </div>
-          <p className="text-sm text-muted-foreground">Agent Credit Dashboard</p>
+          <p className="text-sm text-white/50">Agent Credit Dashboard</p>
         </div>
       </div>
 
@@ -89,43 +93,40 @@ export default function BorrowPage() {
         {/* Left Column */}
         <div className="md:col-span-3 space-y-6">
           {/* Credit Utilization */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.15 }}
-            className="border border-border rounded-xl p-6"
-          >
-            <h3 className="text-sm font-medium mb-5">Credit Utilization</h3>
-            <div className="flex flex-col items-center">
-              <CreditRing value={utilizationPercent} />
-              <span className="text-xs mono-text text-muted-foreground mt-3">
-                {formatUSD(borrower.outstandingDebt)} / {formatUSD(borrower.creditLine)}
-              </span>
+          <StarBorder>
+            <div className="border border-white/[0.08] bg-white/[0.03] rounded-xl p-6">
+              <h3 className="text-sm font-medium mb-5 text-white">Credit Utilization</h3>
+              <div className="flex flex-col items-center">
+                <CreditRing value={utilizationPercent} />
+                <span className="text-xs mono-text text-white/40 mt-3">
+                  {formatUSD(borrower.outstandingDebt)} / {formatUSD(borrower.creditLine)}
+                </span>
+              </div>
             </div>
-          </motion.div>
+          </StarBorder>
 
           {/* Revenue Lockbox */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.2 }}
-            className="border border-border rounded-xl p-6"
+            className="border border-white/[0.08] bg-white/[0.03] rounded-xl p-6"
           >
             <div className="flex items-center gap-2 mb-5">
-              <Lock className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">Revenue Lockbox</h3>
+              <Lock className="w-4 h-4 text-[#14f195]/50" />
+              <h3 className="text-sm font-medium text-white">Revenue Lockbox</h3>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-muted/50">
-                <div className="text-xs text-muted-foreground mb-1">Total Revenue (30d)</div>
-                <div className="text-lg font-semibold mono-text">{formatUSD(borrower.lockboxRevenue)}</div>
+              <div className="p-3 rounded-lg bg-white/[0.04]">
+                <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Total Revenue (30d)</div>
+                <div className="text-lg font-semibold mono-text text-white">{formatUSD(borrower.lockboxRevenue)}</div>
               </div>
-              <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/5">
-                <div className="text-xs text-muted-foreground mb-1">Current Balance</div>
-                <div className="text-lg font-semibold mono-text text-emerald-600 dark:text-emerald-400">{formatUSD(borrower.lockboxBalance)}</div>
+              <div className="p-3 rounded-lg bg-[#14f195]/[0.06] border border-[#14f195]/10">
+                <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Current Balance</div>
+                <div className="text-lg font-semibold mono-text text-[#14f195]">{formatUSD(borrower.lockboxBalance)}</div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/30">
+            <p className="text-xs text-white/40 p-3 rounded-lg bg-white/[0.03] border border-white/[0.05]">
               Revenue flows through the lockbox contract. Lender repayments are automatically deducted before agent withdrawals.
             </p>
           </motion.div>
@@ -135,32 +136,32 @@ export default function BorrowPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.25 }}
-            className="border border-border rounded-xl p-6"
+            className="border border-white/[0.08] bg-white/[0.03] rounded-xl p-6"
           >
             <div className="flex items-center gap-2 mb-5">
-              <CalendarCheck className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">Repayment Schedule</h3>
+              <CalendarCheck className="w-4 h-4 text-[#14f195]/50" />
+              <h3 className="text-sm font-medium text-white">Repayment Schedule</h3>
             </div>
-            <div className="space-y-0 divide-y divide-border">
+            <div className="space-y-0 divide-y divide-white/[0.06]">
               {borrower.repaymentSchedule.map((entry, i) => (
                 <div key={i} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      entry.status === "paid" ? "bg-emerald-500" : "bg-amber-500"
+                      entry.status === "paid" ? "bg-[#14f195]" : "bg-amber-400"
                     }`} />
                     <div>
-                      <div className="text-sm">{formatDate(entry.date)}</div>
+                      <div className="text-sm text-white">{formatDate(entry.date)}</div>
                       <div className={`text-xs capitalize ${
-                        entry.status === "paid" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                        entry.status === "paid" ? "text-[#14f195]" : "text-amber-400"
                       }`}>
                         {entry.status}
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0 ml-3">
-                    <div className="text-sm font-medium mono-text">{formatUSD(entry.amount)}</div>
+                    <div className="text-sm font-medium mono-text text-white">{formatUSD(entry.amount)}</div>
                     {entry.status === "paid" && (
-                      <div className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end">
+                      <div className="text-xs text-[#14f195] flex items-center gap-1 justify-end">
                         <CheckCircle2 className="w-3 h-3" />
                         Done
                       </div>
@@ -174,31 +175,26 @@ export default function BorrowPage() {
 
         {/* Right Column: Draw Down -- desktop */}
         <div className="hidden md:block md:col-span-2">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.1 }}
-            className="border border-border rounded-xl p-6 sticky top-24"
-          >
-            <h3 className="text-sm font-medium mb-5">Draw Down Credit</h3>
+          <SpotlightCard className="p-6 sticky top-24">
+            <h3 className="text-sm font-medium mb-5 text-white">Draw Down Credit</h3>
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-muted/50 text-center">
-                <div className="text-xs text-muted-foreground mb-1">Available to Borrow</div>
-                <div className="text-2xl font-bold mono-text">{formatUSD(borrower.availableCredit)}</div>
+              <div className="p-4 rounded-lg bg-white/[0.04] text-center">
+                <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Available to Borrow</div>
+                <div className="text-2xl font-bold mono-text text-white">{formatUSD(borrower.availableCredit)}</div>
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Amount (USDC)</label>
+                <label className="text-[10px] text-white/40 mb-1.5 block uppercase tracking-wider">Amount (USDC)</label>
                 <div className="relative">
                   <Input
                     type="number"
                     placeholder="0.00"
                     value={drawAmount}
                     onChange={(e) => setDrawAmount(e.target.value)}
-                    className="pr-16 text-lg h-12 mono-text"
+                    className="pr-16 text-lg h-12 mono-text bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
                   />
                   <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-accent font-semibold px-2 py-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#14f195] font-semibold px-2 py-1"
                     onClick={() => setDrawAmount(String(borrower.availableCredit))}
                   >
                     MAX
@@ -206,10 +202,10 @@ export default function BorrowPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm p-3 rounded-lg bg-muted/50">
+              <div className="space-y-2 text-sm p-3 rounded-lg bg-white/[0.04]">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Interest Rate</span>
-                  <span className="font-medium mono-text">{formatPercent(borrower.interestRate)}</span>
+                  <span className="text-white/50">Interest Rate</span>
+                  <span className="font-medium mono-text text-white">{formatPercent(borrower.interestRate)}</span>
                 </div>
                 <AnimatePresence>
                   {drawAmount && (
@@ -217,45 +213,49 @@ export default function BorrowPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="space-y-2 pt-2 border-t border-border"
+                      className="space-y-2 pt-2 border-t border-white/[0.06]"
                     >
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">New Outstanding Debt</span>
-                        <span className="font-medium mono-text">{formatUSD(borrower.outstandingDebt + parseFloat(drawAmount || "0"))}</span>
+                        <span className="text-white/50">New Outstanding Debt</span>
+                        <span className="font-medium mono-text text-white">{formatUSD(borrower.outstandingDebt + parseFloat(drawAmount || "0"))}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Est. Monthly Payment</span>
-                        <span className="font-medium mono-text">{formatUSD((parseFloat(drawAmount || "0") * (1 + borrower.interestRate / 100)) / 12)}</span>
+                        <span className="text-white/50">Est. Monthly Payment</span>
+                        <span className="font-medium mono-text text-white">{formatUSD((parseFloat(drawAmount || "0") * (1 + borrower.interestRate / 100)) / 12)}</span>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              <Button
-                className="w-full font-medium h-11"
-                size="lg"
-                disabled={!drawAmount || parseFloat(drawAmount) > borrower.availableCredit}
-              >
-                <span className="flex items-center gap-2">
-                  <ArrowDownToLine className="w-4 h-4" />
-                  Draw Down
-                </span>
-              </Button>
+              <Magnet strength={0.15}>
+                <ClickSpark>
+                  <Button
+                    className="w-full font-semibold h-11 bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg"
+                    size="lg"
+                    disabled={!drawAmount || parseFloat(drawAmount) > borrower.availableCredit}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ArrowDownToLine className="w-4 h-4" />
+                      Draw Down
+                    </span>
+                  </Button>
+                </ClickSpark>
+              </Magnet>
 
               {drawAmount && parseFloat(drawAmount) > borrower.availableCredit && (
-                <p className="text-xs text-red-500 text-center">Amount exceeds available credit</p>
+                <p className="text-xs text-red-400 text-center">Amount exceeds available credit</p>
               )}
 
-              <div className="pt-4 border-t border-border">
-                <div className="text-xs text-muted-foreground mb-2">Next Payment Due</div>
+              <div className="pt-4 border-t border-white/[0.06]">
+                <div className="text-[10px] text-white/40 mb-2 uppercase tracking-wider">Next Payment Due</div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium mono-text">{formatUSD(borrower.nextPayment.amount)}</span>
-                  <span className="text-xs text-amber-600 dark:text-amber-400">{formatDate(borrower.nextPayment.dueDate)}</span>
+                  <span className="text-sm font-medium mono-text text-white">{formatUSD(borrower.nextPayment.amount)}</span>
+                  <span className="text-xs text-amber-400">{formatDate(borrower.nextPayment.dueDate)}</span>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </SpotlightCard>
         </div>
       </div>
 
@@ -264,7 +264,7 @@ export default function BorrowPage() {
         {!mobileDrawOpen && (
           <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] left-0 right-0 z-30 px-4 pb-2">
             <Button
-              className="w-full font-medium h-14 text-base rounded-xl"
+              className="w-full font-semibold h-14 text-base rounded-xl bg-[#14f195] text-black hover:bg-[#14f195]/90"
               size="lg"
               onClick={() => setMobileDrawOpen(true)}
             >
@@ -283,7 +283,7 @@ export default function BorrowPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/40"
+                className="absolute inset-0 bg-black/60"
                 onClick={() => setMobileDrawOpen(false)}
               />
               <motion.div
@@ -291,37 +291,37 @@ export default function BorrowPage() {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="absolute bottom-0 left-0 right-0 mobile-bottom-sheet bg-background border-t border-border"
+                className="absolute bottom-0 left-0 right-0 mobile-bottom-sheet bg-[#0a0a0a] border-t border-white/10"
               >
                 <div className="flex justify-between items-center px-5 pt-2">
-                  <span className="text-sm font-medium">Draw Down Credit</span>
+                  <span className="text-sm font-medium text-white">Draw Down Credit</span>
                   <button
                     onClick={() => setMobileDrawOpen(false)}
-                    className="p-2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    className="p-2 text-white/40 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <div className="px-5 pb-6 space-y-5">
-                  <div className="p-4 rounded-lg bg-muted/50 text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Available to Borrow</div>
-                    <div className="text-3xl font-bold mono-text">{formatUSD(borrower.availableCredit)}</div>
+                  <div className="p-4 rounded-lg bg-white/[0.04] text-center">
+                    <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Available to Borrow</div>
+                    <div className="text-3xl font-bold mono-text text-white">{formatUSD(borrower.availableCredit)}</div>
                   </div>
 
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Amount (USDC)</label>
+                    <label className="text-[10px] text-white/40 mb-2 block uppercase tracking-wider">Amount (USDC)</label>
                     <div className="relative">
                       <Input
                         type="number"
                         placeholder="0.00"
                         value={drawAmount}
                         onChange={(e) => setDrawAmount(e.target.value)}
-                        className="pr-16 text-2xl h-16 rounded-xl mono-text"
+                        className="pr-16 text-2xl h-16 rounded-xl mono-text bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
                         inputMode="decimal"
                       />
                       <button
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-accent font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#14f195] font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         onClick={() => setDrawAmount(String(borrower.availableCredit))}
                       >
                         MAX
@@ -329,45 +329,47 @@ export default function BorrowPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 text-sm p-3 rounded-lg bg-muted/50">
+                  <div className="space-y-2 text-sm p-3 rounded-lg bg-white/[0.04]">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Interest Rate</span>
-                      <span className="font-medium mono-text">{formatPercent(borrower.interestRate)}</span>
+                      <span className="text-white/50">Interest Rate</span>
+                      <span className="font-medium mono-text text-white">{formatPercent(borrower.interestRate)}</span>
                     </div>
                     {drawAmount && (
                       <>
-                        <div className="flex justify-between pt-2 border-t border-border">
-                          <span className="text-muted-foreground">New Outstanding Debt</span>
-                          <span className="font-medium mono-text">{formatUSD(borrower.outstandingDebt + parseFloat(drawAmount || "0"))}</span>
+                        <div className="flex justify-between pt-2 border-t border-white/[0.06]">
+                          <span className="text-white/50">New Outstanding Debt</span>
+                          <span className="font-medium mono-text text-white">{formatUSD(borrower.outstandingDebt + parseFloat(drawAmount || "0"))}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Est. Monthly Payment</span>
-                          <span className="font-medium mono-text">{formatUSD((parseFloat(drawAmount || "0") * (1 + borrower.interestRate / 100)) / 12)}</span>
+                          <span className="text-white/50">Est. Monthly Payment</span>
+                          <span className="font-medium mono-text text-white">{formatUSD((parseFloat(drawAmount || "0") * (1 + borrower.interestRate / 100)) / 12)}</span>
                         </div>
                       </>
                     )}
                   </div>
 
                   {drawAmount && parseFloat(drawAmount) > borrower.availableCredit && (
-                    <p className="text-xs text-red-500 text-center">Amount exceeds available credit</p>
+                    <p className="text-xs text-red-400 text-center">Amount exceeds available credit</p>
                   )}
 
-                  <Button
-                    className="w-full font-medium h-14 text-base rounded-xl"
-                    size="lg"
-                    disabled={!drawAmount || parseFloat(drawAmount) > borrower.availableCredit}
-                  >
-                    <span className="flex items-center gap-2">
-                      <ArrowDownToLine className="w-5 h-5" />
-                      Draw Down
-                    </span>
-                  </Button>
+                  <ClickSpark>
+                    <Button
+                      className="w-full font-semibold h-14 text-base rounded-xl bg-[#14f195] text-black hover:bg-[#14f195]/90"
+                      size="lg"
+                      disabled={!drawAmount || parseFloat(drawAmount) > borrower.availableCredit}
+                    >
+                      <span className="flex items-center gap-2">
+                        <ArrowDownToLine className="w-5 h-5" />
+                        Draw Down
+                      </span>
+                    </Button>
+                  </ClickSpark>
 
-                  <div className="pt-3 border-t border-border">
-                    <div className="text-xs text-muted-foreground mb-2">Next Payment Due</div>
+                  <div className="pt-3 border-t border-white/[0.06]">
+                    <div className="text-[10px] text-white/40 mb-2 uppercase tracking-wider">Next Payment Due</div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium mono-text">{formatUSD(borrower.nextPayment.amount)}</span>
-                      <span className="text-xs text-amber-600 dark:text-amber-400">{formatDate(borrower.nextPayment.dueDate)}</span>
+                      <span className="text-sm font-medium mono-text text-white">{formatUSD(borrower.nextPayment.amount)}</span>
+                      <span className="text-xs text-amber-400">{formatDate(borrower.nextPayment.dueDate)}</span>
                     </div>
                   </div>
                 </div>

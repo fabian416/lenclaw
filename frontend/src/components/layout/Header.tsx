@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { shortenAddress } from "@/lib/utils"
+import { GlitchText } from "@/components/reactbits/GlitchText"
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
@@ -29,17 +30,20 @@ export function Header() {
 
   return (
     <header
-      className={`border-b sticky top-0 z-50 transition-all duration-200 ${
+      className={`border-b sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "border-border bg-background/80 backdrop-blur-xl"
-          : "border-transparent bg-background"
+          ? "border-white/10 bg-black/60 backdrop-blur-xl"
+          : "border-transparent bg-transparent"
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Brand */}
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">
-            lenclaw
+          <span className="text-[15px] font-bold tracking-tight text-white">
+            <GlitchText text="lenclaw" />
+          </span>
+          <span className="text-[10px] font-medium text-[#14f195] uppercase tracking-widest">
+            protocol
           </span>
         </Link>
 
@@ -51,15 +55,15 @@ export function Header() {
                 <span
                   className={`relative px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${
                     isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "text-[#14f195]"
+                      : "text-white/50 hover:text-white"
                   }`}
                 >
                   {item.label}
                   {isActive && (
                     <motion.span
                       layoutId="nav-pill"
-                      className="absolute inset-0 bg-muted rounded-md -z-10"
+                      className="absolute inset-0 bg-[#14f195]/10 rounded-md -z-10"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -76,16 +80,16 @@ export function Header() {
               variant="outline"
               size="sm"
               onClick={() => disconnect()}
-              className="text-xs font-medium h-8"
+              className="text-xs font-medium h-8 border-white/20 hover:border-[#14f195]/50 bg-transparent text-white"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#14f195] mr-2" />
               {shortenAddress(address!)}
             </Button>
           ) : (
             <Button
               size="sm"
               onClick={() => connect({ connector: injected() })}
-              className="text-xs font-medium h-8"
+              className="text-xs font-semibold h-8 bg-[#14f195] text-black hover:bg-[#14f195]/90"
             >
               <Wallet className="w-3.5 h-3.5 mr-1.5" />
               Connect
@@ -94,7 +98,7 @@ export function Header() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="md:hidden p-2 text-white/50 hover:text-white transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -110,9 +114,9 @@ export function Header() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden border-t border-border overflow-hidden"
+            className="md:hidden border-t border-white/10 overflow-hidden"
           >
-            <div className="px-4 py-3 flex flex-col gap-0.5 bg-background">
+            <div className="px-4 py-3 flex flex-col gap-0.5 bg-[#0a0a0a]/95 backdrop-blur-xl">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
@@ -121,8 +125,8 @@ export function Header() {
                   className={({ isActive }) =>
                     `text-sm py-2.5 px-3 rounded-lg transition-colors ${
                       isActive
-                        ? "bg-muted text-foreground font-medium"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-[#14f195]/10 text-[#14f195] font-medium"
+                        : "text-white/50 hover:text-white"
                     }`
                   }
                 >

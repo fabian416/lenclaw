@@ -10,17 +10,20 @@ import { Bot, Search, Plus, TrendingUp } from "lucide-react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import type { AgentStatus } from "@/lib/types"
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
+import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
+import { ScrollFloat } from "@/components/reactbits/ScrollFloat"
 
 function ReputationScore({ score }: { score: number }) {
   const getColor = (s: number) => {
-    if (s >= 90) return "text-emerald-600 dark:text-emerald-400"
-    if (s >= 70) return "text-foreground"
-    if (s >= 50) return "text-amber-600 dark:text-amber-400"
-    return "text-red-500"
+    if (s >= 90) return "text-[#14f195] border-[#14f195]/50"
+    if (s >= 70) return "text-white border-white/30"
+    if (s >= 50) return "text-amber-400 border-amber-400/50"
+    return "text-red-400 border-red-400/50"
   }
 
   return (
-    <div className={`w-10 h-10 rounded-full border-2 border-current flex items-center justify-center flex-shrink-0 ${getColor(score)}`}>
+    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${getColor(score)}`}>
       <span className="text-xs font-bold mono-text">{score}</span>
     </div>
   )
@@ -46,13 +49,15 @@ export default function AgentRegistry() {
       className="max-w-6xl mx-auto px-6 py-8 md:py-12"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 md:mb-10">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">Agent Registry</h1>
-          <p className="text-muted-foreground text-sm">
-            Browse registered AI agents with on-chain identity and credit history
-          </p>
-        </div>
-        <Button asChild className="w-full md:w-auto">
+        <ScrollFloat>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-white">Agent Registry</h1>
+            <p className="text-white/50 text-sm">
+              Browse registered AI agents with on-chain identity and credit history
+            </p>
+          </div>
+        </ScrollFloat>
+        <Button asChild className="w-full md:w-auto bg-[#14f195] text-black font-semibold hover:bg-[#14f195]/90 rounded-lg">
           <Link to="/agents/onboard" className="flex items-center justify-center gap-2">
             <Plus className="w-4 h-4" />
             Register Agent
@@ -61,14 +66,14 @@ export default function AgentRegistry() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-8 p-4 rounded-xl border border-border">
+      <div className="flex flex-col sm:flex-row gap-3 mb-8 p-4 rounded-xl border border-white/[0.08] bg-white/[0.03]">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
           <Input
             placeholder="Search by name or ERC-8004 ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
           />
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1 mobile-scroll-x">
@@ -78,8 +83,8 @@ export default function AgentRegistry() {
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-2 rounded-md text-xs font-medium transition-all capitalize whitespace-nowrap min-h-[44px] md:min-h-0 ${
                 statusFilter === status
-                  ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
+                  ? "bg-[#14f195] text-black"
+                  : "bg-white/[0.06] text-white/50 hover:text-white"
               }`}
             >
               {status}
@@ -88,68 +93,71 @@ export default function AgentRegistry() {
         </div>
       </div>
 
-      {/* Agent Grid -- intentionally varied layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AnimatePresence mode="popLayout">
-          {filtered.map((agent, i) => (
-            <motion.div
-              key={agent.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.03 }}
-              layout
-              className="border border-border rounded-xl p-5 md:p-6 hover:border-muted-foreground/30 transition-colors"
-            >
-              {/* Header row */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <ReputationScore score={agent.reputationScore} />
-                  <div className="min-w-0">
-                    <div className="text-base font-semibold truncate">{agent.name}</div>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] mono-text">{agent.erc8004Id}</Badge>
-                      <StatusBadge status={agent.status} />
+      {/* Agent Grid */}
+      <AnimatedContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AnimatePresence mode="popLayout">
+            {filtered.map((agent, i) => (
+              <motion.div
+                key={agent.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.03 }}
+                layout
+              >
+                <SpotlightCard className="p-5 md:p-6 hover:border-[#14f195]/20 transition-all hover:shadow-[0_0_30px_rgba(20,241,149,0.04)]">
+                  {/* Header row */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <ReputationScore score={agent.reputationScore} />
+                      <div className="min-w-0">
+                        <div className="text-base font-semibold truncate text-white">{agent.name}</div>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] mono-text">{agent.erc8004Id}</Badge>
+                          <StatusBadge status={agent.status} />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{agent.description}</p>
+                  <p className="text-xs text-white/40 mb-4 line-clamp-2">{agent.description}</p>
 
-              {/* Metrics */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="p-2.5 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground mb-0.5">Revenue (30d)</div>
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm font-semibold mono-text">{formatUSD(agent.revenue30d)}</span>
+                  {/* Metrics */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="p-2.5 rounded-lg bg-white/[0.04]">
+                      <div className="text-[10px] text-white/40 mb-0.5 uppercase tracking-wider">Revenue (30d)</div>
+                      <div className="flex items-center gap-1.5">
+                        <TrendingUp className="w-3 h-3 text-[#14f195]" />
+                        <span className="text-sm font-semibold mono-text text-white">{formatUSD(agent.revenue30d)}</span>
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white/[0.04]">
+                      <div className="text-[10px] text-white/40 mb-0.5 uppercase tracking-wider">Credit Line</div>
+                      <span className="text-sm font-semibold mono-text text-white">{formatUSD(agent.creditLine)}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-muted/50">
-                  <div className="text-xs text-muted-foreground mb-0.5">Credit Line</div>
-                  <span className="text-sm font-semibold mono-text">{formatUSD(agent.creditLine)}</span>
-                </div>
-              </div>
 
-              {/* Utilization bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-muted-foreground">Credit Utilization</span>
-                  <span className="font-medium mono-text">{agent.utilization}%</span>
-                </div>
-                <ProgressBar value={agent.utilization} />
-              </div>
+                  {/* Utilization bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="text-white/40">Credit Utilization</span>
+                      <span className="font-medium mono-text text-white">{agent.utilization}%</span>
+                    </div>
+                    <ProgressBar value={agent.utilization} />
+                  </div>
 
-              {/* Footer */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border">
-                <span className="mono-text">{shortenAddress(agent.walletAddress)}</span>
-                <span>Since {formatDate(agent.registeredAt)}</span>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+                  {/* Footer */}
+                  <div className="flex items-center justify-between text-xs text-white/30 pt-3 border-t border-white/[0.06]">
+                    <span className="mono-text">{shortenAddress(agent.walletAddress)}</span>
+                    <span>Since {formatDate(agent.registeredAt)}</span>
+                  </div>
+                </SpotlightCard>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </AnimatedContent>
 
       <AnimatePresence>
         {filtered.length === 0 && (
@@ -159,9 +167,9 @@ export default function AgentRegistry() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center py-16 text-center"
           >
-            <Bot className="w-10 h-10 text-muted-foreground/30 mb-4" />
-            <h3 className="text-base font-medium mb-1">No agents found</h3>
-            <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+            <Bot className="w-10 h-10 text-white/20 mb-4" />
+            <h3 className="text-base font-medium mb-1 text-white">No agents found</h3>
+            <p className="text-sm text-white/50">Try adjusting your search or filters</p>
           </motion.div>
         )}
       </AnimatePresence>
