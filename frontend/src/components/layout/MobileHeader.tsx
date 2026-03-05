@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { shortenAddress } from "@/lib/utils"
+import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
 
 const secondaryLinks = [
@@ -26,6 +27,7 @@ export function MobileHeader() {
     <header className="md:hidden border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
       <div className="flex items-center justify-between px-4 h-14">
         <Link to="/" className="flex items-center gap-2">
+          <LenclawLogo className="w-7 h-7" />
           <span className="text-[15px] font-bold tracking-tight text-foreground">
             lenclaw
           </span>

@@ -1,13 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="20" fill="#ffffff"/>
-  <!-- Subtle border for visibility on white backgrounds -->
-  <rect x="1" y="1" width="98" height="98" rx="19" fill="none" stroke="#ea580c" stroke-width="1" opacity="0.12"/>
-  <!-- Door body (Lendoor inspired) -->
-  <rect x="20" y="14" width="60" height="72" rx="8" fill="#ea580c"/>
+  <!-- Door body - rectangular, sharp corners -->
+  <rect x="19" y="6" width="59" height="84" rx="3" fill="#ea580c"/>
   <!-- Doorknob -->
-  <circle cx="68" cy="55" r="4.5" fill="white"/>
-  <!-- Three claw scratch marks (OpenClaw inspired) -->
-  <path d="M30 74 Q37 48 44 22" stroke="white" stroke-width="6.5" stroke-linecap="round" fill="none"/>
-  <path d="M40 74 Q46 48 52 22" stroke="white" stroke-width="6.5" stroke-linecap="round" fill="none"/>
-  <path d="M50 74 Q55 48 60 22" stroke="white" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+  <circle cx="69" cy="50" r="5" fill="white" opacity="0.9"/>
+  <!-- Three claw marks -->
+  <path d="M28 78 Q37 47 34 16" stroke="white" stroke-width="8.5" stroke-linecap="round" fill="none"/>
+  <path d="M44 79 Q50 45 48 16" stroke="white" stroke-width="8.5" stroke-linecap="round" fill="none"/>
+  <path d="M59 78 Q58 42 61 16" stroke="white" stroke-width="8.5" stroke-linecap="round" fill="none"/>
+  <!-- Floor line extending right -->
+  <line x1="75" y1="86.5" x2="98" y2="86.5" stroke="#ea580c" stroke-width="8" stroke-linecap="round"/>
 </svg>

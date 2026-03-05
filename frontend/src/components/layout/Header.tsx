@@ -7,6 +7,7 @@ import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { shortenAddress } from "@/lib/utils"
 import { GlitchText } from "@/components/reactbits/GlitchText"
+import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
 
 const navItems = [
@@ -40,7 +41,8 @@ export function Header() {
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Brand */}
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2">
+          <LenclawLogo className="w-8 h-8" />
           <span className="text-[15px] font-bold tracking-tight text-foreground">
             <GlitchText text="lenclaw" />
           </span>

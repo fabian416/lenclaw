@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Maskable icon - safe zone padding (inner 80%) -->
   <rect width="512" height="512" fill="#ffffff"/>
-  <!-- Door body (centered in safe zone) -->
-  <rect x="102" y="72" width="308" height="369" rx="40" fill="#ea580c"/>
+  <!-- Door body - rectangular, sharp corners -->
+  <rect x="96" y="31" width="301" height="430" rx="16" fill="#ea580c"/>
   <!-- Doorknob -->
-  <circle cx="349" cy="282" r="23" fill="white"/>
-  <!-- Three claw scratch marks -->
-  <path d="M154 380 Q190 250 226 114" stroke="white" stroke-width="33" stroke-linecap="round" fill="none"/>
-  <path d="M205 380 Q236 250 267 114" stroke="white" stroke-width="33" stroke-linecap="round" fill="none"/>
-  <path d="M256 380 Q282 250 308 114" stroke="white" stroke-width="33" stroke-linecap="round" fill="none"/>
+  <circle cx="354" cy="256" r="25" fill="white" opacity="0.9"/>
+  <!-- Three claw marks -->
+  <path d="M144 400 Q190 240 173 82" stroke="white" stroke-width="43" stroke-linecap="round" fill="none"/>
+  <path d="M224 404 Q256 230 248 82" stroke="white" stroke-width="43" stroke-linecap="round" fill="none"/>
+  <path d="M302 400 Q298 216 312 82" stroke="white" stroke-width="43" stroke-linecap="round" fill="none"/>
+  <!-- Floor line extending right -->
+  <line x1="384" y1="447" x2="496" y2="447" stroke="#ea580c" stroke-width="40" stroke-linecap="round"/>
 </svg>
