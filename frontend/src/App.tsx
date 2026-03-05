@@ -12,8 +12,8 @@ import { Noise } from "@/components/reactbits/Noise"
 
 export default function App() {
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0a] text-white">
-      <Noise opacity={0.03} className="fixed inset-0 z-50 pointer-events-none" />
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+      <Noise opacity={0.03} className="fixed inset-0 z-50 pointer-events-none dark:opacity-[0.03] opacity-[0.02]" />
       {/* Desktop header (hidden on mobile) */}
       <div className="hidden md:block">
         <Header />

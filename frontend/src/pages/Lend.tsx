@@ -33,8 +33,8 @@ export default function LendPage() {
       className="max-w-5xl mx-auto px-6 py-8 md:py-12"
     >
       <div className="mb-8 md:mb-10">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-white">Lend</h1>
-        <p className="text-white/50 text-sm">Deposit USDC into the lending pool to earn yield from AI agent repayments</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-foreground">Lend</h1>
+        <p className="text-muted-foreground text-sm">Deposit USDC into the lending pool to earn yield from AI agent repayments</p>
       </div>
 
       {/* Overview Stats */}
@@ -51,21 +51,21 @@ export default function LendPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.15 }}
-            className="border border-white/[0.08] bg-white/[0.03] rounded-xl p-6"
+            className="border border-border bg-card rounded-xl p-6"
           >
-            <h3 className="text-sm font-medium mb-5 text-white">Your Position</h3>
+            <h3 className="text-sm font-medium mb-5 text-foreground">Your Position</h3>
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 rounded-lg bg-white/[0.04]">
-                <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">lcUSDC Shares</div>
-                <div className="text-lg font-semibold mono-text text-white">{formatUSD(userPosition.shares)}</div>
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">lcUSDC Shares</div>
+                <div className="text-lg font-semibold mono-text text-foreground">{formatUSD(userPosition.shares)}</div>
               </div>
-              <div className="p-3 rounded-lg bg-white/[0.04]">
-                <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Current Value</div>
-                <div className="text-lg font-semibold mono-text text-white">{formatUSD(userPosition.value)}</div>
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Current Value</div>
+                <div className="text-lg font-semibold mono-text text-foreground">{formatUSD(userPosition.value)}</div>
               </div>
-              <div className="p-3 rounded-lg bg-[#14f195]/[0.06] border border-[#14f195]/10">
-                <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Earned</div>
-                <div className="text-lg font-semibold mono-text text-[#14f195]">+{formatUSD(userPosition.earned)}</div>
+              <div className="p-3 rounded-lg bg-primary/[0.06] border border-primary/10">
+                <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Earned</div>
+                <div className="text-lg font-semibold mono-text text-primary">+{formatUSD(userPosition.earned)}</div>
               </div>
             </div>
           </motion.div>
@@ -75,13 +75,13 @@ export default function LendPage() {
         <div className="hidden md:block md:col-span-2">
           <BorderBeam duration={8}>
           <SpotlightCard className="p-6 sticky top-24">
-            <div className="flex gap-1 w-full p-1 bg-white/[0.04] rounded-lg mb-5">
+            <div className="flex gap-1 w-full p-1 bg-muted rounded-lg mb-5">
               <button
                 onClick={() => setAction("deposit")}
                 className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
                   action === "deposit"
-                    ? "bg-[#14f195] text-black shadow-sm"
-                    : "text-white/50 hover:text-white"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Deposit
@@ -90,8 +90,8 @@ export default function LendPage() {
                 onClick={() => setAction("withdraw")}
                 className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
                   action === "withdraw"
-                    ? "bg-[#14f195] text-black shadow-sm"
-                    : "text-white/50 hover:text-white"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Withdraw
@@ -100,7 +100,7 @@ export default function LendPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] text-white/40 mb-1.5 block uppercase tracking-wider">
+                <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
                   {action === "deposit" ? "Amount (USDC)" : "Shares to withdraw"}
                 </label>
                 <div className="relative">
@@ -109,10 +109,10 @@ export default function LendPage() {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pr-16 text-lg h-12 mono-text bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
+                    className="pr-16 text-lg h-12 mono-text"
                   />
                   <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#14f195] font-semibold hover:text-[#14f195]/70 px-2 py-1 transition-colors duration-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-semibold hover:text-primary/70 px-2 py-1 transition-colors duration-200"
                     onClick={() => setAmount(action === "deposit" ? "10000" : String(userPosition.shares))}
                   >
                     MAX
@@ -120,10 +120,10 @@ export default function LendPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm p-3 rounded-lg bg-white/[0.04]">
+              <div className="space-y-2 text-sm p-3 rounded-lg bg-muted">
                 <div className="flex justify-between">
-                  <span className="text-white/50">Current APY</span>
-                  <span className="font-medium mono-text text-white">{formatPercent(pool.apy)}</span>
+                  <span className="text-muted-foreground">Current APY</span>
+                  <span className="font-medium mono-text text-foreground">{formatPercent(pool.apy)}</span>
                 </div>
                 <AnimatePresence>
                   {action === "deposit" && amount && (
@@ -131,10 +131,10 @@ export default function LendPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="flex justify-between pt-2 border-t border-white/[0.06]"
+                      className="flex justify-between pt-2 border-t border-border"
                     >
-                      <span className="text-white/50">Est. Annual Yield</span>
-                      <span className="text-[#14f195] font-medium mono-text">
+                      <span className="text-muted-foreground">Est. Annual Yield</span>
+                      <span className="text-primary font-medium mono-text">
                         +{formatUSD(parseFloat(amount || "0") * (pool.apy / 100))}
                       </span>
                     </motion.div>
@@ -144,7 +144,7 @@ export default function LendPage() {
 
               <Magnet strength={0.15}>
                 <ClickSpark>
-                  <SpotlightButton className="w-full font-semibold h-11 px-4 py-2.5 bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg cursor-pointer text-sm">
+                  <SpotlightButton className="w-full font-semibold h-11 px-4 py-2.5 bg-primary text-primary-foreground hover:opacity-90 rounded-lg cursor-pointer text-sm">
                     {action === "deposit" ? (
                       <span className="flex items-center justify-center gap-2">
                         <ArrowDownToLine className="w-4 h-4" />
@@ -170,7 +170,7 @@ export default function LendPage() {
         {!mobileFormOpen && (
           <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] left-0 right-0 z-30 px-4 pb-2">
             <Button
-              className="w-full font-semibold h-14 text-base rounded-xl bg-[#14f195] text-black hover:bg-[#14f195]/90"
+              className="w-full font-semibold h-14 text-base rounded-xl"
               size="lg"
               onClick={() => setMobileFormOpen(true)}
             >
@@ -189,7 +189,7 @@ export default function LendPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60"
+                className="absolute inset-0 bg-foreground/20 dark:bg-black/60"
                 onClick={() => setMobileFormOpen(false)}
               />
               <motion.div
@@ -197,25 +197,25 @@ export default function LendPage() {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="absolute bottom-0 left-0 right-0 mobile-bottom-sheet bg-[#0a0a0a] border-t border-white/10"
+                className="absolute bottom-0 left-0 right-0 mobile-bottom-sheet bg-background border-t border-border"
               >
                 <div className="flex justify-end px-4 pt-2">
                   <button
                     onClick={() => setMobileFormOpen(false)}
-                    className="p-2 text-white/40 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    className="p-2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <div className="px-5 pb-6 space-y-5">
-                  <div className="flex gap-1 w-full p-1 bg-white/[0.04] rounded-lg">
+                  <div className="flex gap-1 w-full p-1 bg-muted rounded-lg">
                     <button
                       onClick={() => setAction("deposit")}
                       className={`flex-1 py-3 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                         action === "deposit"
-                          ? "bg-[#14f195] text-black shadow-sm"
-                          : "text-white/50"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground"
                       }`}
                     >
                       Deposit
@@ -224,8 +224,8 @@ export default function LendPage() {
                       onClick={() => setAction("withdraw")}
                       className={`flex-1 py-3 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                         action === "withdraw"
-                          ? "bg-[#14f195] text-black shadow-sm"
-                          : "text-white/50"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground"
                       }`}
                     >
                       Withdraw
@@ -233,7 +233,7 @@ export default function LendPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-white/40 mb-2 block uppercase tracking-wider">
+                    <label className="text-[10px] text-muted-foreground mb-2 block uppercase tracking-wider">
                       {action === "deposit" ? "Amount (USDC)" : "Shares to withdraw"}
                     </label>
                     <div className="relative">
@@ -242,11 +242,11 @@ export default function LendPage() {
                         placeholder="0.00"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="pr-16 text-2xl h-16 rounded-xl mono-text bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
+                        className="pr-16 text-2xl h-16 rounded-xl mono-text"
                         inputMode="decimal"
                       />
                       <button
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#14f195] font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-[#14f195]/70 transition-colors duration-200"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-primary font-semibold px-3 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-primary/70 transition-colors duration-200"
                         onClick={() => setAmount(action === "deposit" ? "10000" : String(userPosition.shares))}
                       >
                         MAX
@@ -254,15 +254,15 @@ export default function LendPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 text-sm p-3 rounded-lg bg-white/[0.04]">
+                  <div className="space-y-2 text-sm p-3 rounded-lg bg-muted">
                     <div className="flex justify-between">
-                      <span className="text-white/50">Current APY</span>
-                      <span className="font-medium mono-text text-white">{formatPercent(pool.apy)}</span>
+                      <span className="text-muted-foreground">Current APY</span>
+                      <span className="font-medium mono-text text-foreground">{formatPercent(pool.apy)}</span>
                     </div>
                     {action === "deposit" && amount && (
-                      <div className="flex justify-between pt-2 border-t border-white/[0.06]">
-                        <span className="text-white/50">Est. Annual Yield</span>
-                        <span className="text-[#14f195] font-medium mono-text">
+                      <div className="flex justify-between pt-2 border-t border-border">
+                        <span className="text-muted-foreground">Est. Annual Yield</span>
+                        <span className="text-primary font-medium mono-text">
                           +{formatUSD(parseFloat(amount || "0") * (pool.apy / 100))}
                         </span>
                       </div>
@@ -270,7 +270,7 @@ export default function LendPage() {
                   </div>
 
                   <ClickSpark>
-                    <Button className="w-full font-semibold h-14 text-base rounded-xl bg-[#14f195] text-black hover:bg-[#14f195]/90" size="lg">
+                    <Button className="w-full font-semibold h-14 text-base rounded-xl" size="lg">
                       {action === "deposit" ? (
                         <span className="flex items-center gap-2">
                           <ArrowDownToLine className="w-5 h-5" />

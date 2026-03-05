@@ -31,7 +31,7 @@ export function SpotlightButton({
       className={`relative overflow-hidden ${className}`}
       style={{
         background: isHovering
-          ? `radial-gradient(120px circle at ${pos.x}px ${pos.y}px, rgba(20,241,149,0.2), transparent 60%), #14f195`
+          ? `radial-gradient(120px circle at ${pos.x}px ${pos.y}px, rgba(var(--spotlight-rgb), 0.1), transparent 60%)`
           : undefined,
       }}
     >

@@ -9,7 +9,7 @@ interface SpotlightCardProps {
 export function SpotlightCard({
   children,
   className = "",
-  spotlightColor = "rgba(20,241,149,0.08)",
+  spotlightColor,
 }: SpotlightCardProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -21,16 +21,19 @@ export function SpotlightCard({
     setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
   }
 
+  const defaultColor =
+    spotlightColor || "rgba(var(--spotlight-rgb), 0.06)"
+
   return (
     <div
       ref={ref}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      className={`relative overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] transition-all ${className}`}
+      className={`relative overflow-hidden rounded-xl border border-border bg-card transition-all shadow-sm ${className}`}
       style={{
         background: isHovering
-          ? `radial-gradient(300px circle at ${pos.x}px ${pos.y}px, ${spotlightColor}, transparent 60%), rgba(255,255,255,0.03)`
+          ? `radial-gradient(300px circle at ${pos.x}px ${pos.y}px, ${defaultColor}, transparent 60%)`
           : undefined,
       }}
     >

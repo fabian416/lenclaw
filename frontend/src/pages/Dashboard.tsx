@@ -36,7 +36,7 @@ function UtilizationRing({ value, size = 120, strokeWidth = 8 }: { value: number
           r={radius}
           fill="none"
           stroke="currentColor"
-          className="text-white/[0.06]"
+          className="text-border"
           strokeWidth={strokeWidth}
         />
         <motion.circle
@@ -44,7 +44,7 @@ function UtilizationRing({ value, size = 120, strokeWidth = 8 }: { value: number
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#14f195"
+          className="stroke-primary"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -54,7 +54,7 @@ function UtilizationRing({ value, size = 120, strokeWidth = 8 }: { value: number
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold mono-text text-white">{formatPercent(value)}</span>
+        <span className="text-2xl font-bold mono-text text-foreground">{formatPercent(value)}</span>
       </div>
     </div>
   )
@@ -74,8 +74,8 @@ export default function Dashboard() {
       className="max-w-6xl mx-auto px-6 py-8 md:py-12"
     >
       <div className="mb-8 md:mb-10">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-white">Protocol Dashboard</h1>
-        <p className="text-white/50 text-sm">Real-time overview of the Lenclaw lending pool</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-foreground">Protocol Dashboard</h1>
+        <p className="text-muted-foreground text-sm">Real-time overview of the Lenclaw lending pool</p>
       </div>
 
       {/* Key Metrics */}
@@ -94,23 +94,23 @@ export default function Dashboard() {
           <BorderBeam duration={8} className="h-full">
             <SpotlightCard className="p-6 h-full">
               <div className="flex items-center gap-2 mb-6">
-                <Activity className="w-4 h-4 text-[#14f195]/50" />
-                <h3 className="text-sm font-medium text-white">Pool Utilization</h3>
+                <Activity className="w-4 h-4 text-primary/50" />
+                <h3 className="text-sm font-medium text-foreground">Pool Utilization</h3>
               </div>
               <div className="flex flex-col items-center mb-6">
                 <UtilizationRing value={pool.utilizationRate} />
-                <span className="text-xs text-white/40 mono-text mt-3">
+                <span className="text-xs text-muted-foreground mono-text mt-3">
                   {formatUSD(pool.totalLoans)} / {formatUSD(pool.tvl)}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-white/[0.04]">
-                  <span className="text-[10px] text-white/40 block mb-1 uppercase tracking-wider">Total Loans</span>
-                  <div className="font-semibold text-sm mono-text text-white">{formatUSD(pool.totalLoans)}</div>
+                <div className="p-3 rounded-lg bg-muted">
+                  <span className="text-[10px] text-muted-foreground block mb-1 uppercase tracking-wider">Total Loans</span>
+                  <div className="font-semibold text-sm mono-text text-foreground">{formatUSD(pool.totalLoans)}</div>
                 </div>
-                <div className="p-3 rounded-lg bg-white/[0.04]">
-                  <span className="text-[10px] text-white/40 block mb-1 uppercase tracking-wider">Default Rate</span>
-                  <div className={`text-sm font-semibold mono-text ${pool.defaultRate > 5 ? "text-red-400" : "text-[#14f195]"}`}>
+                <div className="p-3 rounded-lg bg-muted">
+                  <span className="text-[10px] text-muted-foreground block mb-1 uppercase tracking-wider">Default Rate</span>
+                  <div className={`text-sm font-semibold mono-text ${pool.defaultRate > 5 ? "text-destructive" : "text-primary"}`}>
                     {formatPercent(pool.defaultRate)}
                   </div>
                 </div>
@@ -121,26 +121,26 @@ export default function Dashboard() {
           <BorderBeam duration={8} className="h-full">
             <SpotlightCard className="p-6 h-full">
               <div className="flex items-center gap-2 mb-6">
-                <DollarSign className="w-4 h-4 text-[#14f195]/50" />
-                <h3 className="text-sm font-medium text-white">Revenue Overview</h3>
+                <DollarSign className="w-4 h-4 text-primary/50" />
+                <h3 className="text-sm font-medium text-foreground">Revenue Overview</h3>
               </div>
               <div className="flex items-end justify-between mb-6">
-                <span className="text-3xl font-bold mono-text text-white">
+                <span className="text-3xl font-bold mono-text text-foreground">
                   <NumberTicker value={pool.totalRevenue} prefix="$" />
                 </span>
-                <span className="text-xs text-[#14f195] mono-text px-2 py-1 rounded-md bg-[#14f195]/10">
+                <span className="text-xs text-primary mono-text px-2 py-1 rounded-md bg-primary/10">
                   +18.3% MoM
                 </span>
               </div>
-              <div className="space-y-0 divide-y divide-white/[0.06]">
+              <div className="space-y-0 divide-y divide-border">
                 {[
                   { label: "Agent Revenue (30d)", value: formatUSD(pool.totalRevenue) },
                   { label: "Protocol Fees (30d)", value: formatUSD(pool.totalRevenue * 0.05) },
                   { label: "Lender Distributions", value: formatUSD(pool.totalRevenue * 0.85) },
                 ].map((item) => (
-                  <div key={item.label} className="flex justify-between items-center text-sm py-3 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors duration-200">
-                    <span className="text-white/50">{item.label}</span>
-                    <span className="font-medium mono-text text-white">{item.value}</span>
+                  <div key={item.label} className="flex justify-between items-center text-sm py-3 hover:bg-muted -mx-2 px-2 rounded-lg transition-colors duration-200">
+                    <span className="text-muted-foreground">{item.label}</span>
+                    <span className="font-medium mono-text text-foreground">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -158,10 +158,10 @@ export default function Dashboard() {
               onClick={() => setRiskExpanded(!riskExpanded)}
             >
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400/60" />
-                <h3 className="text-sm font-medium text-white">Risk Monitor</h3>
+                <AlertTriangle className="w-4 h-4 text-warning/60" />
+                <h3 className="text-sm font-medium text-foreground">Risk Monitor</h3>
               </div>
-              <ChevronDown className={`w-4 h-4 text-white/40 md:hidden transition-transform ${riskExpanded ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-4 h-4 text-muted-foreground md:hidden transition-transform ${riskExpanded ? "rotate-180" : ""}`} />
             </button>
             <div className={`${riskExpanded ? "" : "hidden md:block"}`}>
               <div className="space-y-5">
@@ -172,22 +172,22 @@ export default function Dashboard() {
                 ].map((item) => (
                   <div key={item.label}>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-white/50">{item.label}</span>
-                      <span className="font-medium mono-text text-white">{item.value}%</span>
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-medium mono-text text-foreground">{item.value}%</span>
                     </div>
                     <ProgressBar value={item.value} color={item.color} />
                   </div>
                 ))}
-                <div className="pt-4 border-t border-white/[0.06] space-y-2">
+                <div className="pt-4 border-t border-border space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-white/50">Delinquent Agents</span>
-                    <span className="text-amber-400 font-medium">
+                    <span className="text-muted-foreground">Delinquent Agents</span>
+                    <span className="text-warning font-medium">
                       {MOCK_AGENTS.filter((a) => a.status === "delinquent").length}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-white/50">Defaulted Agents</span>
-                    <span className="text-red-400 font-medium">
+                    <span className="text-muted-foreground">Defaulted Agents</span>
+                    <span className="text-destructive font-medium">
                       {MOCK_AGENTS.filter((a) => a.status === "default").length}
                     </span>
                   </div>
@@ -202,32 +202,32 @@ export default function Dashboard() {
                 className="flex items-center gap-2 md:pointer-events-none"
                 onClick={() => setAgentsExpanded(!agentsExpanded)}
               >
-                <Bot className="w-4 h-4 text-[#14f195]/50" />
-                <h3 className="text-sm font-medium text-white">Top Agents</h3>
-                <ChevronDown className={`w-4 h-4 text-white/40 md:hidden transition-transform ${agentsExpanded ? "rotate-180" : ""}`} />
+                <Bot className="w-4 h-4 text-primary/50" />
+                <h3 className="text-sm font-medium text-foreground">Top Agents</h3>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground md:hidden transition-transform ${agentsExpanded ? "rotate-180" : ""}`} />
               </button>
-              <Link to="/agents" className="text-xs text-white/40 hover:text-[#14f195] flex items-center gap-1 transition-colors">
+              <Link to="/agents" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
                 View all <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
             <div className={`${agentsExpanded ? "" : "hidden md:block"}`}>
-              <div className="space-y-0 divide-y divide-white/[0.06]">
+              <div className="space-y-0 divide-y divide-border">
                 {topAgents.map((agent) => (
                   <div
                     key={agent.id}
-                    className="flex items-center justify-between py-3 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors duration-200"
+                    className="flex items-center justify-between py-3 hover:bg-muted -mx-2 px-2 rounded-lg transition-colors duration-200"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-3.5 h-3.5 text-[#14f195]/50" />
+                      <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-3.5 h-3.5 text-primary/50" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-medium truncate text-white">{agent.name}</div>
-                        <div className="text-xs text-white/30"><TextScramble text={agent.erc8004Id} trigger="hover" speed={40} /></div>
+                        <div className="text-sm font-medium truncate text-foreground">{agent.name}</div>
+                        <div className="text-xs text-muted-foreground"><TextScramble text={agent.erc8004Id} trigger="hover" speed={40} /></div>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-3">
-                      <div className="text-sm font-medium mono-text text-white">{formatUSD(agent.revenue30d)}</div>
+                      <div className="text-sm font-medium mono-text text-foreground">{formatUSD(agent.revenue30d)}</div>
                       <StatusBadge status={agent.status} />
                     </div>
                   </div>

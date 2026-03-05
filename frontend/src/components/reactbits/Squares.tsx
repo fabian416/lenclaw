@@ -10,9 +10,12 @@ interface SquaresProps {
 export function Squares({
   squareSize = 60,
   speed = 20,
-  borderColor = "rgba(20,241,149,0.08)",
+  borderColor,
   className = "",
 }: SquaresProps) {
+  const defaultColor =
+    borderColor || "rgba(var(--sq-rgb), 0.08)"
+
   const squares = useMemo(
     () =>
       Array.from({ length: 12 }, (_, i) => ({
@@ -31,7 +34,7 @@ export function Squares({
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `linear-gradient(${borderColor} 1px, transparent 1px), linear-gradient(90deg, ${borderColor} 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(${defaultColor} 1px, transparent 1px), linear-gradient(90deg, ${defaultColor} 1px, transparent 1px)`,
           backgroundSize: `${squareSize}px ${squareSize}px`,
         }}
       />
@@ -45,7 +48,7 @@ export function Squares({
             height: squareSize * 0.6,
             left: `${sq.x}%`,
             top: `${sq.y}%`,
-            border: `1px solid ${borderColor}`,
+            border: `1px solid ${defaultColor}`,
             opacity: sq.opacity,
             animation: `sq-drift ${speed + sq.delay}s ease-in-out infinite alternate`,
           }}

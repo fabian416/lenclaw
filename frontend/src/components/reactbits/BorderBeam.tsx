@@ -11,8 +11,8 @@ interface BorderBeamProps {
 export function BorderBeam({
   children,
   duration = 6,
-  colorFrom = "#14f195",
-  colorTo = "#9945FF",
+  colorFrom = "var(--primary)",
+  colorTo = "var(--chart-2)",
   className = "",
 }: BorderBeamProps) {
   return (
@@ -25,7 +25,7 @@ export function BorderBeam({
             animation: `star-rotate ${duration}s linear infinite`,
           }}
         />
-        <div className="absolute inset-px rounded-xl bg-[#0a0a0a]" />
+        <div className="absolute inset-px rounded-xl bg-background" />
       </div>
       <div className="relative h-full">{children}</div>
     </div>

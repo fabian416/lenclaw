@@ -11,7 +11,7 @@ export function LoadingSpinner({ label = "Loading..." }: { label?: string }) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1, duration: 0.3 }}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 space-y-3"
+              className="rounded-xl border border-border bg-card p-5 space-y-3"
             >
               <div className="flex items-center justify-between">
                 <div className="skeleton-text w-24 h-3" />
@@ -21,7 +21,7 @@ export function LoadingSpinner({ label = "Loading..." }: { label?: string }) {
             </motion.div>
           ))}
         </div>
-        <span className="text-sm text-white/40 animate-pulse">
+        <span className="text-sm text-muted-foreground animate-pulse">
           {label}
         </span>
       </div>

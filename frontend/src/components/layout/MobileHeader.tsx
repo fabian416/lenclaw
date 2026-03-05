@@ -1,10 +1,11 @@
 import { Link, NavLink } from "react-router-dom"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Sun, Moon } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { shortenAddress } from "@/lib/utils"
+import { useThemeContext } from "@/providers/ThemeProvider"
 
 const secondaryLinks = [
   { to: "/dashboard", label: "Dashboard" },
@@ -19,23 +20,37 @@ export function MobileHeader() {
   const { address, isConnected } = useAccount()
   const { connect } = useConnect()
   const { disconnect } = useDisconnect()
+  const { theme, toggleTheme } = useThemeContext()
 
   return (
-    <header className="md:hidden border-b border-white/10 bg-black/60 backdrop-blur-xl sticky top-0 z-50">
+    <header className="md:hidden border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
       <div className="flex items-center justify-between px-4 h-14">
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-[15px] font-bold tracking-tight text-white">
+          <span className="text-[15px] font-bold tracking-tight text-foreground">
             lenclaw
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          >
+            {theme === "light" ? (
+              <Moon className="w-4 h-4" />
+            ) : (
+              <Sun className="w-4 h-4" />
+            )}
+          </button>
+
           {isConnected ? (
             <Button
               variant="outline"
               size="sm"
               onClick={() => disconnect()}
-              className="text-[10px] h-8 px-2.5 font-medium border-white/20 bg-transparent text-white"
+              className="text-[10px] h-8 px-2.5 font-medium"
             >
               {shortenAddress(address!)}
             </Button>
@@ -43,14 +58,14 @@ export function MobileHeader() {
             <Button
               size="sm"
               onClick={() => connect({ connector: injected() })}
-              className="text-[10px] h-8 px-2.5 font-semibold bg-[#14f195] text-black hover:bg-[#14f195]/90"
+              className="text-[10px] h-8 px-2.5 font-semibold"
             >
               Connect
             </Button>
           )}
 
           <button
-            className="p-2 text-white/50 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
           >
@@ -60,7 +75,7 @@ export function MobileHeader() {
       </div>
 
       {menuOpen && (
-        <nav className="border-t border-white/10 px-4 py-3 flex flex-col gap-0.5 bg-[#0a0a0a]/95 backdrop-blur-xl">
+        <nav className="border-t border-border px-4 py-3 flex flex-col gap-0.5 bg-background/95 backdrop-blur-xl">
           {secondaryLinks.map((item) => (
             <NavLink
               key={item.to}
@@ -69,8 +84,8 @@ export function MobileHeader() {
               className={({ isActive }) =>
                 `text-sm py-3 px-3 rounded-lg transition-colors min-h-[44px] flex items-center ${
                   isActive
-                    ? "bg-[#14f195]/10 text-[#14f195] font-medium"
-                    : "text-white/50 hover:text-white"
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:text-foreground"
                 }`
               }
             >

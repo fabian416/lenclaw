@@ -11,7 +11,7 @@ export function ShinyText({ text, className = "", speed = 3 }: ShinyTextProps) {
       className={`inline-block bg-clip-text text-transparent bg-[length:200%_100%] animate-[shiny-text_linear_infinite] ${className}`}
       style={{
         backgroundImage:
-          "linear-gradient(90deg, rgba(255,255,255,0.5) 0%, rgba(20,241,149,0.9) 25%, rgba(255,255,255,0.5) 50%, rgba(20,241,149,0.9) 75%, rgba(255,255,255,0.5) 100%)",
+          "linear-gradient(90deg, var(--muted-foreground) 0%, var(--primary) 25%, var(--muted-foreground) 50%, var(--primary) 75%, var(--muted-foreground) 100%)",
         animationDuration: `${speed}s`,
       }}
     >

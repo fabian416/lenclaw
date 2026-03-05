@@ -76,8 +76,8 @@ export default function AgentOnboarding() {
       className="max-w-2xl mx-auto px-6 py-8 md:py-12"
     >
       <div className="mb-8 md:mb-10">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-white">Register Agent</h1>
-        <p className="text-white/50 text-sm">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-foreground">Register Agent</h1>
+        <p className="text-muted-foreground text-sm">
           Onboard your AI agent to access revenue-backed credit lines
         </p>
       </div>
@@ -89,10 +89,10 @@ export default function AgentOnboarding() {
             <div className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border transition-colors ${
                 step > s.id
-                  ? "bg-[#14f195] text-black border-[#14f195]"
+                  ? "bg-primary text-primary-foreground border-primary"
                   : step === s.id
-                    ? "border-[#14f195] text-[#14f195]"
-                    : "border-white/20 text-white/30"
+                    ? "border-primary text-primary"
+                    : "border-border text-muted-foreground"
               }`}>
                 {step > s.id ? (
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -101,14 +101,14 @@ export default function AgentOnboarding() {
                 )}
               </div>
               <span className={`text-xs font-medium whitespace-nowrap ${
-                step >= s.id ? "text-white" : "text-white/30"
+                step >= s.id ? "text-foreground" : "text-muted-foreground"
               }`}>
                 {s.title}
               </span>
             </div>
             {i < STEPS.length - 1 && (
               <div className="w-8 h-px mx-2">
-                <div className={`h-full ${step > s.id ? "bg-[#14f195]" : "bg-white/10"}`} />
+                <div className={`h-full ${step > s.id ? "bg-primary" : "bg-border"}`} />
               </div>
             )}
           </div>
@@ -118,12 +118,12 @@ export default function AgentOnboarding() {
       {/* Step Indicator -- Mobile */}
       <div className="md:hidden mb-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-white/40">Step {step} of {STEPS.length}</span>
-          <span className="text-sm font-medium text-white">{STEPS[step - 1].title}</span>
+          <span className="text-xs text-muted-foreground">Step {step} of {STEPS.length}</span>
+          <span className="text-sm font-medium text-foreground">{STEPS[step - 1].title}</span>
         </div>
-        <div className="w-full h-1 bg-white/[0.06] rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-[#14f195] rounded-full"
+            className="h-full bg-primary rounded-full"
             animate={{ width: `${(step / STEPS.length) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -131,13 +131,13 @@ export default function AgentOnboarding() {
       </div>
 
       {/* Step Content */}
-      <div className="border border-white/[0.08] bg-white/[0.03] rounded-xl p-6 md:p-8">
+      <div className="border border-border bg-card rounded-xl p-6 md:p-8">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-white">
-            {(() => { const StepIcon = STEPS[step - 1].icon; return <StepIcon className="w-4 h-4 text-[#14f195]/60" /> })()}
+          <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
+            {(() => { const StepIcon = STEPS[step - 1].icon; return <StepIcon className="w-4 h-4 text-primary/60" /> })()}
             {STEPS[step - 1].title}
           </h2>
-          <p className="text-sm text-white/50 mt-1">{STEPS[step - 1].description}</p>
+          <p className="text-sm text-muted-foreground mt-1">{STEPS[step - 1].description}</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -146,22 +146,22 @@ export default function AgentOnboarding() {
             {step === 1 && (
               <div className="space-y-4">
                 {isConnected ? (
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-[#14f195]/[0.06] border border-[#14f195]/20">
-                    <CheckCircle2 className="w-5 h-5 text-[#14f195] flex-shrink-0" />
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/[0.06] border border-primary/20">
+                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-white">Wallet Connected</div>
-                      <div className="text-xs text-white/40 mono-text truncate">{shortenAddress(address!, 8)}</div>
+                      <div className="text-sm font-medium text-foreground">Wallet Connected</div>
+                      <div className="text-xs text-muted-foreground mono-text truncate">{shortenAddress(address!, 8)}</div>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Wallet className="w-10 h-10 text-white/20 mx-auto mb-4" />
-                    <p className="text-sm text-white/50 mb-5">
+                    <Wallet className="w-10 h-10 text-muted-foreground/40 mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground mb-5">
                       Connect the wallet that will operate this AI agent
                     </p>
                     <Button
                       onClick={() => connect({ connector: injected() })}
-                      className="min-h-[48px] w-full md:w-auto bg-[#14f195] text-black font-semibold hover:bg-[#14f195]/90"
+                      className="min-h-[48px] w-full md:w-auto font-semibold"
                     >
                       <Wallet className="w-4 h-4 mr-2" />
                       Connect Wallet
@@ -175,26 +175,25 @@ export default function AgentOnboarding() {
             {step === 2 && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] text-white/40 mb-1.5 block uppercase tracking-wider">Agent Name</label>
+                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Agent Name</label>
                   <Input
                     placeholder="e.g., AutoTrader-v3"
                     value={form.name}
                     onChange={(e) => updateForm("name", e.target.value)}
-                    className="h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
+                    className="h-11"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-white/40 mb-1.5 block uppercase tracking-wider">Description</label>
+                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Description</label>
                   <Textarea
                     placeholder="Describe what your agent does and how it generates revenue..."
                     value={form.description}
                     onChange={(e) => updateForm("description", e.target.value)}
                     rows={4}
-                    className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-white/40 mb-1.5 block uppercase tracking-wider">
+                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
                     <span className="flex items-center gap-1.5">
                       <FileCode className="w-3.5 h-3.5" />
                       Code Hash (SHA-256)
@@ -204,9 +203,9 @@ export default function AgentOnboarding() {
                     placeholder="0x..."
                     value={form.codeHash}
                     onChange={(e) => updateForm("codeHash", e.target.value)}
-                    className="h-11 mono-text bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
+                    className="h-11 mono-text"
                   />
-                  <p className="text-xs text-white/30 mt-1.5">
+                  <p className="text-xs text-muted-foreground mt-1.5">
                     Hash of the agent's source code for on-chain verification
                   </p>
                 </div>
@@ -217,7 +216,7 @@ export default function AgentOnboarding() {
             {step === 3 && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] text-white/40 mb-1.5 block uppercase tracking-wider">
+                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
                     <span className="flex items-center gap-1.5">
                       <Cpu className="w-3.5 h-3.5" />
                       TEE Provider
@@ -227,21 +226,21 @@ export default function AgentOnboarding() {
                     placeholder="e.g., Intel SGX, AWS Nitro, ARM TrustZone"
                     value={form.teeProvider}
                     onChange={(e) => updateForm("teeProvider", e.target.value)}
-                    className="h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
+                    className="h-11"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-white/40 mb-1.5 block uppercase tracking-wider">Attestation Data</label>
+                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Attestation Data</label>
                   <Textarea
                     placeholder="Paste your TEE attestation report..."
                     value={form.teeAttestation}
                     onChange={(e) => updateForm("teeAttestation", e.target.value)}
-                    className="font-mono text-xs bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20"
+                    className="font-mono text-xs"
                     rows={6}
                   />
                 </div>
-                <div className="p-3 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs text-white/40 flex items-start gap-2">
-                  <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#14f195]/50" />
+                <div className="p-3 rounded-lg bg-muted border border-border text-xs text-muted-foreground flex items-start gap-2">
+                  <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary/50" />
                   <span>TEE attestation proves your agent runs in a secure enclave, ensuring code integrity and preventing tampering.</span>
                 </div>
               </div>
@@ -250,12 +249,12 @@ export default function AgentOnboarding() {
             {/* Step 4: Deploy Lockbox */}
             {step === 4 && (
               <div className="space-y-5">
-                <div className="p-4 rounded-lg bg-white/[0.04] border border-white/[0.06]">
+                <div className="p-4 rounded-lg bg-muted border border-border">
                   <div className="flex items-start gap-3">
-                    <Lock className="w-4 h-4 text-[#14f195]/50 flex-shrink-0 mt-0.5" />
+                    <Lock className="w-4 h-4 text-primary/50 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-sm font-medium mb-1 text-white">RevenueLockbox Contract</h4>
-                      <p className="text-xs text-white/40 leading-relaxed">
+                      <h4 className="text-sm font-medium mb-1 text-foreground">RevenueLockbox Contract</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
                         The RevenueLockbox receives all revenue generated by your agent.
                         Lenders have priority claims on this revenue, ensuring trustless repayment.
                       </p>
@@ -264,11 +263,11 @@ export default function AgentOnboarding() {
                 </div>
 
                 {deployed ? (
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-[#14f195]/[0.06] border border-[#14f195]/20">
-                    <CheckCircle2 className="w-5 h-5 text-[#14f195] flex-shrink-0" />
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/[0.06] border border-primary/20">
+                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-white">Lockbox Deployed</div>
-                      <div className="text-xs text-white/40 mono-text truncate">0x7a23...4f8b (Base Sepolia)</div>
+                      <div className="text-sm font-medium text-foreground">Lockbox Deployed</div>
+                      <div className="text-xs text-muted-foreground mono-text truncate">0x7a23...4f8b (Base Sepolia)</div>
                     </div>
                   </div>
                 ) : (
@@ -276,11 +275,11 @@ export default function AgentOnboarding() {
                     <Button
                       onClick={handleDeploy}
                       disabled={deploying}
-                      className="min-h-[48px] w-full md:w-auto bg-[#14f195] text-black font-semibold hover:bg-[#14f195]/90"
+                      className="min-h-[48px] w-full md:w-auto font-semibold"
                     >
                       {deploying ? (
                         <span className="flex items-center gap-2">
-                          <span className="h-4 w-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                          <span className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
                           Deploying Contract...
                         </span>
                       ) : (
@@ -300,17 +299,17 @@ export default function AgentOnboarding() {
               <div className="space-y-5">
                 <BorderBeam duration={6}>
                   <div className="text-center py-4 px-4">
-                    <div className="w-12 h-12 rounded-full bg-[#14f195]/10 border border-[#14f195]/20 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle2 className="w-6 h-6 text-[#14f195]" />
+                    <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 className="w-6 h-6 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-1 text-white">Ready to Activate</h3>
-                    <p className="text-sm text-white/50 max-w-sm mx-auto">
+                    <h3 className="text-lg font-semibold mb-1 text-foreground">Ready to Activate</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                       Your agent is configured. Activate to register on-chain and start building credit history.
                     </p>
                   </div>
                 </BorderBeam>
 
-                <div className="divide-y divide-white/[0.06] rounded-lg bg-white/[0.04] overflow-hidden">
+                <div className="divide-y divide-border rounded-lg bg-muted overflow-hidden">
                   {[
                     { label: "Agent Name", value: form.name },
                     { label: "Operator", value: address ? shortenAddress(address, 6) : "---" },
@@ -318,14 +317,14 @@ export default function AgentOnboarding() {
                     { label: "Lockbox", value: "Deployed" },
                   ].map((item) => (
                     <div key={item.label} className="flex justify-between text-sm px-4 py-3">
-                      <span className="text-white/50">{item.label}</span>
-                      <span className="font-medium truncate ml-4 text-white">{item.value}</span>
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-medium truncate ml-4 text-foreground">{item.value}</span>
                     </div>
                   ))}
                 </div>
 
                 <ClickSpark>
-                  <Button className="w-full font-semibold h-12 bg-[#14f195] text-black hover:bg-[#14f195]/90 rounded-lg">
+                  <Button className="w-full font-semibold h-12 rounded-lg">
                     <span className="flex items-center gap-2">
                       <Shield className="w-4 h-4" />
                       Activate Agent On-Chain
@@ -344,7 +343,7 @@ export default function AgentOnboarding() {
           variant="ghost"
           onClick={() => setStep(Math.max(1, step - 1))}
           disabled={step === 1}
-          className="min-h-[48px] md:min-h-0 flex-1 md:flex-none text-white/50 hover:text-white hover:bg-white/[0.06]"
+          className="min-h-[48px] md:min-h-0 flex-1 md:flex-none"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -353,7 +352,7 @@ export default function AgentOnboarding() {
           <Button
             onClick={() => setStep(Math.min(5, step + 1))}
             disabled={!canProceed()}
-            className="min-h-[48px] md:min-h-0 flex-1 md:flex-none bg-[#14f195] text-black font-semibold hover:bg-[#14f195]/90"
+            className="min-h-[48px] md:min-h-0 flex-1 md:flex-none font-semibold"
           >
             Next
             <ArrowRight className="w-4 h-4 ml-2" />

@@ -32,11 +32,11 @@ function DockIcon({ item, mouseX }: { item: DockItem; mouseX: ReturnType<typeof 
       onClick={item.onClick}
       style={{ scale: springScale }}
       className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[44px] transition-colors ${
-        item.isActive ? "text-[#14f195]" : "text-white/40"
+        item.isActive ? "text-primary" : "text-muted-foreground"
       }`}
     >
       {item.isActive && (
-        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-[#14f195]" />
+        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary" />
       )}
       <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>
       <span className="text-[10px] font-medium">{item.label}</span>

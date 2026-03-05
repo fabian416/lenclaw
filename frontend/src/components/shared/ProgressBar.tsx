@@ -11,10 +11,10 @@ interface ProgressBarProps {
 }
 
 const colorMap = {
-  primary: "bg-[#14f195]",
-  success: "bg-[#14f195]",
-  warning: "bg-amber-500",
-  danger: "bg-red-500",
+  primary: "bg-primary",
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-destructive",
 }
 
 export function ProgressBar({ value, max = 100, className, color = "primary", animated = true }: ProgressBarProps) {
@@ -28,7 +28,7 @@ export function ProgressBar({ value, max = 100, className, color = "primary", an
   }, [])
 
   return (
-    <div className={cn("w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden", className)}>
+    <div className={cn("w-full h-1.5 bg-muted rounded-full overflow-hidden", className)}>
       <motion.div
         className={cn("h-full rounded-full", colorMap[autoColor])}
         initial={animated ? { width: 0 } : undefined}

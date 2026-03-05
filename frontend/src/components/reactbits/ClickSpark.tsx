@@ -16,7 +16,7 @@ interface ClickSparkProps {
 
 export function ClickSpark({
   children,
-  sparkColor = "#14f195",
+  sparkColor,
   sparkCount = 8,
 }: ClickSparkProps) {
   const [sparks, setSparks] = useState<Spark[]>([])
@@ -53,13 +53,13 @@ export function ClickSpark({
       {sparks.map((spark) => (
         <span
           key={spark.id}
-          className="absolute pointer-events-none rounded-full"
+          className="absolute pointer-events-none rounded-full bg-primary"
           style={{
             left: spark.x,
             top: spark.y,
             width: 4,
             height: 4,
-            backgroundColor: sparkColor,
+            backgroundColor: sparkColor || undefined,
             "--tx": `${spark.tx}px`,
             "--ty": `${spark.ty}px`,
             animation: "spark-fly 0.5s ease-out forwards",

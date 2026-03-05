@@ -45,9 +45,9 @@ export function BottomNav() {
     <>
       {moreOpen && (
         <div className="fixed inset-0 z-[99] md:hidden" onClick={() => setMoreOpen(false)}>
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-foreground/20 dark:bg-black/50" />
           <div
-            className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] right-3 w-48 rounded-lg bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 shadow-lg overflow-hidden"
+            className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] right-3 w-48 rounded-lg bg-background/95 backdrop-blur-xl border border-border shadow-lg overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {moreLinks.map((link) => (
@@ -55,10 +55,10 @@ export function BottomNav() {
                 key={link.to}
                 to={link.to}
                 onClick={() => setMoreOpen(false)}
-                className={`block px-4 py-3 text-sm transition-colors border-b border-white/5 last:border-0 ${
+                className={`block px-4 py-3 text-sm transition-colors border-b border-border/50 last:border-0 ${
                   location.pathname === link.to
-                    ? "bg-[#14f195]/10 text-[#14f195] font-medium"
-                    : "text-white/50 hover:text-white hover:bg-white/5"
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
                 {link.label}
@@ -68,7 +68,7 @@ export function BottomNav() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden border-t border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden border-t border-border bg-background/90 backdrop-blur-xl safe-area-bottom">
         <Dock items={dockItems} />
       </nav>
     </>
