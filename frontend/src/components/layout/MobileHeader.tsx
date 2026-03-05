@@ -1,11 +1,10 @@
-import { Link } from "react-router-dom"
-import { Bot, Menu, X } from "lucide-react"
+import { Link, NavLink } from "react-router-dom"
+import { Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { shortenAddress } from "@/lib/utils"
-import { NavLink } from "react-router-dom"
 
 const secondaryLinks = [
   { to: "/dashboard", label: "Dashboard" },
@@ -22,26 +21,21 @@ export function MobileHeader() {
   const { disconnect } = useDisconnect()
 
   return (
-    <header className="md:hidden border-b border-primary/15 bg-background/95 backdrop-blur-md sticky top-0 z-50">
+    <header className="md:hidden border-b border-border bg-background sticky top-0 z-50">
       <div className="flex items-center justify-between px-4 h-14">
-        {/* Brand */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-primary" />
-          </div>
-          <span className="text-lg font-bold text-primary mono-text terminal-cursor">
-            LENCLAW
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">
+            lenclaw
           </span>
         </Link>
 
-        {/* Right side: wallet + hamburger */}
         <div className="flex items-center gap-2">
           {isConnected ? (
             <Button
               variant="outline"
               size="sm"
               onClick={() => disconnect()}
-              className="mono-text text-[10px] h-8 px-2.5 border-primary/30 hover:border-primary"
+              className="text-[10px] h-8 px-2.5 font-medium"
             >
               {shortenAddress(address!)}
             </Button>
@@ -49,7 +43,7 @@ export function MobileHeader() {
             <Button
               size="sm"
               onClick={() => connect({ connector: injected() })}
-              className="mono-text text-[10px] h-8 px-2.5"
+              className="text-[10px] h-8 px-2.5 font-medium"
             >
               Connect
             </Button>
@@ -65,19 +59,18 @@ export function MobileHeader() {
         </div>
       </div>
 
-      {/* Hamburger dropdown */}
       {menuOpen && (
-        <nav className="border-t border-border px-4 py-3 flex flex-col gap-1 bg-background">
+        <nav className="border-t border-border px-4 py-3 flex flex-col gap-0.5 bg-background">
           {secondaryLinks.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={() => setMenuOpen(false)}
               className={({ isActive }) =>
-                `mono-text text-sm py-3 px-4 rounded-xl transition-colors min-h-[44px] flex items-center ${
+                `text-sm py-3 px-3 rounded-lg transition-colors min-h-[44px] flex items-center ${
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-muted text-foreground font-medium"
+                    : "text-muted-foreground hover:text-foreground"
                 }`
               }
             >

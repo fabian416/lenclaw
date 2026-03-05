@@ -1,30 +1,43 @@
 # =============================================================================
 # Lenclaw Frontend - Multi-stage Docker Build
-# Stage 1: Build React app with Vite
-# Stage 2: Serve static assets with nginx
+# Stage 1: Install deps
+# Stage 2: Dev target (vite dev server)
+# Stage 3: Build React app with Vite
+# Stage 4: Serve static assets with nginx
 # Target image size: < 25MB
 # =============================================================================
 
-# --- Stage 1: Build ---
-FROM node:22-alpine AS builder
+# --- Stage 1: Dependencies ---
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
 # Copy package files first for layer caching
 COPY package.json package-lock.json ./
 
-# Install dependencies (ci = clean install, deterministic)
-RUN npm ci --ignore-scripts
+# Install dependencies
+RUN npm ci
 
-# Copy source code
+# --- Stage 2: Dev (used by docker-compose.dev.yml) ---
+FROM deps AS dev
+
 COPY index.html tsconfig.json vite.config.ts tailwind.config.ts ./
 COPY src/ src/
 COPY public/ public/
 
-# Build for production
+EXPOSE 3001
+CMD ["npm", "run", "dev"]
+
+# --- Stage 3: Build ---
+FROM deps AS builder
+
+COPY index.html tsconfig.json vite.config.ts tailwind.config.ts ./
+COPY src/ src/
+COPY public/ public/
+
 RUN npm run build
 
-# --- Stage 2: Serve ---
+# --- Stage 4: Serve ---
 FROM nginx:1.27-alpine
 
 # Remove default nginx config

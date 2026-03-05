@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -70,380 +69,280 @@ export default function AgentOnboarding() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8"
+      transition={{ duration: 0.3 }}
+      className="max-w-2xl mx-auto px-6 py-8 md:py-12"
     >
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6 md:mb-8"
-      >
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mono-text mb-1.5 md:mb-2">Register Agent</h1>
-        <p className="text-muted-foreground text-xs md:text-sm">
+      <div className="mb-8 md:mb-10">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">Register Agent</h1>
+        <p className="text-muted-foreground text-sm">
           Onboard your AI agent to access revenue-backed credit lines
         </p>
-      </motion.div>
+      </div>
 
-      {/* Step Indicator - Desktop: connected dots with animated progress */}
-      <div className="hidden md:flex items-center gap-0 mb-8 overflow-x-auto pb-2">
+      {/* Step Indicator -- Desktop: numbered steps */}
+      <div className="hidden md:flex items-center gap-0 mb-10">
         {STEPS.map((s, i) => (
           <div key={s.id} className="flex items-center">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 whitespace-nowrap relative ${
-                step === s.id
-                  ? "bg-gradient-to-r from-violet-500/15 to-purple-500/10 text-primary border border-primary/20"
-                  : step > s.id
-                    ? "text-emerald-400"
-                    : "text-muted-foreground"
-              }`}
-            >
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+            <div className="flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border transition-colors ${
                 step > s.id
-                  ? "bg-emerald-400/20 text-emerald-400"
+                  ? "bg-foreground text-background border-foreground"
                   : step === s.id
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted/50 text-muted-foreground"
+                    ? "border-foreground text-foreground"
+                    : "border-border text-muted-foreground"
               }`}>
                 {step > s.id ? (
                   <CheckCircle2 className="w-3.5 h-3.5" />
                 ) : (
-                  <s.icon className="w-3.5 h-3.5" />
+                  s.id
                 )}
               </div>
-              <span className="text-xs mono-text font-medium">{s.title}</span>
-            </motion.div>
+              <span className={`text-xs font-medium whitespace-nowrap ${
+                step >= s.id ? "text-foreground" : "text-muted-foreground"
+              }`}>
+                {s.title}
+              </span>
+            </div>
             {i < STEPS.length - 1 && (
-              <div className="relative w-8 h-px mx-0.5">
-                <div className="absolute inset-0 bg-border" />
-                <motion.div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-emerald-300"
-                  initial={{ width: 0 }}
-                  animate={{ width: step > s.id ? "100%" : "0%" }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                />
+              <div className="w-8 h-px mx-2">
+                <div className={`h-full ${step > s.id ? "bg-foreground" : "bg-border"}`} />
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Step Indicator - Mobile: dot indicators with animated progress */}
+      {/* Step Indicator -- Mobile */}
       <div className="md:hidden mb-6">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          {STEPS.map((s) => (
-            <div key={s.id} className="flex items-center gap-2">
-              <motion.div
-                animate={{
-                  width: step === s.id ? 24 : 8,
-                  backgroundColor: step > s.id ? "#10b981" : step === s.id ? "#8b5cf6" : "rgba(139,92,246,0.2)",
-                }}
-                transition={{ duration: 0.3 }}
-                className="h-2 rounded-full"
-              />
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Step {step} of {STEPS.length}</span>
+          <span className="text-sm font-medium">{STEPS[step - 1].title}</span>
         </div>
-        <div className="text-center">
-          <div className="text-xs mono-text text-muted-foreground">
-            Step {step} of {STEPS.length}
-          </div>
-          <div className="text-sm font-semibold mono-text text-primary mt-0.5">
-            {STEPS[step - 1].title}
-          </div>
+        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-foreground rounded-full"
+            animate={{ width: `${(step / STEPS.length) * 100}%` }}
+            transition={{ duration: 0.3 }}
+          />
         </div>
       </div>
 
       {/* Step Content */}
-      <Card className="data-card rounded-2xl border-primary/15">
-        <CardHeader>
-          <CardTitle className="mono-text flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center">
-              {(() => { const StepIcon = STEPS[step - 1].icon; return <StepIcon className="w-4 h-4 text-primary" /> })()}
-            </div>
+      <div className="border border-border rounded-xl p-6 md:p-8">
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {(() => { const StepIcon = STEPS[step - 1].icon; return <StepIcon className="w-4 h-4 text-muted-foreground" /> })()}
             {STEPS[step - 1].title}
-          </CardTitle>
-          <CardDescription>{STEPS[step - 1].description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Step 1: Connect Wallet */}
-              {step === 1 && (
-                <div className="space-y-6">
-                  {isConnected ? (
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
-                    >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
-                      >
-                        <CheckCircle2 className="w-6 h-6 text-emerald-400 flex-shrink-0" />
-                      </motion.div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">Wallet Connected</div>
-                        <div className="text-xs mono-text text-muted-foreground truncate">{shortenAddress(address!, 8)}</div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <div className="text-center py-6 md:py-8">
-                      <motion.div
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{ duration: 3, repeat: Infinity }}
-                      >
-                        <Wallet className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                      </motion.div>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Connect the wallet that will operate this AI agent
-                      </p>
-                      <Button
-                        onClick={() => connect({ connector: injected() })}
-                        className="mono-text min-h-[48px] w-full md:w-auto bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]"
-                      >
-                        <Wallet className="w-4 h-4 mr-2" />
-                        Connect Wallet
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">{STEPS[step - 1].description}</p>
+        </div>
 
-              {/* Step 2: Agent Details */}
-              {step === 2 && (
-                <div className="space-y-5 md:space-y-4">
-                  <div>
-                    <label className="text-xs mono-text text-muted-foreground mb-2 md:mb-1.5 block">Agent Name</label>
-                    <Input
-                      placeholder="e.g., AutoTrader-v3"
-                      value={form.name}
-                      onChange={(e) => updateForm("name", e.target.value)}
-                      className="mono-text h-12 md:h-10 border-primary/10 focus:border-primary/30 transition-colors"
-                    />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Step 1: Connect Wallet */}
+            {step === 1 && (
+              <div className="space-y-4">
+                {isConnected ? (
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">Wallet Connected</div>
+                      <div className="text-xs text-muted-foreground mono-text truncate">{shortenAddress(address!, 8)}</div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs mono-text text-muted-foreground mb-2 md:mb-1.5 block">Description</label>
-                    <Textarea
-                      placeholder="Describe what your agent does and how it generates revenue..."
-                      value={form.description}
-                      onChange={(e) => updateForm("description", e.target.value)}
-                      className="mono-text min-h-[120px] md:min-h-0 border-primary/10 focus:border-primary/30 transition-colors"
-                      rows={4}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs mono-text text-muted-foreground mb-2 md:mb-1.5 block">
-                      <span className="flex items-center gap-1.5">
-                        <FileCode className="w-3.5 h-3.5" />
-                        Code Hash (SHA-256)
-                      </span>
-                    </label>
-                    <Input
-                      placeholder="0x..."
-                      value={form.codeHash}
-                      onChange={(e) => updateForm("codeHash", e.target.value)}
-                      className="mono-text h-12 md:h-10 border-primary/10 focus:border-primary/30 transition-colors"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      Hash of the agent's source code for on-chain verification
+                ) : (
+                  <div className="text-center py-8">
+                    <Wallet className="w-10 h-10 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Connect the wallet that will operate this AI agent
                     </p>
+                    <Button
+                      onClick={() => connect({ connector: injected() })}
+                      className="min-h-[48px] w-full md:w-auto"
+                    >
+                      <Wallet className="w-4 h-4 mr-2" />
+                      Connect Wallet
+                    </Button>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Agent Details */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Agent Name</label>
+                  <Input
+                    placeholder="e.g., AutoTrader-v3"
+                    value={form.name}
+                    onChange={(e) => updateForm("name", e.target.value)}
+                    className="h-11"
+                  />
                 </div>
-              )}
-
-              {/* Step 3: TEE Attestation */}
-              {step === 3 && (
-                <div className="space-y-5 md:space-y-4">
-                  <div>
-                    <label className="text-xs mono-text text-muted-foreground mb-2 md:mb-1.5 block">
-                      <span className="flex items-center gap-1.5">
-                        <Cpu className="w-3.5 h-3.5" />
-                        TEE Provider
-                      </span>
-                    </label>
-                    <Input
-                      placeholder="e.g., Intel SGX, AWS Nitro, ARM TrustZone"
-                      value={form.teeProvider}
-                      onChange={(e) => updateForm("teeProvider", e.target.value)}
-                      className="mono-text h-12 md:h-10 border-primary/10 focus:border-primary/30 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs mono-text text-muted-foreground mb-2 md:mb-1.5 block">Attestation Data</label>
-                    <Textarea
-                      placeholder="Paste your TEE attestation report..."
-                      value={form.teeAttestation}
-                      onChange={(e) => updateForm("teeAttestation", e.target.value)}
-                      className="mono-text font-mono text-xs min-h-[140px] md:min-h-0 border-primary/10 focus:border-primary/30 transition-colors"
-                      rows={6}
-                    />
-                  </div>
-                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 text-xs text-muted-foreground flex items-start gap-2">
-                    <Shield className="w-4 h-4 text-primary/60 flex-shrink-0 mt-0.5" />
-                    <span>TEE attestation proves your agent runs in a secure enclave, ensuring code integrity and preventing tampering.</span>
-                  </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Description</label>
+                  <Textarea
+                    placeholder="Describe what your agent does and how it generates revenue..."
+                    value={form.description}
+                    onChange={(e) => updateForm("description", e.target.value)}
+                    rows={4}
+                  />
                 </div>
-              )}
-
-              {/* Step 4: Deploy Lockbox */}
-              {step === 4 && (
-                <div className="space-y-6">
-                  <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center flex-shrink-0">
-                        <Lock className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium mono-text mb-1">RevenueLockbox Contract</h4>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          The RevenueLockbox is a smart contract that receives all revenue generated by your agent.
-                          Lenders have priority claims on this revenue, ensuring trustless repayment of credit lines.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {deployed ? (
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
-                    >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
-                      >
-                        <CheckCircle2 className="w-6 h-6 text-emerald-400 flex-shrink-0" />
-                      </motion.div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">Lockbox Deployed</div>
-                        <div className="text-xs mono-text text-muted-foreground truncate">
-                          0x7a23...4f8b (Base Sepolia)
-                        </div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <Button
-                        onClick={handleDeploy}
-                        disabled={deploying}
-                        className="mono-text min-h-[48px] w-full md:w-auto bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]"
-                      >
-                        {deploying ? (
-                          <span className="flex items-center gap-2">
-                            <motion.span
-                              className="h-4 w-4 rounded-full border-2 border-white border-t-transparent"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            />
-                            Deploying Contract...
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            <Lock className="w-4 h-4" />
-                            Deploy RevenueLockbox
-                          </span>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Step 5: Activate */}
-              {step === 5 && (
-                <div className="space-y-6">
-                  <div className="text-center py-4">
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: "spring", stiffness: 200 }}
-                      className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-400/5 flex items-center justify-center mx-auto mb-4"
-                    >
-                      <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-                    </motion.div>
-                    <motion.h3
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="text-lg font-semibold mb-2"
-                    >
-                      Ready to Activate
-                    </motion.h3>
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-sm text-muted-foreground max-w-sm mx-auto"
-                    >
-                      Your agent is fully configured. Activate to register on-chain and start building credit history.
-                    </motion.p>
-                  </div>
-
-                  <div className="space-y-2 p-4 rounded-xl bg-muted/30 border border-border/50">
-                    {[
-                      { label: "Agent Name", value: form.name },
-                      { label: "Operator", value: address ? shortenAddress(address, 6) : "---" },
-                      { label: "TEE Provider", value: form.teeProvider },
-                    ].map((item, i) => (
-                      <motion.div
-                        key={item.label}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + i * 0.08 }}
-                        className="flex justify-between text-xs mono-text py-1"
-                      >
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <span className="text-foreground truncate ml-4">{item.value}</span>
-                      </motion.div>
-                    ))}
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.54 }}
-                      className="flex justify-between text-xs mono-text py-1"
-                    >
-                      <span className="text-muted-foreground">Lockbox</span>
-                      <span className="text-emerald-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                        Deployed
-                      </span>
-                    </motion.div>
-                  </div>
-
-                  <Button className="w-full mono-text font-semibold h-12 md:h-11 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] transition-all duration-300">
-                    <span className="flex items-center gap-2">
-                      <Shield className="w-4 h-4" />
-                      Activate Agent On-Chain
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">
+                    <span className="flex items-center gap-1.5">
+                      <FileCode className="w-3.5 h-3.5" />
+                      Code Hash (SHA-256)
                     </span>
-                  </Button>
+                  </label>
+                  <Input
+                    placeholder="0x..."
+                    value={form.codeHash}
+                    onChange={(e) => updateForm("codeHash", e.target.value)}
+                    className="h-11 mono-text"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Hash of the agent's source code for on-chain verification
+                  </p>
                 </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </CardContent>
-      </Card>
+              </div>
+            )}
+
+            {/* Step 3: TEE Attestation */}
+            {step === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">
+                    <span className="flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5" />
+                      TEE Provider
+                    </span>
+                  </label>
+                  <Input
+                    placeholder="e.g., Intel SGX, AWS Nitro, ARM TrustZone"
+                    value={form.teeProvider}
+                    onChange={(e) => updateForm("teeProvider", e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Attestation Data</label>
+                  <Textarea
+                    placeholder="Paste your TEE attestation report..."
+                    value={form.teeAttestation}
+                    onChange={(e) => updateForm("teeAttestation", e.target.value)}
+                    className="font-mono text-xs"
+                    rows={6}
+                  />
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground flex items-start gap-2">
+                  <Shield className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>TEE attestation proves your agent runs in a secure enclave, ensuring code integrity and preventing tampering.</span>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Deploy Lockbox */}
+            {step === 4 && (
+              <div className="space-y-5">
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-start gap-3">
+                    <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">RevenueLockbox Contract</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        The RevenueLockbox receives all revenue generated by your agent.
+                        Lenders have priority claims on this revenue, ensuring trustless repayment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {deployed ? (
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">Lockbox Deployed</div>
+                      <div className="text-xs text-muted-foreground mono-text truncate">0x7a23...4f8b (Base Sepolia)</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Button
+                      onClick={handleDeploy}
+                      disabled={deploying}
+                      className="min-h-[48px] w-full md:w-auto"
+                    >
+                      {deploying ? (
+                        <span className="flex items-center gap-2">
+                          <span className="h-4 w-4 rounded-full border-2 border-background border-t-transparent animate-spin" />
+                          Deploying Contract...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Lock className="w-4 h-4" />
+                          Deploy RevenueLockbox
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 5: Activate */}
+            {step === 5 && (
+              <div className="space-y-5">
+                <div className="text-center py-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-1">Ready to Activate</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    Your agent is configured. Activate to register on-chain and start building credit history.
+                  </p>
+                </div>
+
+                <div className="divide-y divide-border rounded-lg bg-muted/30 overflow-hidden">
+                  {[
+                    { label: "Agent Name", value: form.name },
+                    { label: "Operator", value: address ? shortenAddress(address, 6) : "---" },
+                    { label: "TEE Provider", value: form.teeProvider },
+                    { label: "Lockbox", value: "Deployed" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex justify-between text-sm px-4 py-3">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-medium truncate ml-4">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button className="w-full font-medium h-12">
+                  <span className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Activate Agent On-Chain
+                  </span>
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {/* Navigation */}
-      <div className="flex justify-between mt-5 md:mt-6 gap-3">
+      <div className="flex justify-between mt-6 gap-3">
         <Button
           variant="ghost"
           onClick={() => setStep(Math.max(1, step - 1))}
           disabled={step === 1}
-          className="mono-text min-h-[48px] md:min-h-0 flex-1 md:flex-none hover:bg-primary/5"
+          className="min-h-[48px] md:min-h-0 flex-1 md:flex-none"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -452,7 +351,7 @@ export default function AgentOnboarding() {
           <Button
             onClick={() => setStep(Math.min(5, step + 1))}
             disabled={!canProceed()}
-            className="mono-text min-h-[48px] md:min-h-0 flex-1 md:flex-none bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:from-muted disabled:to-muted"
+            className="min-h-[48px] md:min-h-0 flex-1 md:flex-none"
           >
             Next
             <ArrowRight className="w-4 h-4 ml-2" />

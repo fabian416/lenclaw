@@ -21,12 +21,11 @@ export function BottomNav() {
 
   return (
     <>
-      {/* "More" overlay */}
       {moreOpen && (
         <div className="fixed inset-0 z-[99] md:hidden" onClick={() => setMoreOpen(false)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/30" />
           <div
-            className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] right-3 w-48 rounded-xl bg-card border border-primary/15 shadow-xl shadow-black/30 overflow-hidden"
+            className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] right-3 w-48 rounded-lg bg-card border border-border shadow-lg overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {moreLinks.map((link) => (
@@ -34,9 +33,9 @@ export function BottomNav() {
                 key={link.to}
                 to={link.to}
                 onClick={() => setMoreOpen(false)}
-                className={`block px-4 py-3.5 text-sm mono-text transition-colors border-b border-border/50 last:border-0 ${
+                className={`block px-4 py-3 text-sm transition-colors border-b border-border last:border-0 ${
                   location.pathname === link.to
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-muted text-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
@@ -47,8 +46,7 @@ export function BottomNav() {
         </div>
       )}
 
-      {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden border-t border-primary/15 bg-background/95 backdrop-blur-md safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden border-t border-border bg-background safe-area-bottom">
         <div className="flex items-stretch justify-around h-16 max-w-lg mx-auto">
           {tabs.map((tab) => (
             <NavLink
@@ -57,36 +55,35 @@ export function BottomNav() {
               end={tab.to === "/"}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center flex-1 gap-0.5 relative transition-colors min-h-[44px] ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-foreground" : "text-muted-foreground"
                 }`
               }
             >
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary" />
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-foreground" />
                   )}
-                  <tab.icon className="w-5 h-5" />
-                  <span className="text-[10px] mono-text font-medium">{tab.label}</span>
+                  <tab.icon className="w-5 h-5" strokeWidth={isActive ? 2 : 1.5} />
+                  <span className="text-[10px] font-medium">{tab.label}</span>
                 </>
               )}
             </NavLink>
           ))}
 
-          {/* More button */}
           <button
             onClick={() => setMoreOpen(!moreOpen)}
             className={`flex flex-col items-center justify-center flex-1 gap-0.5 relative transition-colors min-h-[44px] ${
               moreOpen || moreLinks.some((l) => location.pathname === l.to)
-                ? "text-primary"
+                ? "text-foreground"
                 : "text-muted-foreground"
             }`}
           >
             {(moreOpen || moreLinks.some((l) => location.pathname === l.to)) && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary" />
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-foreground" />
             )}
             <MoreHorizontal className="w-5 h-5" />
-            <span className="text-[10px] mono-text font-medium">More</span>
+            <span className="text-[10px] font-medium">More</span>
           </button>
         </div>
       </nav>

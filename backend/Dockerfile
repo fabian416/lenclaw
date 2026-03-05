@@ -25,7 +25,7 @@ RUN apt-get update && \
 FROM base AS deps
 
 # Copy project definition
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 
 # Install production dependencies
 RUN pip install --no-cache-dir . && \

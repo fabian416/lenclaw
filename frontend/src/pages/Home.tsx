@@ -1,287 +1,212 @@
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { ArrowRight, Bot, Shield, TrendingUp, Lock, Globe } from "lucide-react"
+import { ArrowRight, Bot, Shield, TrendingUp, Lock } from "lucide-react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { MOCK_POOL_DATA } from "@/lib/constants"
 import { formatUSD, formatCompact } from "@/lib/utils"
 
-const fadeUp = {
-  initial: { opacity: 0, y: 30 },
-  animate: { opacity: 1, y: 0 },
-}
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-}
-
 export default function Home() {
   return (
     <div>
-      <main className="max-w-5xl mx-auto px-4 md:px-6 relative z-10 pb-12">
-        {/* Hero */}
-        <section className="w-full flex flex-col items-center text-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh)] justify-center pb-12 md:pb-20 hero-glow">
-          {/* Floating orbs background */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <motion.div
-              className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-violet-600/5 blur-3xl"
-              animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-purple-500/5 blur-3xl"
-              animate={{ x: [0, -20, 0], y: [0, 30, 0] }}
-              transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
-
+      <main className="max-w-6xl mx-auto px-6">
+        {/* Hero -- asymmetric, typography-driven */}
+        <section className="pt-24 md:pt-40 pb-20 md:pb-32">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-full border border-primary/30 bg-primary/5 mb-6 md:mb-8 relative z-10"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            >
-              <Bot className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary" />
-            </motion.div>
-            <span className="text-[10px] md:text-xs mono-text text-primary tracking-wider">AI AGENT LENDING PROTOCOL</span>
+            <p className="text-sm text-muted-foreground mb-6 tracking-wide uppercase">
+              AI Agent Lending Protocol
+            </p>
+
+            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground tracking-tight leading-[0.95] max-w-4xl">
+              Credit for
+              <br />
+              <span className="text-accent">autonomous</span>
+              <br />
+              agents
+            </h1>
+
+            <p className="text-lg md:text-xl text-muted-foreground mt-8 max-w-lg leading-relaxed">
+              Revenue-backed credit lines for AI agents. Powered by on-chain identity, TEE attestations, and smart contract lockboxes.
+            </p>
           </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-4 md:mb-6 tracking-tight leading-tight px-2 relative z-10"
-            style={{ letterSpacing: "-0.02em" }}
-          >
-            Credit Infrastructure for{" "}
-            <span className="gradient-text">AI Agents</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-base md:text-lg lg:text-xl text-muted-foreground mb-8 md:mb-10 max-w-2xl leading-relaxed px-2 relative z-10"
-          >
-            Revenue-backed credit lines for autonomous AI agents.
-            Powered by ERC-8004 identity, TEE attestations, and on-chain revenue lockboxes.
-          </motion.p>
 
           {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 md:mb-16 w-full sm:w-auto px-2 sm:px-0 relative z-10"
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="flex flex-col sm:flex-row gap-3 mt-10"
           >
-            <Button asChild size="xl" className="mono-text tracking-wide font-bold rounded-2xl px-8 w-full sm:w-auto min-h-[52px] bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-300">
-              <Link to="/lend" className="flex items-center justify-center gap-2">
-                <span>Deposit USDC</span>
-                <motion.div
-                  animate={{ x: [0, 4, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <ArrowRight className="w-5 h-5" />
-                </motion.div>
+            <Button asChild size="lg" className="font-medium">
+              <Link to="/lend" className="flex items-center gap-2">
+                Deposit USDC
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="xl" className="mono-text tracking-wide rounded-2xl px-8 border-primary/30 hover:border-primary/60 hover:bg-primary/5 w-full sm:w-auto min-h-[52px] transition-all duration-300">
-              <Link to="/agents/onboard" className="flex items-center justify-center gap-2">
-                <Bot className="w-5 h-5" />
-                <span>Register Agent</span>
+            <Button asChild variant="outline" size="lg" className="font-medium">
+              <Link to="/agents/onboard" className="flex items-center gap-2">
+                <Bot className="w-4 h-4" />
+                Register Agent
               </Link>
             </Button>
           </motion.div>
 
-          {/* Live Stats Bar */}
+          {/* Stats -- intentionally asymmetric grid */}
           <motion.div
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full max-w-3xl relative z-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-20 md:mt-28 grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border border-border"
           >
             {[
               { label: "TVL", value: formatUSD(MOCK_POOL_DATA.tvl) },
               { label: "Active Agents", value: formatCompact(MOCK_POOL_DATA.activeAgents) },
               { label: "Pool APY", value: `${MOCK_POOL_DATA.apy}%` },
               { label: "Revenue Generated", value: formatUSD(MOCK_POOL_DATA.totalRevenue) },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                variants={fadeUp}
-                transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="data-card rounded-xl p-3 md:p-4 text-center cursor-default"
-              >
-                <div className="text-[10px] md:text-xs mono-text text-muted-foreground uppercase tracking-wider mb-1">{stat.label}</div>
-                <div className="text-lg md:text-xl font-bold mono-text text-foreground">{stat.value}</div>
-              </motion.div>
+            ].map((stat) => (
+              <div key={stat.label} className="bg-background p-5 md:p-6">
+                <div className="text-xs text-muted-foreground mb-2">{stat.label}</div>
+                <div className="text-xl md:text-2xl font-semibold mono-text">{stat.value}</div>
+              </div>
             ))}
           </motion.div>
         </section>
 
         {/* How It Works */}
-        <section className="w-full min-h-[60vh] md:min-h-[80vh] flex items-center">
-          <div className="w-full border-t border-primary/10 pt-12 md:pt-16">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.6 }}
-              className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-3 md:mb-4"
-            >
-              How Lenclaw Works
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-center text-muted-foreground mb-8 md:mb-12 max-w-xl mx-auto text-sm md:text-base px-2"
-            >
-              A two-sided marketplace connecting capital providers with revenue-generating AI agents
-            </motion.p>
+        <section className="pb-24 md:pb-32">
+          <div className="border-t border-border pt-16 md:pt-20">
+            <div className="md:grid md:grid-cols-12 md:gap-16">
+              {/* Left: section label */}
+              <div className="md:col-span-4 mb-8 md:mb-0">
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  How it works
+                </h2>
+                <p className="text-muted-foreground mt-3 text-sm leading-relaxed max-w-sm">
+                  A two-sided marketplace connecting capital providers with revenue-generating AI agents.
+                </p>
+              </div>
 
-            {/* Feature cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12 md:mb-16">
-              {[
-                {
-                  icon: Shield,
-                  title: "Agent Identity",
-                  desc: "AI agents register with ERC-8004 on-chain identity, TEE attestation, and verified code hashes for trustless operation.",
-                  gradient: "from-blue-500/20 to-violet-500/10",
-                },
-                {
-                  icon: Lock,
-                  title: "Revenue Lockbox",
-                  desc: "Agent revenue flows through a smart contract lockbox, ensuring lenders have priority claims on cash flows.",
-                  gradient: "from-violet-500/20 to-purple-500/10",
-                },
-                {
-                  icon: TrendingUp,
-                  title: "Credit Lines",
-                  desc: "Agents receive credit lines proportional to their reputation score and historical revenue performance.",
-                  gradient: "from-purple-500/20 to-pink-500/10",
-                },
-              ].map((item, i) => (
-                <motion.div
-                  key={item.title}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5, delay: i * 0.15 }}
-                >
-                  <Card className="data-card p-5 md:p-6 rounded-2xl border-primary/15 h-full card-shine">
-                    <div className="flex items-start gap-4 md:block">
-                      <motion.div
-                        className={`w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center flex-shrink-0 md:mb-4`}
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        <item.icon className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                      </motion.div>
-                      <div>
-                        <h3 className="text-base md:text-lg font-semibold mb-1.5 md:mb-2">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                      </div>
+              {/* Right: feature list */}
+              <div className="md:col-span-8 space-y-0 divide-y divide-border">
+                {[
+                  {
+                    icon: Shield,
+                    title: "Agent Identity",
+                    desc: "AI agents register with ERC-8004 on-chain identity, TEE attestation, and verified code hashes for trustless operation.",
+                  },
+                  {
+                    icon: Lock,
+                    title: "Revenue Lockbox",
+                    desc: "Agent revenue flows through a smart contract lockbox, ensuring lenders have priority claims on cash flows.",
+                  },
+                  {
+                    icon: TrendingUp,
+                    title: "Credit Lines",
+                    desc: "Agents receive credit lines proportional to their reputation score and historical revenue performance.",
+                  },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.title}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-60px" }}
+                    transition={{ duration: 0.4, delay: i * 0.1 }}
+                    className="py-6 md:py-8 flex gap-4 md:gap-6"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <item.icon className="w-5 h-5 text-foreground" />
                     </div>
-                  </Card>
-                </motion.div>
-              ))}
+                    <div>
+                      <h3 className="text-base font-semibold mb-1.5">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
+          </div>
+        </section>
 
-            {/* Lend/Borrow Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6 }}
-              >
-                <Link to="/lend" className="block group">
-                  <Card className="data-card p-6 md:p-8 rounded-2xl border-primary/15 h-full relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10">
-                      <div className="flex items-center mb-4 md:mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center mr-3">
-                          <TrendingUp className="w-5 h-5 text-primary" />
-                        </div>
-                        <h3 className="text-lg md:text-xl font-bold mono-text">For Lenders</h3>
-                        <motion.div
-                          className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                          animate={{ x: [0, 4, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <ArrowRight className="w-5 h-5 text-primary" />
-                        </motion.div>
-                      </div>
-                      <p className="text-muted-foreground text-sm leading-relaxed mb-4 md:mb-6">
-                        Deposit USDC into the lending pool. Earn yield from AI agent loan repayments with transparent risk metrics.
-                      </p>
-                      <div className="space-y-2 text-xs mono-text">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Pool APY</span>
-                          <span className="text-primary">{MOCK_POOL_DATA.apy}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Utilization</span>
-                          <span className="text-emerald-400">{MOCK_POOL_DATA.utilizationRate}%</span>
-                        </div>
-                      </div>
+        {/* Lend/Borrow Cards -- asymmetric emphasis */}
+        <section className="pb-24 md:pb-32">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6">
+            {/* Lend card -- takes more space, more prominent */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.4 }}
+              className="md:col-span-3"
+            >
+              <Link to="/lend" className="block group">
+                <div className="bg-foreground text-background rounded-xl p-8 md:p-10 h-full transition-all duration-200 hover:opacity-90">
+                  <div className="flex items-center gap-3 mb-6">
+                    <TrendingUp className="w-5 h-5 opacity-60" />
+                    <span className="text-sm font-medium opacity-60">For Lenders</span>
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                    Earn yield from
+                    <br className="hidden md:block" /> AI agent loans
+                  </h3>
+                  <p className="opacity-60 text-sm leading-relaxed mb-8 max-w-md">
+                    Deposit USDC into the lending pool. Earn yield from AI agent loan repayments with transparent risk metrics.
+                  </p>
+                  <div className="flex gap-8 text-sm mono-text">
+                    <div>
+                      <div className="opacity-40 mb-1">Pool APY</div>
+                      <div className="text-lg font-semibold">{MOCK_POOL_DATA.apy}%</div>
                     </div>
-                  </Card>
-                </Link>
-              </motion.div>
+                    <div>
+                      <div className="opacity-40 mb-1">Utilization</div>
+                      <div className="text-lg font-semibold">{MOCK_POOL_DATA.utilizationRate}%</div>
+                    </div>
+                  </div>
+                  <div className="mt-8 flex items-center gap-2 text-sm font-medium opacity-0 group-hover:opacity-60 transition-opacity">
+                    Start lending <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6 }}
-              >
-                <Link to="/borrow" className="block group">
-                  <Card className="data-card p-6 md:p-8 rounded-2xl border-primary/15 h-full relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10">
-                      <div className="flex items-center mb-4 md:mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-600/10 flex items-center justify-center mr-3">
-                          <Globe className="w-5 h-5 text-primary" />
-                        </div>
-                        <h3 className="text-lg md:text-xl font-bold mono-text">For AI Agents</h3>
-                        <motion.div
-                          className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                          animate={{ x: [0, 4, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <ArrowRight className="w-5 h-5 text-primary" />
-                        </motion.div>
-                      </div>
-                      <p className="text-muted-foreground text-sm leading-relaxed mb-4 md:mb-6">
-                        Register your agent, establish on-chain identity, and access revenue-backed credit lines for autonomous operations.
-                      </p>
-                      <div className="space-y-2 text-xs mono-text">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Max Credit Line</span>
-                          <span className="text-primary">$75,000</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Active Agents</span>
-                          <span className="text-emerald-400">{MOCK_POOL_DATA.activeAgents}</span>
-                        </div>
-                      </div>
+            {/* Borrow card -- smaller, lighter */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="md:col-span-2"
+            >
+              <Link to="/borrow" className="block group h-full">
+                <div className="border border-border rounded-xl p-8 md:p-10 h-full transition-colors hover:border-muted-foreground/30">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Bot className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">For AI Agents</span>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">
+                    Access credit lines
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+                    Register your agent, establish on-chain identity, and access revenue-backed credit.
+                  </p>
+                  <div className="flex gap-8 text-sm mono-text">
+                    <div>
+                      <div className="text-muted-foreground mb-1">Max Credit</div>
+                      <div className="text-lg font-semibold">$75,000</div>
                     </div>
-                  </Card>
-                </Link>
-              </motion.div>
-            </div>
+                    <div>
+                      <div className="text-muted-foreground mb-1">Agents</div>
+                      <div className="text-lg font-semibold">{MOCK_POOL_DATA.activeAgents}</div>
+                    </div>
+                  </div>
+                  <div className="mt-8 flex items-center gap-2 text-sm font-medium text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    Get started <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
           </div>
         </section>
       </main>
