@@ -11,15 +11,12 @@ export function LenclawLogo({ className = "w-8 h-8" }: LenclawLogoProps) {
       className={className}
       aria-label="Lenclaw"
     >
-      {/* Door body - rectangular, sharp corners */}
-      <rect
-        x="6"
-        y="2"
-        width="19"
-        height="27"
-        rx="1"
-        fill="var(--primary)"
-      />
+      {/* Door body */}
+      <rect x="6" y="2" width="19" height="27" rx="1" fill="var(--primary)" />
+      {/* Claw marks — 3 sharp diamond slashes, compact, left-aligned */}
+      <path d="M9.7,5 L11.3,14 L10.7,24 L9,14 Z" fill="white" />
+      <path d="M13,4.5 L14.5,14 L14,24.5 L12.5,14 Z" fill="white" />
+      <path d="M16.3,5 L18,14 L17.5,24 L15.7,14 Z" fill="white" />
       {/* Doorknob */}
       <circle
         cx="22"
@@ -28,25 +25,7 @@ export function LenclawLogo({ className = "w-8 h-8" }: LenclawLogoProps) {
         fill="white"
         fillOpacity="0.9"
       />
-      {/* Lobster silhouette - full body */}
-      {/* Body */}
-      <ellipse cx="13.5" cy="16" rx="2.8" ry="5.5" fill="white" />
-      {/* Left claw */}
-      <path
-        d="M11 12 Q7.5 9 9 5.5 Q10.5 3.5 11.5 6.5 Q12 9 11.5 11 Z"
-        fill="white"
-      />
-      {/* Right claw */}
-      <path
-        d="M16 12 Q19.5 9 18 5.5 Q16.5 3.5 15.5 6.5 Q15 9 15.5 11 Z"
-        fill="white"
-      />
-      {/* Tail fan */}
-      <path
-        d="M10.7 21.5 L9 25 L13.5 23 L18 25 L16.3 21.5 Z"
-        fill="white"
-      />
-      {/* Floor line extending right from bottom-right - Lendoor inspired */}
+      {/* Floor line extending right from bottom-right — Lendoor inspired */}
       <line
         x1="24"
         y1="27.5"

@@ -11,10 +11,10 @@ import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/lend", label: "Lend" },
-  { to: "/agents", label: "Agents" },
-  { to: "/borrow", label: "Borrow" },
+  { to: "/agents", label: "Paddock" },
+  { to: "/portfolio", label: "My Stable" },
+  { to: "/leaderboard", label: "Rankings" },
+  { to: "/feed", label: "The Wire" },
 ]
 
 export function Header() {
@@ -44,7 +44,7 @@ export function Header() {
         <Link to="/" className="flex items-center gap-2">
           <LenclawLogo className="w-8 h-8" />
           <span className="text-[15px] font-bold tracking-tight text-foreground">
-            <GlitchText text="lenclaw" />
+            <GlitchText text="Lenclaw" />
           </span>
           <span className="text-[10px] font-medium text-primary uppercase tracking-widest">
             protocol

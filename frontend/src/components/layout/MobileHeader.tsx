@@ -9,11 +9,11 @@ import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
 
 const secondaryLinks = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/lend", label: "Lend" },
-  { to: "/agents", label: "Agents" },
+  { to: "/agents", label: "Paddock" },
+  { to: "/portfolio", label: "My Stable" },
+  { to: "/leaderboard", label: "Rankings" },
+  { to: "/feed", label: "The Wire" },
   { to: "/agents/onboard", label: "Register Agent" },
-  { to: "/borrow", label: "Borrow" },
 ]
 
 export function MobileHeader() {
@@ -29,7 +29,7 @@ export function MobileHeader() {
         <Link to="/" className="flex items-center gap-2">
           <LenclawLogo className="w-7 h-7" />
           <span className="text-[15px] font-bold tracking-tight text-foreground">
-            lenclaw
+            Lenclaw
           </span>
         </Link>
 
