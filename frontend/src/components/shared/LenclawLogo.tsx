@@ -12,7 +12,7 @@ export function LenclawLogo({ className = "w-8 h-8" }: LenclawLogoProps) {
       aria-label="Lenclaw"
     >
       {/* Door body */}
-      <rect x="6" y="2" width="19" height="27" rx="1" fill="var(--primary)" />
+      <rect x="6" y="2" width="19" height="27" rx="2.5" fill="var(--primary)" />
       {/* Claw marks — 3 sharp diamond slashes, compact, left-aligned */}
       <path d="M9.7,5 L11.3,14 L10.7,24 L9,14 Z" fill="white" />
       <path d="M13,4.5 L14.5,14 L14,24.5 L12.5,14 Z" fill="white" />
@@ -26,15 +26,7 @@ export function LenclawLogo({ className = "w-8 h-8" }: LenclawLogoProps) {
         fillOpacity="0.9"
       />
       {/* Floor line extending right from bottom-right — Lendoor inspired */}
-      <line
-        x1="24"
-        y1="27.5"
-        x2="31.5"
-        y2="27.5"
-        stroke="var(--primary)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
+      <rect x="21" y="26.25" width="10.5" height="2.5" rx="1.25" fill="var(--primary)" />
     </svg>
   )
 }
