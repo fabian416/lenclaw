@@ -8,14 +8,10 @@ import {ICreditScorer} from "./interfaces/ICreditScorer.sol";
 
 /// @title CreditScorer - Multi-source on-chain credit calculation for AI agents
 /// @notice Calculates credit lines and interest rates based on weighted scoring:
-///         40% revenue, 15% time-in-protocol, 20% revenue velocity, 15% reputation, 10% code verification
+///         35% revenue, 10% time-in-protocol, 15% revenue velocity, 15% reputation,
+///         10% code verification, 15% smart wallet usage
 contract CreditScorer is Ownable, ICreditScorer {
     IAgentRegistry public immutable registry;
-
-    /// @notice Optional x402 receipt tracker for micropayment revenue
-    address public x402Receipt;
-    /// @notice Optional cross-chain revenue aggregator
-    address public crossChainRevenue;
 
     uint256 public minCreditLine = 100e6;     // 100 USDC (6 decimals)
     uint256 public maxCreditLine = 100_000e6; // 100,000 USDC
@@ -25,12 +21,16 @@ contract CreditScorer is Ownable, ICreditScorer {
     // Revenue multiplier: credit line = revenue * multiplier / 100
     uint256 public revenueMultiplier = 300; // 3x revenue
 
+    // Smart wallet factory for tier check
+    address public smartWalletFactory;
+
     // Scoring weights (out of 100)
-    uint256 public constant WEIGHT_REVENUE = 40;
-    uint256 public constant WEIGHT_TIME = 15;
-    uint256 public constant WEIGHT_VELOCITY = 20;
+    uint256 public constant WEIGHT_REVENUE = 35;
+    uint256 public constant WEIGHT_TIME = 10;
+    uint256 public constant WEIGHT_VELOCITY = 15;
     uint256 public constant WEIGHT_REPUTATION = 15;
     uint256 public constant WEIGHT_CODE_VERIFIED = 10;
+    uint256 public constant WEIGHT_SMART_WALLET = 15;
 
     // Time thresholds for maturity scoring
     uint256 public constant MAX_MATURITY_DAYS = 180; // 6 months for full maturity score
@@ -39,12 +39,8 @@ contract CreditScorer is Ownable, ICreditScorer {
         registry = IAgentRegistry(_registry);
     }
 
-    function setX402Receipt(address _x402Receipt) external onlyOwner {
-        x402Receipt = _x402Receipt;
-    }
-
-    function setCrossChainRevenue(address _crossChainRevenue) external onlyOwner {
-        crossChainRevenue = _crossChainRevenue;
+    function setSmartWalletFactory(address _factory) external onlyOwner {
+        smartWalletFactory = _factory;
     }
 
     function setParameters(
@@ -128,10 +124,24 @@ contract CreditScorer is Ownable, ICreditScorer {
         // 5. Code verification score (10%): binary 0 or 100
         uint256 codeScore = profile.codeVerified ? 100 : 0;
 
+        // 6. Smart wallet score (15%): binary 0 or 100
+        uint256 smartWalletScore;
+        if (smartWalletFactory != address(0)) {
+            (bool ok, bytes memory data) = smartWalletFactory.staticcall(
+                abi.encodeWithSignature("wallets(uint256)", agentId)
+            );
+            if (ok && data.length >= 32) {
+                address wallet = abi.decode(data, (address));
+                if (wallet != address(0)) {
+                    smartWalletScore = 100;
+                }
+            }
+        }
+
         // --- Composite weighted score ---
         uint256 compositeScore = (revenueScore * WEIGHT_REVENUE + timeScore * WEIGHT_TIME
             + velocityScore * WEIGHT_VELOCITY + reputationScore * WEIGHT_REPUTATION
-            + codeScore * WEIGHT_CODE_VERIFIED) / 100;
+            + codeScore * WEIGHT_CODE_VERIFIED + smartWalletScore * WEIGHT_SMART_WALLET) / 100;
 
         // --- Credit limit from composite score ---
         creditLimit = minCreditLine + (compositeScore * (maxCreditLine - minCreditLine)) / 100;

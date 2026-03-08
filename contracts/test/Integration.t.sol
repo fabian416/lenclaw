@@ -9,7 +9,6 @@ import {RevenueLockbox} from "../src/RevenueLockbox.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
 import {AgentVault} from "../src/AgentVault.sol";
 import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
-import {LenclawVault} from "../src/LenclawVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Integration Test - Full lending protocol flow (vault-per-agent)
@@ -20,9 +19,6 @@ contract IntegrationTest is Test {
     CreditScorer public scorer;
     AgentVaultFactory public factory;
     AgentCreditLine public creditLine;
-
-    // Keep LenclawVault for the multipleDepositorsSharePrice test
-    LenclawVault public sharedVault;
 
     address public owner = address(this);
     address public agentWallet = makeAddr("agent");
@@ -42,24 +38,9 @@ contract IntegrationTest is Test {
         // Link registry to factory
         registry.setVaultFactory(address(factory));
 
-        // Deploy shared vault for the multipleDepositors test
-        sharedVault = new LenclawVault(IERC20(address(usdc)), owner);
-
         // Fund depositors
         usdc.mint(depositorA, 500_000e6);
         usdc.mint(depositorB, 200_000e6);
-
-        // Approve shared vault
-        vm.prank(depositorA);
-        usdc.approve(address(sharedVault), type(uint256).max);
-        vm.prank(depositorB);
-        usdc.approve(address(sharedVault), type(uint256).max);
-
-        // Seed shared vault with deposits
-        vm.prank(depositorA);
-        sharedVault.deposit(500_000e6, depositorA);
-        vm.prank(depositorB);
-        sharedVault.deposit(200_000e6, depositorB);
     }
 
     /// @notice Full lifecycle: register -> vault deployed -> revenue -> credit -> borrow -> repay
@@ -185,21 +166,6 @@ contract IntegrationTest is Test {
 
         // Reputation should be slashed to 0
         assertEq(registry.getAgent(agentId).reputationScore, 0, "Reputation slashed");
-    }
-
-    /// @notice Test multiple depositors with shared vault shares (legacy test)
-    function test_multipleDepositorsSharePrice() public {
-        uint256 sharesA = sharedVault.balanceOf(depositorA);
-        uint256 sharesB = sharedVault.balanceOf(depositorB);
-
-        assertGt(sharesA, 0, "Depositor A has shares");
-        assertGt(sharesB, 0, "Depositor B has shares");
-
-        // Depositor A has more shares (deposited more)
-        assertGt(sharesA, sharesB, "A deposited more");
-
-        // Total assets = 700k
-        assertEq(sharedVault.totalAssets(), 700_000e6, "Total assets");
     }
 
     /// @notice Test revenue lockbox immutability - multiple processings

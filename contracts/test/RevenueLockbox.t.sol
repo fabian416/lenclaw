@@ -51,8 +51,13 @@ contract RevenueLockboxTest is Test {
     }
 
     function test_constructor_revertsOnRateTooHigh() public {
-        vm.expectRevert("RevenueLockbox: rate too high");
+        vm.expectRevert("RevenueLockbox: rate out of bounds");
         new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), 10001, address(0));
+    }
+
+    function test_constructor_revertsOnRateTooLow() public {
+        vm.expectRevert("RevenueLockbox: rate out of bounds");
+        new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), 500, address(0));
     }
 
     // ── Revenue processing ──────────────────────────────────────
@@ -182,7 +187,9 @@ contract RevenueLockboxTest is Test {
 
     function testFuzz_processRevenue_splitIsCorrect(uint256 amount, uint256 rateBps) public {
         amount = bound(amount, 1, 1_000_000_000e6);
+        // Rate must be 0 or within MIN_REPAYMENT_RATE_BPS (1000) to MAX (10000)
         rateBps = bound(rateBps, 0, 10000);
+        if (rateBps > 0 && rateBps < 1000) rateBps = 1000;
 
         AgentVault fuzzVault = new AgentVault(
             IERC20(address(usdc)), 99, "Fuzz Vault", "lcFUZZ", 0, type(uint256).max

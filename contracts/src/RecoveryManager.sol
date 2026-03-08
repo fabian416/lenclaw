@@ -86,6 +86,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     );
     event ReputationSlashed(uint256 indexed agentId, uint256 newScore);
     event WriteOff(uint256 indexed recoveryId, uint256 indexed agentId, uint256 lossAmount);
+    event VaultOperationFailed(string operation, uint256 indexed agentId);
 
     // -- Constructor --
 
@@ -166,6 +167,11 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         activeRecoveryByAgent[agentId] = recoveryId;
         totalDebtProcessed += debtAmount;
 
+        // Freeze vault to prevent bank run during recovery
+        (bool freezeSuccess, ) = address(vaultFactory).call(abi.encodeWithSignature("freezeVault(uint256,bool)", agentId, true));
+        // Continue even if freeze fails — recovery is more important
+        if (!freezeSuccess) emit VaultOperationFailed("freezeVault", agentId);
+
         // Slash agent reputation
         _slashReputation(agentId);
 
@@ -178,6 +184,11 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     ///         (reflected as reduced share value in the ERC-4626 vault).
     /// @param recoveryId The recovery record to finalize
     function finalizeRecovery(uint256 recoveryId) external nonReentrant {
+        require(
+            msg.sender == keeper || msg.sender == owner(),
+            "RecoveryManager: not authorized"
+        );
+
         RecoveryRecord storage recovery = recoveries[recoveryId];
         require(
             recovery.status == RecoveryStatus.AUCTION_ACTIVE,
@@ -241,6 +252,15 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             IAgentCreditLine(creditLine).writeDown(recovery.agentId, recovery.debtAmount);
         }
 
+        // Write down unrecovered loss on vault
+        if (recovery.lossAmount > 0) {
+            (bool wdSuccess, ) = address(vaultFactory).call(
+                abi.encodeWithSignature("writeDownVaultLoss(uint256,uint256)", recovery.agentId, recovery.lossAmount)
+            );
+            // Continue even if write-down fails
+            if (!wdSuccess) emit VaultOperationFailed("writeDownVaultLoss", recovery.agentId);
+        }
+
         // Clear active recovery
         activeRecoveryByAgent[recovery.agentId] = 0;
 
@@ -254,6 +274,12 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
         if (recovery.status == RecoveryStatus.WRITE_OFF) {
             emit WriteOff(recoveryId, recovery.agentId, recovery.lossAmount);
+        }
+
+        // Always unfreeze vault after recovery finalization
+        {
+            (bool _ok, ) = address(vaultFactory).call(abi.encodeWithSignature("freezeVault(uint256,bool)", recovery.agentId, false));
+            if (!_ok) emit VaultOperationFailed("unfreezeVault", recovery.agentId);
         }
     }
 

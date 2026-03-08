@@ -51,10 +51,17 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     event StatusChanged(uint256 indexed agentId, Status oldStatus, Status newStatus);
     event CreditLineRefreshed(uint256 indexed agentId, uint256 newLimit, uint256 newRate);
     event DebtWrittenDown(uint256 indexed agentId, uint256 amount);
+    event RecoveryManagerUpdated(address indexed recoveryManager);
+
+    uint256 public constant MIN_DRAWDOWN = 10e6; // 10 USDC minimum
 
     constructor(address _usdc, address _registry, address _scorer, address _vaultFactory, address _owner)
         Ownable(_owner)
     {
+        require(_usdc != address(0), "AgentCreditLine: zero usdc");
+        require(_registry != address(0), "AgentCreditLine: zero registry");
+        require(_scorer != address(0), "AgentCreditLine: zero scorer");
+        require(_vaultFactory != address(0), "AgentCreditLine: zero vaultFactory");
         usdc = IERC20(_usdc);
         registry = IAgentRegistry(_registry);
         scorer = ICreditScorer(_scorer);
@@ -66,18 +73,23 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     }
 
     function setRecoveryManager(address _recoveryManager) external onlyOwner {
+        require(_recoveryManager != address(0), "AgentCreditLine: zero address");
         recoveryManager = _recoveryManager;
+        emit RecoveryManagerUpdated(_recoveryManager);
     }
 
     function setGracePeriod(uint256 _period) external onlyOwner {
+        require(_period <= 30 days, "AgentCreditLine: period too long");
         gracePeriod = _period;
     }
 
     function setDelinquencyPeriod(uint256 _period) external onlyOwner {
+        require(_period <= 60 days, "AgentCreditLine: period too long");
         delinquencyPeriod = _period;
     }
 
     function setDefaultPeriod(uint256 _period) external onlyOwner {
+        require(_period <= 90 days, "AgentCreditLine: period too long");
         defaultPeriod = _period;
     }
 
@@ -102,8 +114,12 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
 
     /// @notice Borrow from the agent's individual vault up to credit limit
     function drawdown(uint256 agentId, uint256 amount) external nonReentrant {
+        require(amount >= MIN_DRAWDOWN, "AgentCreditLine: amount too small");
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
         require(msg.sender == profile.wallet, "AgentCreditLine: not agent owner");
+
+        // Lazy status check - detect delinquency/default before allowing new borrows
+        _updateStatusInternal(agentId);
         require(facilities[agentId].status == Status.ACTIVE, "AgentCreditLine: not active");
 
         _accrueInterest(agentId);
@@ -159,12 +175,15 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
             facility.principal -= principalPaid;
         }
 
-        lastPaymentTimestamp[agentId] = block.timestamp;
-
-        // If was delinquent and now paying, revert to active
-        if (facility.status == Status.DELINQUENT) {
-            emit StatusChanged(agentId, Status.DELINQUENT, Status.ACTIVE);
-            facility.status = Status.ACTIVE;
+        // Only reset timer if meaningful payment (>= 5% of outstanding or fully paid off)
+        uint256 totalAfterRepay = facility.principal + facility.accruedInterest;
+        if (totalAfterRepay == 0 || amount >= totalOutstanding / 20) {
+            lastPaymentTimestamp[agentId] = block.timestamp;
+            // If was delinquent and meaningful payment made, revert to active
+            if (facility.status == Status.DELINQUENT) {
+                emit StatusChanged(agentId, Status.DELINQUENT, Status.ACTIVE);
+                facility.status = Status.ACTIVE;
+            }
         }
 
         // Transfer repayment to the agent's individual vault
@@ -224,7 +243,10 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     /// @notice Check and update delinquency/default status
     function updateStatus(uint256 agentId) external {
         _accrueInterest(agentId);
+        _updateStatusInternal(agentId);
+    }
 
+    function _updateStatusInternal(uint256 agentId) internal {
         CreditFacility storage facility = facilities[agentId];
         if (facility.principal == 0 && facility.accruedInterest == 0) return;
 
@@ -234,6 +256,8 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         if (timeSincePayment > defaultPeriod) {
             facility.status = Status.DEFAULT;
             try registry.updateReputation(agentId, 0) {} catch {}
+            // Auto-freeze vault to prevent bank run
+            try vaultFactory.freezeVault(agentId, true) {} catch {}
         } else if (timeSincePayment > gracePeriod) {
             facility.status = Status.DELINQUENT;
         }

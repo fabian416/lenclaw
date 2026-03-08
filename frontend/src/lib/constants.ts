@@ -1,14 +1,60 @@
-export const CHAIN_ID = 8453 // Base mainnet
+/**
+ * Contract ABIs - Generate from Foundry artifacts:
+ *   cd contracts && forge build
+ *   ABIs are in: contracts/out/<ContractName>.sol/<ContractName>.json
+ *
+ * Key ABIs needed:
+ * - AgentRegistry: getAgent(), registerAgent(), isRegistered(), getAgentIdByWallet()
+ * - AgentVaultFactory: getVault(), createVault(), getLockbox(), totalVaults()
+ * - AgentVault: deposit(), redeem(), totalAssets(), balanceOf(), requestWithdrawal(),
+ *               totalBorrowed(), utilizationRate(), frozen(), depositCap(),
+ *               totalRevenueReceived(), availableLiquidity(), protocolFeeBps()
+ * - AgentCreditLine: getOutstanding(), getStatus(), drawdown(), repay(), refreshCreditLine()
+ * - RevenueLockbox: processRevenue(), totalRevenueCapture(), totalRepaid(), pendingRepayment()
+ * - CreditScorer: calculateCreditLine()
+ * - DutchAuction: getCurrentPrice(), bid(), getAuction()
+ */
 
-// Contract names align with PRODUCT_SPEC:
-// LenclawVault (ERC-4626 core), AgentRegistry (ERC-8004), RevenueLockbox, CreditScorer, AgentCreditLine
-export const CONTRACTS = {
-  LENCLAW_VAULT: "0x0000000000000000000000000000000000000000" as const,
-  AGENT_REGISTRY: "0x0000000000000000000000000000000000000000" as const,
-  USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const,
-  CREDIT_SCORER: "0x0000000000000000000000000000000000000000" as const,
-  AGENT_VAULT_FACTORY: "0x0000000000000000000000000000000000000000" as const,
+// ── Chain IDs ───────────────────────────────────────────────────────────────
+
+export const CHAIN_IDS = {
+  BASE: 8453,
+  BASE_SEPOLIA: 84532,
+  ARBITRUM: 42161,
+  OPTIMISM: 10,
+  POLYGON: 137,
 } as const
+
+/** Backward-compatible default chain ID */
+export const CHAIN_ID = CHAIN_IDS.BASE
+
+// ── Contract addresses per chain ────────────────────────────────────────────
+
+export const CONTRACTS = {
+  [CHAIN_IDS.BASE]: {
+    USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const,
+    AGENT_REGISTRY: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
+    AGENT_VAULT_FACTORY: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
+    AGENT_CREDIT_LINE: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
+    CREDIT_SCORER: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
+    DUTCH_AUCTION: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
+    RECOVERY_MANAGER: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
+  },
+  // Other chains can be added after deployment
+} as const
+
+/** Helper to get contracts for the current chain */
+export function getContracts(chainId: number = CHAIN_ID) {
+  const contracts = CONTRACTS[chainId as keyof typeof CONTRACTS]
+  if (!contracts) {
+    throw new Error(`No contracts configured for chain ${chainId}`)
+  }
+  return contracts
+}
+
+// ============================================================================
+// MOCK DATA - Replace with contract reads when Web3 is connected
+// ============================================================================
 
 export const MOCK_POOL_DATA = {
   tvl: 2_450_000,
@@ -22,7 +68,7 @@ export const MOCK_POOL_DATA = {
 
 export const MOCK_AGENTS = [
   {
-    id: "0x1a2b3c",
+    id: 1,
     name: "AutoTrader-v3",
     erc8004Id: "8004-0001",
     reputationScore: 94,
@@ -36,9 +82,10 @@ export const MOCK_AGENTS = [
     agentCategory: "Trading" as const,
     externalToken: "0x0000000000000000000000000000000000000000",
     externalProtocolId: 0,
+    hasSmartWallet: true,
   },
   {
-    id: "0x4d5e6f",
+    id: 2,
     name: "ContentGen-AI",
     erc8004Id: "8004-0002",
     reputationScore: 87,
@@ -54,7 +101,7 @@ export const MOCK_AGENTS = [
     externalProtocolId: 0,
   },
   {
-    id: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+    id: 3,
     name: "DataOracle-Prime",
     erc8004Id: "8004-0003",
     reputationScore: 91,
@@ -68,9 +115,10 @@ export const MOCK_AGENTS = [
     agentCategory: "Oracle" as const,
     externalToken: "0x0000000000000000000000000000000000000000",
     externalProtocolId: 1,
+    hasSmartWallet: true,
   },
   {
-    id: "0xj1k2l3",
+    id: 4,
     name: "YieldBot-Alpha",
     erc8004Id: "8004-0004",
     reputationScore: 78,
@@ -83,7 +131,7 @@ export const MOCK_AGENTS = [
     registeredAt: 1709510400,
   },
   {
-    id: "0xm4n5o6",
+    id: 5,
     name: "NFT-Curator-X",
     erc8004Id: "8004-0005",
     reputationScore: 82,
@@ -99,7 +147,7 @@ export const MOCK_AGENTS = [
     externalProtocolId: 2,
   },
   {
-    id: "0xp7q8r9",
+    id: 6,
     name: "LiquidBot-3000",
     erc8004Id: "8004-0006",
     reputationScore: 0,
@@ -112,7 +160,7 @@ export const MOCK_AGENTS = [
     registeredAt: 1709683200,
   },
   {
-    id: "0xs1t2u3",
+    id: 7,
     name: "SniperBot-X",
     erc8004Id: "8004-0007",
     reputationScore: 50,
@@ -125,7 +173,7 @@ export const MOCK_AGENTS = [
     registeredAt: 1711929600,
   },
   {
-    id: "0xv4w5x6",
+    id: 8,
     name: "StableYield-Pro",
     erc8004Id: "8004-0008",
     reputationScore: 96,
@@ -136,6 +184,7 @@ export const MOCK_AGENTS = [
     walletAddress: "0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF",
     description: "Conservative stablecoin yield strategy across blue-chip DeFi protocols.",
     registeredAt: 1709337600,
+    hasSmartWallet: true,
   },
 ]
 
@@ -153,7 +202,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
   {
     ...MOCK_AGENTS[0],
     vault: {
-      agentId: "0x1a2b3c",
+      agentId: 1,
       vaultAddress: "0xVault001",
       totalBacked: 142_000,
       availableCapacity: 58_000,
@@ -162,16 +211,23 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 24,
       revenueHistory: [380, 410, 395, 420, 445, 430, 460, 475, 450, 490, 510, 485, 520, 540, 505, 530, 560, 545, 570, 580, 555, 590, 610, 595, 620, 640, 615, 650, 670, 660],
       utilization: 71,
+      totalBorrowed: 100_820,
+      totalRevenueReceived: 45_200,
+      frozen: false,
+      availableLiquidity: 41_180,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "moderate",
-    badges: ["hot_streak", "top_earner"],
+    badges: ["hot_streak", "top_earner", "smart_wallet"],
     category: "Trading",
     avatarColor: "#ea580c",
   },
   {
     ...MOCK_AGENTS[1],
     vault: {
-      agentId: "0x4d5e6f",
+      agentId: 2,
       vaultAddress: "0xVault002",
       totalBacked: 86_000,
       availableCapacity: 44_000,
@@ -180,6 +236,13 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 18,
       revenueHistory: [260, 270, 265, 275, 280, 272, 278, 285, 270, 282, 290, 275, 288, 295, 280, 292, 300, 285, 298, 305, 290, 302, 310, 295, 308, 315, 300, 312, 320, 310],
       utilization: 66,
+      totalBorrowed: 56_760,
+      totalRevenueReceived: 28_400,
+      frozen: false,
+      availableLiquidity: 29_240,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "safe",
     badges: ["consistent"],
@@ -189,7 +252,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
   {
     ...MOCK_AGENTS[2],
     vault: {
-      agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+      agentId: 3,
       vaultAddress: "0xVault003",
       totalBacked: 218_000,
       availableCapacity: 32_000,
@@ -198,16 +261,23 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 31,
       revenueHistory: [480, 500, 510, 520, 515, 530, 540, 535, 550, 560, 555, 570, 580, 575, 590, 600, 595, 610, 620, 615, 630, 640, 635, 650, 660, 655, 670, 680, 675, 690],
       utilization: 87,
+      totalBorrowed: 189_660,
+      totalRevenueReceived: 72_000,
+      frozen: false,
+      availableLiquidity: 28_340,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "moderate",
-    badges: ["whale_backed", "top_earner"],
+    badges: ["whale_backed", "top_earner", "smart_wallet"],
     category: "Oracle",
     avatarColor: "#16a34a",
   },
   {
     ...MOCK_AGENTS[3],
     vault: {
-      agentId: "0xj1k2l3",
+      agentId: 4,
       vaultAddress: "0xVault004",
       totalBacked: 18_500,
       availableCapacity: 1_500,
@@ -216,6 +286,13 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 7,
       revenueHistory: [200, 180, 190, 170, 160, 150, 140, 155, 130, 120, 135, 110, 100, 115, 90, 80, 95, 70, 60, 75, 50, 40, 55, 30, 20, 35, 10, 5, 0, 0],
       utilization: 92,
+      totalBorrowed: 17_020,
+      totalRevenueReceived: 8_200,
+      frozen: false,
+      availableLiquidity: 1_480,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "degen",
     badges: ["at_risk"],
@@ -225,7 +302,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
   {
     ...MOCK_AGENTS[4],
     vault: {
-      agentId: "0xm4n5o6",
+      agentId: 5,
       vaultAddress: "0xVault005",
       totalBacked: 52_000,
       availableCapacity: 48_000,
@@ -234,6 +311,13 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 12,
       revenueHistory: [220, 230, 225, 235, 228, 238, 232, 242, 236, 245, 240, 250, 244, 254, 248, 258, 252, 262, 256, 265, 260, 270, 264, 274, 268, 278, 272, 282, 276, 285],
       utilization: 52,
+      totalBorrowed: 27_040,
+      totalRevenueReceived: 18_600,
+      frozen: false,
+      availableLiquidity: 24_960,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "safe",
     badges: ["newcomer"],
@@ -243,7 +327,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
   {
     ...MOCK_AGENTS[5],
     vault: {
-      agentId: "0xp7q8r9",
+      agentId: 6,
       vaultAddress: "0xVault006",
       totalBacked: 10_000,
       availableCapacity: 0,
@@ -252,6 +336,13 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 3,
       revenueHistory: [150, 140, 120, 100, 80, 60, 40, 20, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       utilization: 100,
+      totalBorrowed: 10_000,
+      totalRevenueReceived: 2_400,
+      frozen: true,
+      availableLiquidity: 0,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "degen",
     badges: ["defaulted"],
@@ -261,7 +352,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
   {
     ...MOCK_AGENTS[6],
     vault: {
-      agentId: "0xs1t2u3",
+      agentId: 7,
       vaultAddress: "0xVault007",
       totalBacked: 8_500,
       availableCapacity: 6_500,
@@ -270,6 +361,13 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 4,
       revenueHistory: [320, 350, 380, 340, 390, 420, 400, 450, 430, 470, 460, 500, 480, 520, 510, 550, 530, 570, 560, 600, 580, 620, 610, 650, 630, 670, 660, 700, 690, 720],
       utilization: 20,
+      totalBorrowed: 1_700,
+      totalRevenueReceived: 4_800,
+      frozen: false,
+      availableLiquidity: 6_800,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "risky",
     badges: ["newcomer"],
@@ -279,7 +377,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
   {
     ...MOCK_AGENTS[7],
     vault: {
-      agentId: "0xv4w5x6",
+      agentId: 8,
       vaultAddress: "0xVault008",
       totalBacked: 320_000,
       availableCapacity: 80_000,
@@ -288,9 +386,16 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       backersCount: 58,
       revenueHistory: [180, 190, 185, 195, 192, 200, 198, 205, 202, 210, 208, 215, 212, 220, 218, 225, 222, 230, 228, 235, 232, 240, 238, 245, 242, 250, 248, 255, 252, 260],
       utilization: 55,
+      totalBorrowed: 176_000,
+      totalRevenueReceived: 62_400,
+      frozen: false,
+      availableLiquidity: 144_000,
+      protocolFeeBps: 1000,
+      withdrawalDelay: 86400,
+      creditLineAddress: "0x0000000000000000000000000000000000000000",
     },
     riskLevel: "safe",
-    badges: ["consistent", "whale_backed"],
+    badges: ["consistent", "whale_backed", "smart_wallet"],
     category: "Stablecoin",
     avatarColor: "#0ea5e9",
   },
@@ -303,7 +408,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
   avgApy: 14.2,
   positions: [
     {
-      agentId: "0x1a2b3c",
+      agentId: 1,
       agentName: "AutoTrader-v3",
       amount: 12_000,
       entryDate: 1709251200,
@@ -313,7 +418,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
       status: "active",
     },
     {
-      agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+      agentId: 3,
       agentName: "DataOracle-Prime",
       amount: 8_000,
       entryDate: 1709424000,
@@ -323,7 +428,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
       status: "active",
     },
     {
-      agentId: "0x4d5e6f",
+      agentId: 2,
       agentName: "ContentGen-AI",
       amount: 5_000,
       entryDate: 1709337600,
@@ -333,7 +438,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
       status: "active",
     },
     {
-      agentId: "0xs1t2u3",
+      agentId: 7,
       agentName: "SniperBot-X",
       amount: 7_500,
       entryDate: 1711929600,
@@ -343,7 +448,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
       status: "active",
     },
     {
-      agentId: "0xp7q8r9",
+      agentId: 6,
       agentName: "LiquidBot-3000",
       amount: 3_000,
       entryDate: 1709683200,
@@ -358,7 +463,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
 export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   {
     rank: 1,
-    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+    agentId: 3,
     agentName: "DataOracle-Prime",
     apy: 14.8,
     revenue30d: 15_600,
@@ -371,7 +476,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   },
   {
     rank: 2,
-    agentId: "0x1a2b3c",
+    agentId: 1,
     agentName: "AutoTrader-v3",
     apy: 18.4,
     revenue30d: 12_400,
@@ -384,7 +489,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   },
   {
     rank: 3,
-    agentId: "0xv4w5x6",
+    agentId: 8,
     agentName: "StableYield-Pro",
     apy: 7.2,
     revenue30d: 5_400,
@@ -397,7 +502,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   },
   {
     rank: 4,
-    agentId: "0x4d5e6f",
+    agentId: 2,
     agentName: "ContentGen-AI",
     apy: 9.2,
     revenue30d: 8_200,
@@ -410,7 +515,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   },
   {
     rank: 5,
-    agentId: "0xm4n5o6",
+    agentId: 5,
     agentName: "NFT-Curator-X",
     apy: 11.3,
     revenue30d: 6_800,
@@ -423,7 +528,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   },
   {
     rank: 6,
-    agentId: "0xs1t2u3",
+    agentId: 7,
     agentName: "SniperBot-X",
     apy: 32.0,
     revenue30d: 2_100,
@@ -436,7 +541,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   },
   {
     rank: 7,
-    agentId: "0xj1k2l3",
+    agentId: 4,
     agentName: "YieldBot-Alpha",
     apy: 25.6,
     revenue30d: 4_100,
@@ -449,7 +554,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   },
   {
     rank: 8,
-    agentId: "0xp7q8r9",
+    agentId: 6,
     agentName: "LiquidBot-3000",
     apy: 0,
     revenue30d: 0,
@@ -466,7 +571,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-1",
     type: "revenue",
-    agentId: "0x1a2b3c",
+    agentId: 1,
     agentName: "AutoTrader-v3",
     amount: 1_240,
     message: "AutoTrader-v3 earned $1,240 from DEX arb",
@@ -475,7 +580,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-2",
     type: "backing",
-    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+    agentId: 3,
     agentName: "DataOracle-Prime",
     amount: 5_000,
     message: "0x742d...bD1e backed DataOracle-Prime with $5,000",
@@ -484,7 +589,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-3",
     type: "repayment",
-    agentId: "0x4d5e6f",
+    agentId: 2,
     agentName: "ContentGen-AI",
     amount: 2_400,
     message: "ContentGen-AI repaid $2,400 on schedule",
@@ -493,7 +598,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-4",
     type: "late_payment",
-    agentId: "0xj1k2l3",
+    agentId: 4,
     agentName: "YieldBot-Alpha",
     amount: 1_200,
     message: "YieldBot-Alpha is 48h late on $1,200 payment",
@@ -502,7 +607,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-5",
     type: "default",
-    agentId: "0xp7q8r9",
+    agentId: 6,
     agentName: "LiquidBot-3000",
     amount: 10_000,
     message: "LiquidBot-3000 defaulted on $10,000 credit line",
@@ -511,7 +616,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-6",
     type: "milestone",
-    agentId: "0x1a2b3c",
+    agentId: 1,
     agentName: "AutoTrader-v3",
     message: "AutoTrader-v3 hit $100K total revenue",
     timestamp: Date.now() / 1000 - 172800,
@@ -519,7 +624,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-7",
     type: "new_agent",
-    agentId: "0xs1t2u3",
+    agentId: 7,
     agentName: "SniperBot-X",
     message: "SniperBot-X registered with 50 reputation",
     timestamp: Date.now() / 1000 - 259200,
@@ -527,7 +632,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-8",
     type: "revenue",
-    agentId: "0xv4w5x6",
+    agentId: 8,
     agentName: "StableYield-Pro",
     amount: 180,
     message: "StableYield-Pro earned $180 from Aave yield",
@@ -536,7 +641,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-9",
     type: "backing",
-    agentId: "0x1a2b3c",
+    agentId: 1,
     agentName: "AutoTrader-v3",
     amount: 10_000,
     message: "0x8Ba1...BA72 backed AutoTrader-v3 with $10,000",
@@ -545,7 +650,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-10",
     type: "revenue",
-    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+    agentId: 3,
     agentName: "DataOracle-Prime",
     amount: 890,
     message: "DataOracle-Prime earned $890 from API fees",
@@ -554,7 +659,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-11",
     type: "repayment",
-    agentId: "0x1a2b3c",
+    agentId: 1,
     agentName: "AutoTrader-v3",
     amount: 3_200,
     message: "AutoTrader-v3 repaid $3,200 ahead of schedule",
@@ -563,7 +668,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-12",
     type: "backing",
-    agentId: "0xv4w5x6",
+    agentId: 8,
     agentName: "StableYield-Pro",
     amount: 25_000,
     message: "0xdD87...2148 backed StableYield-Pro with $25,000",
@@ -572,7 +677,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-13",
     type: "revenue",
-    agentId: "0xm4n5o6",
+    agentId: 5,
     agentName: "NFT-Curator-X",
     amount: 1_450,
     message: "NFT-Curator-X earned $1,450 from Blur flip",
@@ -581,7 +686,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-14",
     type: "withdrawal",
-    agentId: "0xj1k2l3",
+    agentId: 4,
     agentName: "YieldBot-Alpha",
     amount: 2_000,
     message: "0x4B08...D2dB withdrew $2,000 from YieldBot-Alpha",
@@ -590,7 +695,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-15",
     type: "revenue",
-    agentId: "0xs1t2u3",
+    agentId: 7,
     agentName: "SniperBot-X",
     amount: 680,
     message: "SniperBot-X earned $680 from token launch snipe",
@@ -599,7 +704,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-16",
     type: "repayment",
-    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+    agentId: 3,
     agentName: "DataOracle-Prime",
     amount: 4_800,
     message: "DataOracle-Prime repaid $4,800 on schedule",
@@ -608,7 +713,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-17",
     type: "backing",
-    agentId: "0xm4n5o6",
+    agentId: 5,
     agentName: "NFT-Curator-X",
     amount: 3_000,
     message: "0x583...0225 backed NFT-Curator-X with $3,000",
@@ -617,7 +722,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-18",
     type: "revenue",
-    agentId: "0x4d5e6f",
+    agentId: 2,
     agentName: "ContentGen-AI",
     amount: 520,
     message: "ContentGen-AI earned $520 from article sales",
@@ -626,7 +731,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-19",
     type: "late_payment",
-    agentId: "0xj1k2l3",
+    agentId: 4,
     agentName: "YieldBot-Alpha",
     amount: 800,
     message: "YieldBot-Alpha missed $800 scheduled payment",
@@ -635,7 +740,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-20",
     type: "milestone",
-    agentId: "0xv4w5x6",
+    agentId: 8,
     agentName: "StableYield-Pro",
     message: "StableYield-Pro reached $300K total backing",
     timestamp: Date.now() / 1000 - 57600,
@@ -643,7 +748,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-21",
     type: "revenue",
-    agentId: "0x1a2b3c",
+    agentId: 1,
     agentName: "AutoTrader-v3",
     amount: 2_180,
     message: "AutoTrader-v3 earned $2,180 from WBTC arb",
@@ -652,7 +757,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-22",
     type: "backing",
-    agentId: "0xs1t2u3",
+    agentId: 7,
     agentName: "SniperBot-X",
     amount: 1_500,
     message: "0x1aE0...454C backed SniperBot-X with $1,500",

@@ -46,6 +46,7 @@ contract LiquidationKeeper is Ownable {
     event RecoveryManagerUpdated(address indexed recoveryManager);
     event KeeperBountyUpdated(uint256 bountyBps, uint256 maxBounty);
     event CooldownPeriodUpdated(uint256 period);
+    event LiquidationReset(uint256 indexed agentId);
 
     // ── Constructor ─────────────────────────────────────────────
 
@@ -85,6 +86,14 @@ contract LiquidationKeeper is Ownable {
     function setCooldownPeriod(uint256 _period) external onlyOwner {
         cooldownPeriod = _period;
         emit CooldownPeriodUpdated(_period);
+    }
+
+    /// @notice Reset liquidation flag to allow re-liquidation (e.g., after failed auction)
+    /// @dev Only callable by owner or recovery manager
+    function resetLiquidation(uint256 agentId) external {
+        require(msg.sender == owner() || msg.sender == recoveryManager, "LiquidationKeeper: not authorized");
+        liquidated[agentId] = false;
+        emit LiquidationReset(agentId);
     }
 
     // ── Keeper Operations ───────────────────────────────────────

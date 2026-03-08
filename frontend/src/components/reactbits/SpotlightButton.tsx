@@ -4,12 +4,14 @@ interface SpotlightButtonProps {
   children: ReactNode
   className?: string
   onClick?: () => void
+  disabled?: boolean
 }
 
 export function SpotlightButton({
   children,
   className = "",
   onClick,
+  disabled,
 }: SpotlightButtonProps) {
   const ref = useRef<HTMLButtonElement>(null)
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -28,6 +30,7 @@ export function SpotlightButton({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onClick={onClick}
+      disabled={disabled}
       className={`relative overflow-hidden ${className}`}
       style={{
         background: isHovering

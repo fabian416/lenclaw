@@ -87,15 +87,15 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         // Auto-deploy vault + lockbox if factory is set
         if (address(vaultFactory) != address(0)) {
             address vault = vaultFactory.createVault(agentId);
+            require(vault != address(0), "AgentRegistry: vault creation failed");
             _agents[agentId].vault = vault;
             emit VaultSet(agentId, vault);
 
             // Factory deploys lockbox atomically with vault
             address lockbox = vaultFactory.getLockbox(agentId);
-            if (lockbox != address(0)) {
-                _agents[agentId].lockbox = lockbox;
-                emit LockboxSet(agentId, lockbox);
-            }
+            require(lockbox != address(0), "AgentRegistry: lockbox creation failed");
+            _agents[agentId].lockbox = lockbox;
+            emit LockboxSet(agentId, lockbox);
         }
 
         return agentId;

@@ -40,7 +40,7 @@ import { injected } from "wagmi/connectors"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getMockEvents(agentId: string, agentName: string): ActivityEvent[] {
+function getMockEvents(agentId: number, agentName: string): ActivityEvent[] {
   const now = Math.floor(Date.now() / 1000)
   return [
     { id: "e1", type: "revenue", agentId, agentName, amount: 1_240, message: `${agentName} earned $1,240 from DEX arbitrage`, timestamp: now - 1800 },
@@ -174,7 +174,7 @@ export default function AgentDetail() {
   const { isConnected } = useAccount()
   const { connect } = useConnect()
 
-  const agent = MOCK_AGENTS_WITH_VAULT.find((a) => a.id === id)
+  const agent = MOCK_AGENTS_WITH_VAULT.find((a) => String(a.id) === id)
 
   if (!agent) {
     return (
@@ -252,6 +252,12 @@ export default function AgentDetail() {
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate text-foreground">{agent.name}</h1>
               <StatusBadge status={agent.status} />
+              {agent.hasSmartWallet && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border text-sky-600 bg-sky-50 border-sky-200 dark:text-sky-400 dark:bg-sky-900/30 dark:border-sky-500/30 ring-1 ring-sky-300/50 dark:ring-sky-500/20">
+                  <ShieldCheck className="w-3 h-3" />
+                  Smart Wallet
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <Badge variant="outline" className="text-[10px] flex-shrink-0">
@@ -302,6 +308,20 @@ export default function AgentDetail() {
                     </div>
                   </div>
                 </div>
+
+                {agent.hasSmartWallet && (
+                  <div className="mt-4 p-3 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-500/30">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium text-sky-700 dark:text-sky-300">Smart Wallet Verified</div>
+                        <div className="text-[11px] text-sky-600/80 dark:text-sky-400/70 mt-0.5">
+                          Revenue auto-routes to lockbox. Higher trust score via on-chain verification.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </BorderBeam>
           </AnimatedContent>
@@ -485,6 +505,7 @@ export default function AgentDetail() {
                   <ClickSpark>
                     <SpotlightButton
                       onClick={handleDeposit}
+                      disabled={!backAmount || parseFloat(backAmount) <= 0 || isDefaulted || depositState === "pending"}
                       className={`w-full font-semibold h-11 px-4 py-2.5 bg-primary text-primary-foreground hover:opacity-90 rounded-lg cursor-pointer text-sm ${
                         !backAmount || parseFloat(backAmount) <= 0 || isDefaulted || depositState === "pending" ? "opacity-50 pointer-events-none" : ""
                       }`}

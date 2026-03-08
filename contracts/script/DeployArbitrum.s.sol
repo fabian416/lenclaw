@@ -6,6 +6,9 @@ import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
 import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
+import {DutchAuction} from "../src/DutchAuction.sol";
+import {RecoveryManager} from "../src/RecoveryManager.sol";
+import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 
 /// @title DeployArbitrum - Arbitrum One deployment script
 /// @notice Deploys the full Lenclaw protocol suite to Arbitrum (chain ID 42161)
@@ -42,7 +45,31 @@ contract DeployArbitrum is Script {
             new AgentCreditLine(USDC, address(registry), address(scorer), address(factory), owner);
         console.log("AgentCreditLine:", address(creditLine));
 
-        // 5. Configure: link registry to factory
+        // 5. Deploy DutchAuction (owner as placeholder recoveryManager, updated below)
+        DutchAuction dutchAuction = new DutchAuction(USDC, owner, owner);
+        console.log("DutchAuction:", address(dutchAuction));
+
+        // 6. Deploy RecoveryManager
+        RecoveryManager recoveryManager = new RecoveryManager(
+            USDC, address(dutchAuction), address(registry), address(factory), owner
+        );
+        console.log("RecoveryManager:", address(recoveryManager));
+
+        // 7. Deploy LiquidationKeeper
+        LiquidationKeeper keeper = new LiquidationKeeper(
+            address(creditLine), address(registry), USDC, address(recoveryManager), owner
+        );
+        console.log("LiquidationKeeper:", address(keeper));
+
+        // 8. Wire everything
+        dutchAuction.setRecoveryManager(address(recoveryManager));
+        recoveryManager.setCreditLine(address(creditLine));
+        recoveryManager.setKeeper(address(keeper));
+        creditLine.setRecoveryManager(address(recoveryManager));
+        factory.setCreditLine(address(creditLine));
+        factory.setRecoveryManager(address(recoveryManager));
+
+        // 9. Configure: link registry to factory
         registry.setVaultFactory(address(factory));
         console.log("Registry linked to VaultFactory");
 
@@ -56,7 +83,10 @@ contract DeployArbitrum is Script {
         vm.serializeAddress(json, "agentRegistry", address(registry));
         vm.serializeAddress(json, "agentVaultFactory", address(factory));
         vm.serializeAddress(json, "creditScorer", address(scorer));
-        string memory output = vm.serializeAddress(json, "agentCreditLine", address(creditLine));
+        vm.serializeAddress(json, "agentCreditLine", address(creditLine));
+        vm.serializeAddress(json, "dutchAuction", address(dutchAuction));
+        vm.serializeAddress(json, "recoveryManager", address(recoveryManager));
+        string memory output = vm.serializeAddress(json, "liquidationKeeper", address(keeper));
         vm.writeJson(output, "./deployments/arbitrum.json");
     }
 }

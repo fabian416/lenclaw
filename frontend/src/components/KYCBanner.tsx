@@ -21,7 +21,8 @@ interface KYCBannerProps {
 // Constants
 // ---------------------------------------------------------------------------
 
-const DEFAULT_KYC_URL = "https://global.transak.com/?productsAvailed=BUY&apiKey=YOUR_API_KEY"
+const TRANSAK_API_KEY = import.meta.env.VITE_TRANSAK_API_KEY || ""
+const DEFAULT_KYC_URL = `https://global.transak.com/?productsAvailed=BUY&apiKey=${TRANSAK_API_KEY}`
 
 // ---------------------------------------------------------------------------
 // Component

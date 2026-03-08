@@ -51,7 +51,10 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         require(_agent != address(0), "RevenueLockbox: zero agent");
         require(_vault != address(0), "RevenueLockbox: zero vault");
         require(_usdc != address(0), "RevenueLockbox: zero usdc");
-        require(_repaymentRateBps <= 10000, "RevenueLockbox: rate too high");
+        require(
+            _repaymentRateBps == 0 || (_repaymentRateBps >= MIN_REPAYMENT_RATE_BPS && _repaymentRateBps <= MAX_REPAYMENT_RATE_BPS),
+            "RevenueLockbox: rate out of bounds"
+        );
 
         agent = _agent;
         vault = _vault;

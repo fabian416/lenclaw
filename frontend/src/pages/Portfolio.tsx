@@ -49,7 +49,7 @@ function PositionCard({ position, index }: { position: BackingPosition; index: n
             <div className="min-w-0">
               <div className="text-sm font-semibold text-foreground truncate">{position.agentName}</div>
               <div className="text-xs text-muted-foreground">
-                <TextScramble text={position.agentId} trigger="hover" speed={40} />
+                <TextScramble text={String(position.agentId)} trigger="hover" speed={40} />
               </div>
             </div>
           </div>

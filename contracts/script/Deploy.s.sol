@@ -7,6 +7,9 @@ import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
 import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
+import {DutchAuction} from "../src/DutchAuction.sol";
+import {RecoveryManager} from "../src/RecoveryManager.sol";
+import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 
 /// @notice Mock USDC for local testing
 contract MockUSDC is ERC20 {
@@ -49,10 +52,34 @@ contract DeployLenclaw is Script {
             new AgentCreditLine(address(usdc), address(registry), address(scorer), address(factory), deployer);
         console.log("AgentCreditLine deployed at:", address(creditLine));
 
-        // 6. Configure: link registry to factory for auto vault deployment
+        // 6. Deploy DutchAuction (deployer as placeholder recoveryManager, updated below)
+        DutchAuction dutchAuction = new DutchAuction(address(usdc), deployer, deployer);
+        console.log("DutchAuction deployed at:", address(dutchAuction));
+
+        // 7. Deploy RecoveryManager
+        RecoveryManager recoveryManager = new RecoveryManager(
+            address(usdc), address(dutchAuction), address(registry), address(factory), deployer
+        );
+        console.log("RecoveryManager deployed at:", address(recoveryManager));
+
+        // 8. Deploy LiquidationKeeper
+        LiquidationKeeper keeper = new LiquidationKeeper(
+            address(creditLine), address(registry), address(usdc), address(recoveryManager), deployer
+        );
+        console.log("LiquidationKeeper deployed at:", address(keeper));
+
+        // 9. Wire everything
+        dutchAuction.setRecoveryManager(address(recoveryManager));
+        recoveryManager.setCreditLine(address(creditLine));
+        recoveryManager.setKeeper(address(keeper));
+        creditLine.setRecoveryManager(address(recoveryManager));
+        factory.setCreditLine(address(creditLine));
+        factory.setRecoveryManager(address(recoveryManager));
+
+        // 10. Configure: link registry to factory for auto vault deployment
         registry.setVaultFactory(address(factory));
 
-        // 7. Mint some test USDC to deployer
+        // 11. Mint some test USDC to deployer
         usdc.mint(deployer, 1_000_000e6); // 1M USDC
 
         vm.stopBroadcast();

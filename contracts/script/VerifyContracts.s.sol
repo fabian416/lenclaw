@@ -13,6 +13,9 @@ import {Script, console} from "forge-std/Script.sol";
 ///   AGENT_VAULT_FACTORY=<addr> \
 ///   CREDIT_SCORER=<addr> \
 ///   AGENT_CREDIT_LINE=<addr> \
+///   DUTCH_AUCTION=<addr> \
+///   RECOVERY_MANAGER=<addr> \
+///   LIQUIDATION_KEEPER=<addr> \
 ///   OWNER=<addr> \
 ///   ETHERSCAN_API_KEY=<key> \
 ///   forge script script/VerifyContracts.s.sol --chain base --verify
@@ -24,6 +27,9 @@ contract VerifyContracts is Script {
         address agentVaultFactory = vm.envAddress("AGENT_VAULT_FACTORY");
         address creditScorer = vm.envAddress("CREDIT_SCORER");
         address agentCreditLine = vm.envAddress("AGENT_CREDIT_LINE");
+        address dutchAuction = vm.envAddress("DUTCH_AUCTION");
+        address recoveryManager = vm.envAddress("RECOVERY_MANAGER");
+        address liquidationKeeper = vm.envAddress("LIQUIDATION_KEEPER");
         address owner = vm.envAddress("OWNER");
 
         console.log("=== Lenclaw Contract Verification ===");
@@ -36,6 +42,9 @@ contract VerifyContracts is Script {
         console.log("AgentVaultFactory:", agentVaultFactory);
         console.log("CreditScorer:", creditScorer);
         console.log("AgentCreditLine:", agentCreditLine);
+        console.log("DutchAuction:", dutchAuction);
+        console.log("RecoveryManager:", recoveryManager);
+        console.log("LiquidationKeeper:", liquidationKeeper);
         console.log("");
 
         console.log("=== Verification Commands ===");
@@ -56,6 +65,27 @@ contract VerifyContracts is Script {
             "AgentCreditLine",
             agentCreditLine,
             abi.encode(usdc, agentRegistry, creditScorer, agentVaultFactory, owner)
+        );
+
+        // DutchAuction: constructor(address _usdc, address _recoveryManager, address _owner)
+        _logVerifyCommand(
+            "DutchAuction",
+            dutchAuction,
+            abi.encode(usdc, owner, owner)
+        );
+
+        // RecoveryManager: constructor(address _usdc, address _dutchAuction, address _registry, address _vaultFactory, address _owner)
+        _logVerifyCommand(
+            "RecoveryManager",
+            recoveryManager,
+            abi.encode(usdc, dutchAuction, agentRegistry, agentVaultFactory, owner)
+        );
+
+        // LiquidationKeeper: constructor(address _creditLine, address _registry, address _usdc, address _recoveryManager, address _owner)
+        _logVerifyCommand(
+            "LiquidationKeeper",
+            liquidationKeeper,
+            abi.encode(agentCreditLine, agentRegistry, usdc, recoveryManager, owner)
         );
     }
 

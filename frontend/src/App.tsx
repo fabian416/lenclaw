@@ -2,6 +2,8 @@ import { Routes, Route, Navigate, Link } from "react-router-dom"
 import { Header } from "@/components/layout/Header"
 import { MobileHeader } from "@/components/layout/MobileHeader"
 import { BottomNav } from "@/components/layout/BottomNav"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { WrongNetworkBanner } from "@/components/WrongNetworkBanner"
 import Home from "@/pages/Home"
 import AgentMarketplace from "@/pages/AgentMarketplace"
 import AgentOnboarding from "@/pages/AgentOnboarding"
@@ -43,21 +45,25 @@ export default function App() {
       {/* Mobile header (hidden on desktop) */}
       <MobileHeader />
 
+      <WrongNetworkBanner />
+
       <main className="flex-1 pb-20 md:pb-0">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/agents" element={<AgentMarketplace />} />
-          <Route path="/agents/onboard" element={<AgentOnboarding />} />
-          <Route path="/agents/:id" element={<AgentDetail />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/feed" element={<Feed />} />
-          {/* Redirects for removed routes */}
-          <Route path="/lend" element={<Navigate to="/agents" replace />} />
-          <Route path="/borrow" element={<Navigate to="/agents" replace />} />
-          <Route path="/dashboard" element={<Navigate to="/portfolio" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/agents" element={<AgentMarketplace />} />
+            <Route path="/agents/onboard" element={<AgentOnboarding />} />
+            <Route path="/agents/:id" element={<AgentDetail />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/feed" element={<Feed />} />
+            {/* Redirects for removed routes */}
+            <Route path="/lend" element={<Navigate to="/agents" replace />} />
+            <Route path="/borrow" element={<Navigate to="/agents" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/portfolio" replace />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
 
       {/* Mobile bottom navigation */}

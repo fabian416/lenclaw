@@ -7,12 +7,13 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// @title AgentVault - Individual ERC-4626 vault per AI agent
 /// @notice Each agent gets its own vault where backers deposit USDC and receive agent-specific shares.
 ///         Revenue from the agent flows back to this vault, generating yield for backers.
 ///         If the agent defaults, only backers of THIS vault are affected.
-contract AgentVault is ERC4626, ReentrancyGuard {
+contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -35,6 +36,7 @@ contract AgentVault is ERC4626, ReentrancyGuard {
     uint256 public withdrawalDelay = 1 days;
     mapping(address => uint256) public withdrawalRequestTime;
     bool public frozen; // Vault freeze on default
+    uint256 public lastUnfreezeTimestamp;
 
     event Borrowed(address indexed borrower, uint256 amount);
     event RepaymentReceived(address indexed from, uint256 amount);
@@ -45,6 +47,7 @@ contract AgentVault is ERC4626, ReentrancyGuard {
     event WithdrawalRequested(address indexed owner, uint256 timestamp);
     event WithdrawalDelayUpdated(uint256 oldDelay, uint256 newDelay);
     event VaultFrozen(bool frozen);
+    event LossWrittenDown(uint256 amount);
 
     error NotFactory();
     error NotCreditLine();
@@ -53,6 +56,9 @@ contract AgentVault is ERC4626, ReentrancyGuard {
     error DepositCapExceeded();
     error WithdrawalNotReady();
     error VaultIsFrozen();
+    error DepositTooSmall();
+
+    uint256 public constant MIN_DEPOSIT = 100e6; // 100 USDC minimum to prevent donation attack
 
     modifier onlyFactory() {
         if (msg.sender != factory) revert NotFactory();
@@ -111,8 +117,15 @@ contract AgentVault is ERC4626, ReentrancyGuard {
     /// @notice Freeze/unfreeze the vault (only factory, used on default)
     function setFrozen(bool _frozen) external onlyFactory {
         frozen = _frozen;
+        if (!_frozen) {
+            lastUnfreezeTimestamp = block.timestamp;
+        }
         emit VaultFrozen(_frozen);
     }
+
+    /// @notice Emergency pause (only factory)
+    function pause() external onlyFactory { _pause(); }
+    function unpause() external onlyFactory { _unpause(); }
 
     /// @notice Request a withdrawal. Must wait `withdrawalDelay` before executing.
     function requestWithdrawal() external {
@@ -121,7 +134,7 @@ contract AgentVault is ERC4626, ReentrancyGuard {
     }
 
     /// @notice Borrow USDC from the vault (called by AgentCreditLine)
-    function borrow(address to, uint256 amount) external onlyCreditLine nonReentrant {
+    function borrow(address to, uint256 amount) external onlyCreditLine nonReentrant whenNotPaused {
         if (amount > availableLiquidity()) revert InsufficientLiquidity();
         totalBorrowed += amount;
         IERC20(asset()).safeTransfer(to, amount);
@@ -188,14 +201,17 @@ contract AgentVault is ERC4626, ReentrancyGuard {
         return totalAssets();
     }
 
-    /// @dev Override deposit to enforce deposit cap
-    function deposit(uint256 assets, address receiver) public override nonReentrant returns (uint256) {
+    /// @dev Override deposit to enforce deposit cap, minimum deposit, and freeze check
+    function deposit(uint256 assets, address receiver) public override nonReentrant whenNotPaused returns (uint256) {
+        if (frozen) revert VaultIsFrozen();
+        if (assets < MIN_DEPOSIT) revert DepositTooSmall();
         if (depositCap > 0 && totalAssets() + assets > depositCap) revert DepositCapExceeded();
         return super.deposit(assets, receiver);
     }
 
-    /// @dev Override mint to enforce deposit cap
+    /// @dev Override mint to enforce deposit cap and freeze check
     function mint(uint256 shares, address receiver) public override nonReentrant returns (uint256) {
+        if (frozen) revert VaultIsFrozen();
         uint256 assets = previewMint(shares);
         if (depositCap > 0 && totalAssets() + assets > depositCap) revert DepositCapExceeded();
         return super.mint(shares, receiver);
@@ -215,12 +231,61 @@ contract AgentVault is ERC4626, ReentrancyGuard {
         return super.redeem(shares, receiver, _owner);
     }
 
-    /// @dev Verify the owner has requested withdrawal and waited the delay
+    /// @dev Override maxDeposit to reflect deposit cap and frozen/paused state
+    function maxDeposit(address) public view override returns (uint256) {
+        if (frozen || paused()) return 0;
+        if (depositCap == 0) return type(uint256).max;
+        uint256 total = totalAssets();
+        return total >= depositCap ? 0 : depositCap - total;
+    }
+
+    /// @dev Override maxMint to reflect deposit cap and frozen/paused state
+    function maxMint(address receiver) public view override returns (uint256) {
+        uint256 maxAssets = maxDeposit(receiver);
+        if (maxAssets == type(uint256).max) return type(uint256).max;
+        return convertToShares(maxAssets);
+    }
+
+    /// @dev Override maxWithdraw to return 0 when frozen
+    function maxWithdraw(address owner_) public view override returns (uint256) {
+        if (frozen) return 0;
+        return super.maxWithdraw(owner_);
+    }
+
+    /// @dev Override maxRedeem to return 0 when frozen
+    function maxRedeem(address owner_) public view override returns (uint256) {
+        if (frozen) return 0;
+        return super.maxRedeem(owner_);
+    }
+
+    /// @notice Write down unrecoverable loss (called by factory after recovery)
+    function writeDownLoss(uint256 lossAmount) external onlyFactory {
+        if (lossAmount >= totalBorrowed) {
+            totalBorrowed = 0;
+        } else {
+            totalBorrowed -= lossAmount;
+        }
+        emit LossWrittenDown(lossAmount);
+    }
+
+    /// @dev Reset withdrawal timelock when shares are transferred to prevent bypass
+    function _update(address from, address to, uint256 value) internal override {
+        super._update(from, to, value);
+        // Reset receiver's withdrawal request on any incoming transfer (not mint/burn)
+        if (from != address(0) && to != address(0)) {
+            withdrawalRequestTime[to] = 0;
+        }
+    }
+
+    /// @dev Verify the owner has requested withdrawal and waited the delay.
+    ///      Requests made before the last unfreeze are invalidated to prevent
+    ///      timelock bypass via long freeze periods.
     function _checkWithdrawalReady(address _owner) internal view {
         if (withdrawalDelay == 0) return; // No delay configured
         uint256 requestTime = withdrawalRequestTime[_owner];
         if (requestTime == 0 || block.timestamp < requestTime + withdrawalDelay) {
             revert WithdrawalNotReady();
         }
+        if (requestTime <= lastUnfreezeTimestamp) revert WithdrawalNotReady();
     }
 }

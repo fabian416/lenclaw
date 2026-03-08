@@ -14,7 +14,7 @@ pool_size = 5
 max_overflow = 10
 
 [auth]
-jwt_secret = "dev-secret-change-in-production"
+# jwt_secret is read from JWT_SECRET env var; see .env.example
 jwt_algorithm = "HS256"
 access_token_expire_minutes = 60
 nonce_expire_minutes = 10

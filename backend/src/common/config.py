@@ -39,7 +39,7 @@ class DatabaseSettings(BaseModel):
 
 
 class AuthSettings(BaseModel):
-    jwt_secret: str = "dev-secret-change-in-production"
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
     nonce_expire_minutes: int = 10
@@ -90,6 +90,21 @@ def load_settings(env: Environment | None = None) -> AppSettings:
         raw = _load_toml(config_path)
         app_block = raw.pop("app", {})
         flat: dict[str, Any] = {**app_block, **raw}
-        return AppSettings.model_validate(flat)
+        settings = AppSettings.model_validate(flat)
+    else:
+        settings = AppSettings(env=env)
 
-    return AppSettings(env=env)
+    # Override jwt_secret from environment variable if set
+    jwt_from_env = os.environ.get("JWT_SECRET", "")
+    if jwt_from_env:
+        settings.auth.jwt_secret = jwt_from_env
+
+    # Require JWT_SECRET in production — never run prod with an empty or default secret
+    if settings.env in (Environment.PROD, Environment.DEV):
+        if not settings.auth.jwt_secret or settings.auth.jwt_secret == "dev-secret-change-in-production":
+            raise RuntimeError(
+                "JWT_SECRET environment variable must be set to a strong random value "
+                "in production/dev. Generate one with: openssl rand -hex 32"
+            )
+
+    return settings

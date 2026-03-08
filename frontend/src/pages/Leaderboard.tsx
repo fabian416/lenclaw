@@ -14,6 +14,7 @@ import {
   Star,
   AlertTriangle,
   Zap,
+  ShieldCheck,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
@@ -40,6 +41,7 @@ const badgeConfig: Record<AgentBadge, { label: string; icon: typeof Flame }> = {
   newcomer: { label: "Newcomer", icon: Zap },
   consistent: { label: "Consistent", icon: Star },
   whale_backed: { label: "Whale Backed", icon: Wallet },
+  smart_wallet: { label: "Smart Wallet", icon: ShieldCheck },
 }
 
 const riskColors: Record<RiskLevel, string> = {

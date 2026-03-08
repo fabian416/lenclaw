@@ -5,6 +5,7 @@ const statusConfig: Record<AgentStatus, { label: string; variant: "success" | "w
   active: { label: "Active", variant: "success" },
   delinquent: { label: "Delinquent", variant: "warning" },
   default: { label: "Default", variant: "danger" },
+  none: { label: "Uninitialized", variant: "warning" },
 }
 
 export function StatusBadge({ status }: { status: AgentStatus }) {

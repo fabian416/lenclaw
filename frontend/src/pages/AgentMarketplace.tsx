@@ -9,7 +9,7 @@ import { formatUSD, shortenAddress } from "@/lib/utils"
 import { ReputationRing } from "@/components/shared/ReputationRing"
 import { MOCK_AGENTS_WITH_VAULT } from "@/lib/constants"
 import type { RiskLevel } from "@/lib/types"
-import { Bot, Search, Users, TrendingUp, ArrowRight, Flame, Clock, ChevronDown } from "lucide-react"
+import { Bot, Search, Users, TrendingUp, ArrowRight, Flame, Clock, ChevronDown, ShieldCheck } from "lucide-react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -88,6 +88,7 @@ export default function AgentMarketplace() {
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all")
   const [sortBy, setSortBy] = useState<SortOption>("hot")
   const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [smartWalletOnly, setSmartWalletOnly] = useState(false)
 
   // M10: Debounce search input
   useEffect(() => {
@@ -121,6 +122,11 @@ export default function AgentMarketplace() {
       agents = agents.filter((a) => a.riskLevel === riskFilter)
     }
 
+    // Smart wallet filter
+    if (smartWalletOnly) {
+      agents = agents.filter((a) => a.hasSmartWallet)
+    }
+
     // Sort
     agents = [...agents].sort((a, b) => {
       switch (sortBy) {
@@ -138,7 +144,7 @@ export default function AgentMarketplace() {
     })
 
     return agents
-  }, [search, riskFilter, sortBy])
+  }, [search, riskFilter, sortBy, smartWalletOnly])
 
   const currentSort = SORT_OPTIONS.find((s) => s.value === sortBy)!
 
@@ -226,7 +232,7 @@ export default function AgentMarketplace() {
           </div>
         </div>
 
-        {/* Risk filter pills */}
+        {/* Risk filter pills + Smart Wallet toggle */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 mobile-scroll-x">
           {RISK_FILTERS.map((rf) => (
             <button
@@ -241,6 +247,20 @@ export default function AgentMarketplace() {
               {rf.label}
             </button>
           ))}
+
+          <div className="w-px bg-border mx-1 self-stretch" />
+
+          <button
+            onClick={() => setSmartWalletOnly(!smartWalletOnly)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all whitespace-nowrap min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 ${
+              smartWalletOnly
+                ? "bg-sky-500 text-white"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Smart Wallet
+          </button>
         </div>
       </div>
 
@@ -280,6 +300,12 @@ export default function AgentMarketplace() {
                               {agent.erc8004Id}
                             </Badge>
                             <RiskBadge level={agent.riskLevel} />
+                            {agent.hasSmartWallet && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border text-sky-600 bg-sky-50 border-sky-200 dark:text-sky-400 dark:bg-sky-900/30 dark:border-sky-500/30 ring-1 ring-sky-300/50 dark:ring-sky-500/20">
+                                <ShieldCheck className="w-3 h-3" />
+                                Verified
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

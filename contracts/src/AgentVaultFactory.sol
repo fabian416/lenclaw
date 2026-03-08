@@ -21,6 +21,12 @@ contract AgentVaultFactory is Ownable {
     /// @notice AgentCreditLine address, set on lockboxes at deployment
     address public creditLine;
 
+    /// @notice Treasury address for protocol fee collection
+    address public treasury;
+
+    /// @notice RecoveryManager address for loss write-downs
+    address public recoveryManager;
+
     // agentId => AgentVault address
     mapping(uint256 => address) public vaults;
 
@@ -36,12 +42,16 @@ contract AgentVaultFactory is Ownable {
     event DefaultDepositCapUpdated(uint256 oldCap, uint256 newCap);
     event DefaultRepaymentRateUpdated(uint256 oldRate, uint256 newRate);
     event CreditLineUpdated(address indexed creditLine);
+    event TreasuryUpdated(address indexed treasury);
+    event RecoveryManagerUpdated(address indexed recoveryManager);
 
     error VaultAlreadyExists(uint256 agentId);
     error AgentNotRegistered(uint256 agentId);
     error VaultNotFound(uint256 agentId);
 
     constructor(address _usdc, address _registry, address _owner) Ownable(_owner) {
+        require(_usdc != address(0), "AgentVaultFactory: zero usdc");
+        require(_registry != address(0), "AgentVaultFactory: zero registry");
         usdc = IERC20(_usdc);
         registry = IAgentRegistry(_registry);
     }
@@ -121,11 +131,45 @@ contract AgentVaultFactory is Ownable {
         AgentVault(vault).setProtocolFeeBps(feeBps);
     }
 
-    /// @notice Collect fees from a specific agent's vault
+    /// @notice Collect fees from a specific agent's vault to a specific address
     function collectVaultFees(uint256 agentId, address to) external onlyOwner {
         address vault = vaults[agentId];
         if (vault == address(0)) revert VaultNotFound(agentId);
         AgentVault(vault).collectFees(to);
+    }
+
+    /// @notice Collect fees from a specific agent's vault to the treasury
+    function collectVaultFees(uint256 agentId) external onlyOwner {
+        require(treasury != address(0), "AgentVaultFactory: treasury not set");
+        address vault = vaults[agentId];
+        if (vault == address(0)) revert VaultNotFound(agentId);
+        AgentVault(vault).collectFees(treasury);
+    }
+
+    /// @notice Set the treasury address for protocol fee collection
+    function setTreasury(address _treasury) external onlyOwner {
+        treasury = _treasury;
+        emit TreasuryUpdated(_treasury);
+    }
+
+    /// @notice Set the recovery manager address
+    function setRecoveryManager(address _recoveryManager) external onlyOwner {
+        recoveryManager = _recoveryManager;
+        emit RecoveryManagerUpdated(_recoveryManager);
+    }
+
+    /// @notice Freeze or unfreeze an agent's vault (called by creditLine or owner)
+    function freezeVault(uint256 agentId, bool _frozen) external {
+        require(msg.sender == creditLine || msg.sender == owner(), "not authorized");
+        address vault = vaults[agentId];
+        require(vault != address(0), "no vault");
+        AgentVault(vault).setFrozen(_frozen);
+    }
+
+    /// @notice Write down unrecoverable loss on an agent's vault
+    function writeDownVaultLoss(uint256 agentId, uint256 lossAmount) external {
+        require(msg.sender == owner() || msg.sender == recoveryManager, "not authorized");
+        AgentVault(vaults[agentId]).writeDownLoss(lossAmount);
     }
 
     /// @notice Update the default protocol fee for new vaults

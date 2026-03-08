@@ -7,6 +7,7 @@ interface IAgentVault {
     event FeesCollected(address indexed to, uint256 amount);
     event CreditLineSet(address indexed creditLine);
     event DepositCapSet(uint256 newCap);
+    event LossWrittenDown(uint256 amount);
 
     function agentId() external view returns (uint256);
     function factory() external view returns (address);
@@ -24,4 +25,5 @@ interface IAgentVault {
     function utilizationRate() external view returns (uint256);
     function totalBacked() external view returns (uint256);
     function frozen() external view returns (bool);
+    function writeDownLoss(uint256 lossAmount) external;
 }

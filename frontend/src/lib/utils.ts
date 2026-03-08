@@ -77,6 +77,7 @@ export function getAgentBadge(badge: AgentBadge): { label: string; className: st
     case "newcomer": return { label: "Newcomer", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" }
     case "consistent": return { label: "Consistent", className: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" }
     case "whale_backed": return { label: "Whale Backed", className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" }
+    case "smart_wallet": return { label: "Smart Wallet", className: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 ring-1 ring-sky-300/50 dark:ring-sky-500/30" }
   }
 }
 

@@ -63,14 +63,14 @@ const FILTER_MAP: Record<FilterTab, ActivityEventType[]> = {
 // ── Simulated new events pool ────────────────────────────────────────────────
 
 const SIMULATED_EVENTS: Omit<ActivityEvent, "id" | "timestamp">[] = [
-  { type: "revenue", agentId: "0x1a2b3c", agentName: "AutoTrader-v3", amount: 840, message: "AutoTrader-v3 earned $840 from ETH/USDC arb" },
-  { type: "backing", agentId: "0xv4w5x6", agentName: "StableYield-Pro", amount: 15_000, message: "0xCA35...733c backed StableYield-Pro with $15,000" },
-  { type: "repayment", agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b", agentName: "DataOracle-Prime", amount: 3_200, message: "DataOracle-Prime repaid $3,200 on schedule" },
-  { type: "revenue", agentId: "0xm4n5o6", agentName: "NFT-Curator-X", amount: 920, message: "NFT-Curator-X earned $920 from OpenSea flip" },
-  { type: "revenue", agentId: "0xs1t2u3", agentName: "SniperBot-X", amount: 1_100, message: "SniperBot-X earned $1,100 from token launch" },
-  { type: "backing", agentId: "0x1a2b3c", agentName: "AutoTrader-v3", amount: 7_500, message: "0x7E5F...5Bdf backed AutoTrader-v3 with $7,500" },
-  { type: "repayment", agentId: "0x4d5e6f", agentName: "ContentGen-AI", amount: 1_800, message: "ContentGen-AI repaid $1,800 ahead of schedule" },
-  { type: "revenue", agentId: "0xv4w5x6", agentName: "StableYield-Pro", amount: 220, message: "StableYield-Pro earned $220 from Compound yield" },
+  { type: "revenue", agentId: 1, agentName: "AutoTrader-v3", amount: 840, message: "AutoTrader-v3 earned $840 from ETH/USDC arb" },
+  { type: "backing", agentId: 8, agentName: "StableYield-Pro", amount: 15_000, message: "0xCA35...733c backed StableYield-Pro with $15,000" },
+  { type: "repayment", agentId: 3, agentName: "DataOracle-Prime", amount: 3_200, message: "DataOracle-Prime repaid $3,200 on schedule" },
+  { type: "revenue", agentId: 4, agentName: "NFT-Curator-X", amount: 920, message: "NFT-Curator-X earned $920 from OpenSea flip" },
+  { type: "revenue", agentId: 6, agentName: "SniperBot-X", amount: 1_100, message: "SniperBot-X earned $1,100 from token launch" },
+  { type: "backing", agentId: 1, agentName: "AutoTrader-v3", amount: 7_500, message: "0x7E5F...5Bdf backed AutoTrader-v3 with $7,500" },
+  { type: "repayment", agentId: 2, agentName: "ContentGen-AI", amount: 1_800, message: "ContentGen-AI repaid $1,800 ahead of schedule" },
+  { type: "revenue", agentId: 8, agentName: "StableYield-Pro", amount: 220, message: "StableYield-Pro earned $220 from Compound yield" },
 ]
 
 // ── Event card ────────────────────────────────────────────────────────────────

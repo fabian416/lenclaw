@@ -233,6 +233,7 @@ export default function BorrowPage() {
               <Magnet strength={0.15}>
                 <ClickSpark>
                   <SpotlightButton
+                    disabled={!drawAmount || parseFloat(drawAmount) > borrower.availableCredit}
                     className={`w-full font-semibold h-11 px-4 py-2.5 bg-primary text-primary-foreground hover:opacity-90 rounded-lg cursor-pointer text-sm ${
                       !drawAmount || parseFloat(drawAmount) > borrower.availableCredit ? "opacity-50 pointer-events-none" : ""
                     }`}
