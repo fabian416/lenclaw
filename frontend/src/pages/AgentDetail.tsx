@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/shared/StatCard"
 import { StatusBadge } from "@/components/shared/StatusBadge"
-import { formatUSD, formatPercent, shortenAddress } from "@/lib/utils"
+import { formatUSD, formatPercent, shortenAddress, getRiskColor, getRiskLabel, timeAgo } from "@/lib/utils"
+import { ReputationRing } from "@/components/shared/ReputationRing"
 import {
   ArrowLeft,
   Bot,
@@ -38,37 +39,6 @@ import { useAccount, useConnect } from "wagmi"
 import { injected } from "wagmi/connectors"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function getRiskColor(risk: RiskLevel): string {
-  const map: Record<RiskLevel, string> = {
-    safe: "var(--success)",
-    moderate: "var(--primary)",
-    risky: "var(--warning)",
-    degen: "var(--destructive)",
-  }
-  return map[risk]
-}
-
-function getRiskLabel(risk: RiskLevel): string {
-  const map: Record<RiskLevel, string> = {
-    safe: "Safe",
-    moderate: "Moderate",
-    risky: "Risky",
-    degen: "Degen",
-  }
-  return map[risk]
-}
-
-function timeAgo(timestamp: number): string {
-  const seconds = Math.floor(Date.now() / 1000 - timestamp)
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
 
 function getMockEvents(agentId: string, agentName: string): ActivityEvent[] {
   const now = Math.floor(Date.now() / 1000)
@@ -168,40 +138,6 @@ function RiskMeter({ risk, score }: { risk: RiskLevel; score: number }) {
   )
 }
 
-// ── Reputation Ring ──────────────────────────────────────────────────────────
-
-function ReputationRing({ score, size = 56, strokeWidth = 4 }: { score: number; size?: number; strokeWidth?: number }) {
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
-  const percent = Math.min(Math.max(score, 0), 100)
-
-  const getColor = (s: number) => {
-    if (s >= 90) return "var(--success)"
-    if (s >= 70) return "var(--primary)"
-    if (s >= 50) return "var(--warning)"
-    return "var(--destructive)"
-  }
-
-  return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" className="text-border" strokeWidth={strokeWidth} />
-        <motion.circle
-          cx={size / 2} cy={size / 2} r={radius} fill="none"
-          stroke={getColor(percent)}
-          strokeWidth={strokeWidth} strokeLinecap="round" strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: circumference - (percent / 100) * circumference }}
-          transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-sm font-bold mono-text text-foreground">{score}</span>
-      </div>
-    </div>
-  )
-}
-
 // ── Revenue Chart (30d bars) ─────────────────────────────────────────────────
 
 function RevenueChart({ data }: { data: number[] }) {
@@ -234,6 +170,7 @@ export default function AgentDetail() {
   const [backAmount, setBackAmount] = useState("")
   const [mobileBackOpen, setMobileBackOpen] = useState(false)
   const [depositState, setDepositState] = useState<"idle" | "pending" | "success">("idle")
+  const [depositError, setDepositError] = useState("")
   const { isConnected } = useAccount()
   const { connect } = useConnect()
 
@@ -267,14 +204,24 @@ export default function AgentDetail() {
       connect({ connector: injected() })
       return
     }
-    if (!backAmount || parseFloat(backAmount) <= 0) return
+    const amount = parseFloat(backAmount)
+    if (!backAmount || amount <= 0) return
+    if (amount > availableCapacity) {
+      setDepositError(
+        availableCapacity <= 0
+          ? "This vault is fully backed. No additional capacity available."
+          : `Amount exceeds available capacity of ${formatUSD(availableCapacity)}.`
+      )
+      return
+    }
+    setDepositError("")
     // Simulate deposit tx (will be replaced with actual contract call)
     setDepositState("pending")
     setTimeout(() => {
       setDepositState("success")
       setTimeout(() => setDepositState("idle"), 3000)
     }, 2000)
-  }, [isConnected, connect, backAmount])
+  }, [isConnected, connect, backAmount, availableCapacity])
 
   return (
     <motion.div
@@ -314,7 +261,7 @@ export default function AgentDetail() {
             </div>
           </div>
           <div className="hidden md:block flex-shrink-0">
-            <ReputationRing score={agent.reputationScore} />
+            <ReputationRing score={agent.reputationScore} size={56} strokeWidth={4} />
           </div>
         </div>
       </AnimatedContent>
@@ -565,6 +512,13 @@ export default function AgentDetail() {
                 </Magnet>
               )}
 
+              {depositError && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-destructive">{depositError}</p>
+                </div>
+              )}
+
               {isRisky && !isDefaulted && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
                   <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
@@ -708,6 +662,13 @@ export default function AgentDetail() {
                       </>
                     )}
                   </div>
+
+                  {depositError && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-destructive">{depositError}</p>
+                    </div>
+                  )}
 
                   {isRisky && (
                     <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">

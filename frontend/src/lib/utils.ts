@@ -43,10 +43,10 @@ export function formatAPY(apy: number): string {
 
 export function getRiskColor(risk: RiskLevel): string {
   switch (risk) {
-    case "safe": return "text-green-600 dark:text-green-400"
-    case "moderate": return "text-amber-600 dark:text-amber-400"
-    case "risky": return "text-orange-600 dark:text-orange-400"
-    case "degen": return "text-red-600 dark:text-red-400"
+    case "safe": return "var(--success)"
+    case "moderate": return "var(--primary)"
+    case "risky": return "var(--warning)"
+    case "degen": return "var(--destructive)"
   }
 }
 

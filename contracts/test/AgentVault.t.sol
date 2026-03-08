@@ -105,6 +105,11 @@ contract AgentVaultTest is Test {
         usdc.approve(address(vault), depositAmount);
         uint256 shares = vault.deposit(depositAmount, backer1);
         vault.approve(address(vault), shares);
+
+        // Must request withdrawal and wait
+        vault.requestWithdrawal();
+        vm.warp(block.timestamp + 1 days + 1);
+
         uint256 assets = vault.redeem(shares, backer1, backer1);
         vm.stopPrank();
 
@@ -291,6 +296,8 @@ contract AgentVaultTest is Test {
         // Redeem all shares - backer gets 9950 (lost 50 to fees on repayment beyond borrow)
         vm.startPrank(backer1);
         vault.approve(address(vault), shares);
+        vault.requestWithdrawal();
+        vm.warp(block.timestamp + 1 days + 1);
         uint256 redeemed = vault.redeem(shares, backer1, backer1);
         vm.stopPrank();
 

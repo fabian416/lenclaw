@@ -49,9 +49,12 @@ export const MOCK_AGENTS = [
     walletAddress: "0x8Ba1f109551bD432803012645Ac136ddd64DBA72",
     description: "AI content generation and monetization agent",
     registeredAt: 1709337600,
+    agentCategory: "Content" as const,
+    externalToken: "0x0000000000000000000000000000000000000000",
+    externalProtocolId: 0,
   },
   {
-    id: "0x7g8h9i",
+    id: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
     name: "DataOracle-Prime",
     erc8004Id: "8004-0003",
     reputationScore: 91,
@@ -62,6 +65,9 @@ export const MOCK_AGENTS = [
     walletAddress: "0xdD870fA1b7C4700F2BD7f44238821C26f7392148",
     description: "Decentralized data oracle and API monetization agent",
     registeredAt: 1709424000,
+    agentCategory: "Oracle" as const,
+    externalToken: "0x0000000000000000000000000000000000000000",
+    externalProtocolId: 1,
   },
   {
     id: "0xj1k2l3",
@@ -88,6 +94,9 @@ export const MOCK_AGENTS = [
     walletAddress: "0x4B0897b0513fdC7C541B6d9D7E929C4e5364D2dB",
     description: "NFT curation, pricing, and marketplace agent",
     registeredAt: 1709596800,
+    agentCategory: "NFT" as const,
+    externalToken: "0x0000000000000000000000000000000000000000",
+    externalProtocolId: 2,
   },
   {
     id: "0xp7q8r9",
@@ -180,7 +189,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
   {
     ...MOCK_AGENTS[2],
     vault: {
-      agentId: "0x7g8h9i",
+      agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
       vaultAddress: "0xVault003",
       totalBacked: 218_000,
       availableCapacity: 32_000,
@@ -262,7 +271,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
       revenueHistory: [320, 350, 380, 340, 390, 420, 400, 450, 430, 470, 460, 500, 480, 520, 510, 550, 530, 570, 560, 600, 580, 620, 610, 650, 630, 670, 660, 700, 690, 720],
       utilization: 20,
     },
-    riskLevel: "degen",
+    riskLevel: "risky",
     badges: ["newcomer"],
     category: "Sniping",
     avatarColor: "#f97316",
@@ -290,7 +299,7 @@ export const MOCK_AGENTS_WITH_VAULT: AgentWithVault[] = [
 export const MOCK_PORTFOLIO: PortfolioSummary = {
   totalBacked: 35_500,
   totalYieldEarned: 2_160,
-  activePositions: 4,
+  activePositions: 5,
   avgApy: 14.2,
   positions: [
     {
@@ -304,7 +313,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
       status: "active",
     },
     {
-      agentId: "0x7g8h9i",
+      agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
       agentName: "DataOracle-Prime",
       amount: 8_000,
       entryDate: 1709424000,
@@ -330,7 +339,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
       entryDate: 1711929600,
       yieldEarned: 580,
       currentApy: 32.0,
-      riskLevel: "degen",
+      riskLevel: "risky",
       status: "active",
     },
     {
@@ -349,7 +358,7 @@ export const MOCK_PORTFOLIO: PortfolioSummary = {
 export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
   {
     rank: 1,
-    agentId: "0x7g8h9i",
+    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
     agentName: "DataOracle-Prime",
     apy: 14.8,
     revenue30d: 15_600,
@@ -408,7 +417,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
     totalBacked: 52_000,
     backersCount: 12,
     riskLevel: "safe",
-    badges: [],
+    badges: ["newcomer"],
     trend: "up",
     trendDelta: 5,
   },
@@ -420,7 +429,7 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
     revenue30d: 2_100,
     totalBacked: 8_500,
     backersCount: 4,
-    riskLevel: "degen",
+    riskLevel: "risky",
     badges: ["newcomer"],
     trend: "up",
     trendDelta: 3,
@@ -466,7 +475,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-2",
     type: "backing",
-    agentId: "0x7g8h9i",
+    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
     agentName: "DataOracle-Prime",
     amount: 5_000,
     message: "0x742d...bD1e backed DataOracle-Prime with $5,000",
@@ -512,7 +521,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
     type: "new_agent",
     agentId: "0xs1t2u3",
     agentName: "SniperBot-X",
-    message: "SniperBot-X registered with 500 reputation",
+    message: "SniperBot-X registered with 50 reputation",
     timestamp: Date.now() / 1000 - 259200,
   },
   {
@@ -536,7 +545,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-10",
     type: "revenue",
-    agentId: "0x7g8h9i",
+    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
     agentName: "DataOracle-Prime",
     amount: 890,
     message: "DataOracle-Prime earned $890 from API fees",
@@ -590,7 +599,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
   {
     id: "evt-16",
     type: "repayment",
-    agentId: "0x7g8h9i",
+    agentId: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
     agentName: "DataOracle-Prime",
     amount: 4_800,
     message: "DataOracle-Prime repaid $4,800 on schedule",
@@ -653,7 +662,7 @@ export const MOCK_ACTIVITY_FEED: ActivityEvent[] = [
 
 export const MOCK_GLOBAL_STATS: GlobalStats = {
   totalBacked: 855_000,
-  activeAgents: 8,
+  activeAgents: 6,
   bestPerformerApy: 32.0,
   bestPerformerName: "SniperBot-X",
   biggestDefaultAmount: 10_000,
@@ -684,14 +693,14 @@ export const MOCK_BORROWER = {
 // ── Ticker messages for The Arena ────────────────────────────────────────────
 
 export const MOCK_TICKER_MESSAGES: string[] = [
-  "AutoTrader-v3 earned $1,240 from ETH/USDC arb",
-  "DataOracle-Prime hit $500K total revenue",
-  "YieldBot-Alpha is 48h late on $1,200 payment",
-  "SniperBot-X earned $680 from token launch snipe",
-  "ContentGen-AI repaid $2,800 on schedule",
-  "LiquidBot-3000 defaulted on $10,000 credit line",
-  "AutoTrader-v3 reached 42 backers",
-  "StableYield-Pro earned $180 from Aave yield",
-  "DataOracle-Prime earned $890 from API fees",
-  "NFT-Curator-X earned $1,450 from Blur flip",
+  "Protocol TVL surpassed $2.4M",
+  "New agent category 'Sniping' trending this week",
+  "Average backer yield up 2.1% month-over-month",
+  "3 new agents registered in the last 7 days",
+  "StableYield-Pro surpassed 50 backers",
+  "Total protocol revenue crossed $185K",
+  "AutoTrader-v3 maintained 94 reputation for 30 days",
+  "DataOracle-Prime vault is 87% utilized",
+  "NFT-Curator-X added to 'newcomer' watchlist",
+  "Base network gas fees averaging 0.001 gwei today",
 ]

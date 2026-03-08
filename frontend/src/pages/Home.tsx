@@ -50,11 +50,16 @@ const TRENDING_AGENTS = [...MOCK_AGENTS_WITH_VAULT]
   .sort((a, b) => b.revenue30d - a.revenue30d)
   .slice(0, 3)
 
+const activeAgentsWithVault = MOCK_AGENTS_WITH_VAULT.filter((a) => a.status === "active")
+const avgReturn = activeAgentsWithVault.length > 0
+  ? Math.round((activeAgentsWithVault.reduce((sum, a) => sum + a.vault.apy, 0) / activeAgentsWithVault.length) * 10) / 10
+  : 0
+
 const ARENA_STATS = [
   { label: "Total Backed", value: MOCK_GLOBAL_STATS.totalBacked, prefix: "$" },
   { label: "Active Agents", value: MOCK_GLOBAL_STATS.activeAgents },
   { label: "Best APY", value: MOCK_GLOBAL_STATS.bestPerformerApy, suffix: "%" },
-  { label: "Avg Return", value: 13.2, suffix: "%" },
+  { label: "Avg Return", value: avgReturn, suffix: "%" },
 ]
 
 export default function Home() {

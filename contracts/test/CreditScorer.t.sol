@@ -36,12 +36,13 @@ contract CreditScorerTest is Test {
 
         address vaultAddr = factory.getVault(agentId);
 
-        lockbox = new RevenueLockbox(wallet, vaultAddr, agentId, address(usdc), 5000);
+        lockbox = new RevenueLockbox(wallet, vaultAddr, agentId, address(usdc), 5000, address(0));
         registry.setLockbox(agentId, address(lockbox));
 
         // Simulate revenue
         if (revenue > 0) {
             usdc.mint(address(lockbox), revenue);
+            vm.prank(wallet);
             lockbox.processRevenue();
         }
 
@@ -68,11 +69,13 @@ contract CreditScorerTest is Test {
     }
 
     function test_calculateCreditLine_revertsWithoutLockbox() public {
-        bytes32 codeHash = keccak256("code");
-        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
+        // Register agent on a fresh registry WITHOUT factory linked, so no auto-deploy
+        AgentRegistry reg2 = new AgentRegistry(owner);
+        CreditScorer scorer2 = new CreditScorer(address(reg2), owner);
+        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0));
 
         vm.expectRevert("CreditScorer: no lockbox");
-        scorer.calculateCreditLine(agentId);
+        scorer2.calculateCreditLine(agentId);
     }
 
     function test_calculateCreditLine_zeroRevenue_getsAboveMinCreditLine() public {

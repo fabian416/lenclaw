@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
@@ -6,6 +6,7 @@ import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
 import { TextScramble } from "@/components/reactbits/TextScramble"
 import { NumberTicker } from "@/components/reactbits/NumberTicker"
 import { formatUSD, shortenAddress } from "@/lib/utils"
+import { ReputationRing } from "@/components/shared/ReputationRing"
 import { MOCK_AGENTS_WITH_VAULT } from "@/lib/constants"
 import type { RiskLevel } from "@/lib/types"
 import { Bot, Search, Users, TrendingUp, ArrowRight, Flame, Clock, ChevronDown } from "lucide-react"
@@ -50,48 +51,6 @@ function getApyColor(apy: number): string {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function ReputationRing({ score }: { score: number }) {
-  const radius = 16
-  const circumference = 2 * Math.PI * radius
-  const filled = (score / 100) * circumference
-
-  const getColor = (s: number) => {
-    if (s >= 90) return "stroke-primary"
-    if (s >= 70) return "stroke-foreground"
-    if (s >= 50) return "stroke-warning"
-    return "stroke-destructive"
-  }
-
-  return (
-    <div className="relative w-10 h-10 flex-shrink-0">
-      <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-        <circle
-          cx="20"
-          cy="20"
-          r={radius}
-          fill="none"
-          className="stroke-muted"
-          strokeWidth="3"
-        />
-        <circle
-          cx="20"
-          cy="20"
-          r={radius}
-          fill="none"
-          className={getColor(score)}
-          strokeWidth="3"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference - filled}
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold mono-text text-foreground">
-        {score}
-      </span>
-    </div>
-  )
-}
-
 function RiskBadge({ level }: { level: RiskLevel }) {
   const config = RISK_CONFIG[level]
   return (
@@ -124,10 +83,25 @@ const RISK_FILTERS: { value: RiskFilter; label: string }[] = [
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function AgentMarketplace() {
+  const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all")
   const [sortBy, setSortBy] = useState<SortOption>("hot")
   const [showSortDropdown, setShowSortDropdown] = useState(false)
+
+  // M10: Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 250)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  // M9: Close sort dropdown on scroll
+  useEffect(() => {
+    if (!showSortDropdown) return
+    const handleScroll = () => setShowSortDropdown(false)
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [showSortDropdown])
 
   const filtered = useMemo(() => {
     let agents = MOCK_AGENTS_WITH_VAULT
@@ -204,8 +178,8 @@ export default function AgentMarketplace() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by name or ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10 min-h-[44px] md:min-h-0"
             />
           </div>
@@ -296,7 +270,7 @@ export default function AgentMarketplace() {
                     {/* Top row: reputation ring + name + risk badge */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <ReputationRing score={agent.reputationScore} />
+                        <ReputationRing score={agent.reputationScore} animated={false} />
                         <div className="min-w-0">
                           <div className="text-base font-semibold truncate text-foreground">
                             {agent.name}

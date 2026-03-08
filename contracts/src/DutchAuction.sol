@@ -5,12 +5,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 /// @title DutchAuction - Dutch auction for defaulted AI agent credit positions
 /// @notice Price starts high and decays linearly over a configurable duration.
-///         Any bidder can purchase the defaulted position at the current price.
+///         Bidders purchase defaulted positions and receive an ERC-721 claim token
+///         representing ownership of the credit position (debt owed by the agent).
 ///         Proceeds are forwarded to the RecoveryManager for proportional distribution.
-contract DutchAuction is Ownable, ReentrancyGuard {
+contract DutchAuction is ERC721, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     enum AuctionStatus {
@@ -69,7 +71,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
 
     // ── Constructor ─────────────────────────────────────────────
 
-    constructor(address _usdc, address _recoveryManager, address _owner) Ownable(_owner) {
+    constructor(address _usdc, address _recoveryManager, address _owner) ERC721("Lenclaw Claim", "lcCLAIM") Ownable(_owner) {
         require(_usdc != address(0), "DutchAuction: zero usdc");
         require(_recoveryManager != address(0), "DutchAuction: zero recovery manager");
         usdc = IERC20(_usdc);
@@ -164,6 +166,9 @@ contract DutchAuction is Ownable, ReentrancyGuard {
 
         // Forward proceeds to the RecoveryManager
         usdc.safeTransfer(recoveryManager, currentPrice);
+
+        // Mint claim token to bidder (represents ownership of the credit position)
+        _mint(msg.sender, auctionId);
 
         emit AuctionSettled(auctionId, auction.agentId, msg.sender, currentPrice);
     }

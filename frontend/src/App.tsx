@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom"
+import { Routes, Route, Navigate, Link } from "react-router-dom"
 import { Header } from "@/components/layout/Header"
 import { MobileHeader } from "@/components/layout/MobileHeader"
 import { BottomNav } from "@/components/layout/BottomNav"
@@ -10,6 +10,26 @@ import Portfolio from "@/pages/Portfolio"
 import Leaderboard from "@/pages/Leaderboard"
 import Feed from "@/pages/Feed"
 import { Noise } from "@/components/reactbits/Noise"
+
+function NotFound() {
+  return (
+    <div className="max-w-5xl mx-auto px-6 py-24 text-center">
+      <div className="w-16 h-16 rounded-full bg-muted border border-border flex items-center justify-center mx-auto mb-6">
+        <span className="text-2xl font-bold text-muted-foreground">404</span>
+      </div>
+      <h2 className="text-lg font-semibold mb-2 text-foreground">Page not found</h2>
+      <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+        The page you're looking for doesn't exist or has been moved.
+      </p>
+      <Link
+        to="/"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+      >
+        Back to Home
+      </Link>
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -36,6 +56,7 @@ export default function App() {
           <Route path="/lend" element={<Navigate to="/agents" replace />} />
           <Route path="/borrow" element={<Navigate to="/agents" replace />} />
           <Route path="/dashboard" element={<Navigate to="/portfolio" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 

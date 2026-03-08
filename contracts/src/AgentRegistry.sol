@@ -30,6 +30,15 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         _;
     }
 
+    /// @dev Only the owner, protocol, or vault factory can register agents
+    modifier onlyAuthorized() {
+        require(
+            msg.sender == owner() || msg.sender == protocol || msg.sender == address(vaultFactory),
+            "AgentRegistry: not authorized"
+        );
+        _;
+    }
+
     constructor(address _owner) ERC721("Lenclaw Agent", "lcAGENT") Ownable(_owner) {
         protocol = _owner;
     }
@@ -50,7 +59,7 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         address externalToken,
         uint256 externalProtocolId,
         bytes32 agentCategory
-    ) external returns (uint256) {
+    ) external onlyAuthorized returns (uint256) {
         require(agentWallet != address(0), "AgentRegistry: zero address");
         require(_walletToAgent[agentWallet] == 0, "AgentRegistry: already registered");
 
@@ -75,11 +84,18 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
 
         emit AgentRegistered(agentId, agentWallet, codeHash);
 
-        // Auto-deploy vault if factory is set
+        // Auto-deploy vault + lockbox if factory is set
         if (address(vaultFactory) != address(0)) {
             address vault = vaultFactory.createVault(agentId);
             _agents[agentId].vault = vault;
             emit VaultSet(agentId, vault);
+
+            // Factory deploys lockbox atomically with vault
+            address lockbox = vaultFactory.getLockbox(agentId);
+            if (lockbox != address(0)) {
+                _agents[agentId].lockbox = lockbox;
+                emit LockboxSet(agentId, lockbox);
+            }
         }
 
         return agentId;

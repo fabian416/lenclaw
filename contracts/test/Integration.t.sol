@@ -77,12 +77,13 @@ contract IntegrationTest is Test {
 
         // 2. Deploy RevenueLockbox for agent pointing to its vault
         RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId, address(usdc), 5000 // 50% repayment
+            agentWallet, agentVaultAddr, agentId, address(usdc), 5000, address(0) // 50% repayment
         );
         registry.setLockbox(agentId, address(lockbox));
 
         // 3. Agent earns revenue (simulated by minting USDC to lockbox)
         usdc.mint(address(lockbox), 20_000e6);
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         // Verify revenue split
@@ -145,10 +146,11 @@ contract IntegrationTest is Test {
         factory.setVaultCreditLine(agentId, address(creditLine));
 
         RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId, address(usdc), 5000
+            agentWallet, agentVaultAddr, agentId, address(usdc), 5000, address(0)
         );
         registry.setLockbox(agentId, address(lockbox));
         usdc.mint(address(lockbox), 20_000e6);
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         // Seed vault with liquidity
@@ -206,17 +208,20 @@ contract IntegrationTest is Test {
         address agentVaultAddr = factory.getVault(agentId_);
 
         RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId_, address(usdc), 5000
+            agentWallet, agentVaultAddr, agentId_, address(usdc), 5000, address(0)
         );
 
         // Process 3 rounds of revenue
         usdc.mint(address(lockbox), 1000e6);
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         usdc.mint(address(lockbox), 2000e6);
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         usdc.mint(address(lockbox), 3000e6);
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         assertEq(lockbox.totalRevenueCapture(), 6000e6, "Total revenue accumulated");

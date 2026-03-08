@@ -4,27 +4,38 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AgentVault} from "./AgentVault.sol";
+import {RevenueLockbox} from "./RevenueLockbox.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 
-/// @title AgentVaultFactory - Deploys individual AgentVault per AI agent
-/// @notice Factory pattern: when an agent registers, this deploys an ERC-4626 vault
-///         specific to that agent. Backers deposit USDC into the agent's vault.
+/// @title AgentVaultFactory - Deploys individual AgentVault + RevenueLockbox per AI agent
+/// @notice Factory pattern: when an agent registers, this deploys both an ERC-4626 vault
+///         and a RevenueLockbox atomically. No agent can exist with a vault but no lockbox.
 contract AgentVaultFactory is Ownable {
     IERC20 public immutable usdc;
     IAgentRegistry public immutable registry;
 
     uint256 public defaultProtocolFeeBps = 1000; // 10% of interest
     uint256 public defaultDepositCap = 500_000e6; // 500K USDC default cap
+    uint256 public defaultRepaymentRateBps = 5000; // 50% of revenue to repayment
+
+    /// @notice AgentCreditLine address, set on lockboxes at deployment
+    address public creditLine;
 
     // agentId => AgentVault address
     mapping(uint256 => address) public vaults;
+
+    // agentId => RevenueLockbox address
+    mapping(uint256 => address) public lockboxes;
 
     // All deployed vaults for enumeration
     address[] public allVaults;
 
     event VaultCreated(uint256 indexed agentId, address indexed vault, address indexed agentWallet);
+    event LockboxCreated(uint256 indexed agentId, address indexed lockbox, address indexed vault);
     event DefaultProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
     event DefaultDepositCapUpdated(uint256 oldCap, uint256 newCap);
+    event DefaultRepaymentRateUpdated(uint256 oldRate, uint256 newRate);
+    event CreditLineUpdated(address indexed creditLine);
 
     error VaultAlreadyExists(uint256 agentId);
     error AgentNotRegistered(uint256 agentId);
@@ -35,7 +46,13 @@ contract AgentVaultFactory is Ownable {
         registry = IAgentRegistry(_registry);
     }
 
-    /// @notice Deploy a new AgentVault for a registered agent
+    /// @notice Set the credit line address (used for new lockbox deployments)
+    function setCreditLine(address _creditLine) external onlyOwner {
+        creditLine = _creditLine;
+        emit CreditLineUpdated(_creditLine);
+    }
+
+    /// @notice Deploy a new AgentVault + RevenueLockbox for a registered agent
     /// @param agentId The agent's ERC-721 ID from AgentRegistry
     /// @return vault The deployed AgentVault address
     function createVault(uint256 agentId) external returns (address vault) {
@@ -48,6 +65,7 @@ contract AgentVaultFactory is Ownable {
         string memory name = string.concat("Lenclaw Agent ", _uint2str(agentId), " USDC");
         string memory symbol = string.concat("lcA", _uint2str(agentId), "USDC");
 
+        // Deploy vault
         AgentVault newVault = new AgentVault(
             usdc,
             agentId,
@@ -61,14 +79,32 @@ contract AgentVaultFactory is Ownable {
         vaults[agentId] = vault;
         allVaults.push(vault);
 
+        // Set credit line on vault if available
+        if (creditLine != address(0)) {
+            newVault.setCreditLine(creditLine);
+        }
+
         emit VaultCreated(agentId, vault, profile.wallet);
+
+        // Deploy lockbox atomically with vault
+        RevenueLockbox newLockbox = new RevenueLockbox(
+            profile.wallet,
+            vault,
+            agentId,
+            address(usdc),
+            defaultRepaymentRateBps,
+            creditLine // Pass credit line so lockbox routes repayments correctly
+        );
+
+        lockboxes[agentId] = address(newLockbox);
+        emit LockboxCreated(agentId, address(newLockbox), vault);
     }
 
     /// @notice Set credit line for an agent's vault
-    function setVaultCreditLine(uint256 agentId, address creditLine) external onlyOwner {
+    function setVaultCreditLine(uint256 agentId, address _creditLine) external onlyOwner {
         address vault = vaults[agentId];
         if (vault == address(0)) revert VaultNotFound(agentId);
-        AgentVault(vault).setCreditLine(creditLine);
+        AgentVault(vault).setCreditLine(_creditLine);
     }
 
     /// @notice Update deposit cap for a specific agent's vault
@@ -107,6 +143,14 @@ contract AgentVaultFactory is Ownable {
         emit DefaultDepositCapUpdated(oldCap, _cap);
     }
 
+    /// @notice Update the default repayment rate for new lockboxes
+    function setDefaultRepaymentRateBps(uint256 _rateBps) external onlyOwner {
+        require(_rateBps >= 1000 && _rateBps <= 10000, "AgentVaultFactory: invalid rate");
+        uint256 oldRate = defaultRepaymentRateBps;
+        defaultRepaymentRateBps = _rateBps;
+        emit DefaultRepaymentRateUpdated(oldRate, _rateBps);
+    }
+
     /// @notice Get total number of deployed vaults
     function totalVaults() external view returns (uint256) {
         return allVaults.length;
@@ -115,6 +159,11 @@ contract AgentVaultFactory is Ownable {
     /// @notice Get vault address for an agent
     function getVault(uint256 agentId) external view returns (address) {
         return vaults[agentId];
+    }
+
+    /// @notice Get lockbox address for an agent
+    function getLockbox(uint256 agentId) external view returns (address) {
+        return lockboxes[agentId];
     }
 
     /// @dev Convert uint to string for vault naming

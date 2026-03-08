@@ -8,6 +8,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {DutchAuction} from "./DutchAuction.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
+import {IAgentVault} from "./interfaces/IAgentVault.sol";
+import {IAgentCreditLine} from "./interfaces/IAgentCreditLine.sol";
 
 /// @title RecoveryManager - Coordinates full recovery process for defaulted positions
 /// @notice Receives auction proceeds from DutchAuction, distributes to vault,
@@ -41,6 +43,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     IAgentRegistry public immutable registry;
 
     IAgentVaultFactory public vaultFactory;
+    address public creditLine;
     address public keeper;
 
     /// @notice Recovery records: recoveryId => RecoveryRecord
@@ -105,6 +108,11 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     }
 
     // -- Admin --
+
+    function setCreditLine(address _creditLine) external onlyOwner {
+        require(_creditLine != address(0), "RecoveryManager: zero address");
+        creditLine = _creditLine;
+    }
 
     function setKeeper(address _keeper) external onlyOwner {
         require(_keeper != address(0), "RecoveryManager: zero address");
@@ -197,9 +205,11 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         address agentVault = vaultFactory.getVault(recovery.agentId);
         require(agentVault != address(0), "RecoveryManager: no vault for agent");
 
-        // Distribute recovered proceeds to the agent's individual vault
+        // Distribute recovered proceeds to the agent's vault via receiveRepayment
+        // (not raw transfer) so vault.totalBorrowed is properly reduced
         if (recoveredAmount > 0) {
-            usdc.safeTransfer(agentVault, recoveredAmount);
+            usdc.forceApprove(agentVault, recoveredAmount);
+            IAgentVault(agentVault).receiveRepayment(recoveredAmount);
             totalAmountRecovered += recoveredAmount;
             emit ProceedsDistributed(recoveryId, recoveredAmount);
         }
@@ -223,6 +233,12 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             recovery.status = recoveredAmount > 0
                 ? RecoveryStatus.PARTIAL_RECOVERY
                 : RecoveryStatus.WRITE_OFF;
+        }
+
+        // Write down the full debt on the credit line so principal/accruedInterest
+        // are zeroed out after recovery (whether full, partial, or write-off)
+        if (creditLine != address(0)) {
+            IAgentCreditLine(creditLine).writeDown(recovery.agentId, recovery.debtAmount);
         }
 
         // Clear active recovery

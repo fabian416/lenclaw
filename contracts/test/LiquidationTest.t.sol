@@ -89,12 +89,13 @@ contract LiquidationTest is Test {
 
         // Deploy lockbox pointing to agent's vault
         RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId, address(usdc), 5000
+            agentWallet, agentVaultAddr, agentId, address(usdc), 5000, address(0)
         );
         registry.setLockbox(agentId, address(lockbox));
 
         // Give lockbox revenue so credit line is non-zero
         usdc.mint(address(lockbox), 50_000e6);
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         // Seed agent vault with depositor liquidity

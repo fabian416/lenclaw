@@ -94,12 +94,13 @@ contract LenclawVaultTest is Test {
 
         // Deploy lockbox
         RevenueLockbox lockbox =
-            new RevenueLockbox(agentWallet, address(vault), agentId, address(usdc), 5000); // 50% repayment rate
+            new RevenueLockbox(agentWallet, address(vault), agentId, address(usdc), 5000, address(0)); // 50% repayment rate
 
         // Send revenue to lockbox
         usdc.mint(address(lockbox), 1000e6);
 
-        // Process revenue
+        // Process revenue (must be called by agent or vault)
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         assertEq(lockbox.totalRevenueCapture(), 1000e6, "Revenue capture mismatch");

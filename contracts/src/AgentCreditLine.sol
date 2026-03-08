@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 import {ICreditScorer} from "./interfaces/ICreditScorer.sol";
 import {IAgentVault} from "./interfaces/IAgentVault.sol";
@@ -12,7 +13,7 @@ import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 /// @title AgentCreditLine - Per-agent credit facility (vault-per-agent model)
 /// @notice Manages borrowing, repayment, and status tracking for each AI agent.
 ///         Each agent borrows from and repays to their individual AgentVault.
-contract AgentCreditLine is Ownable {
+contract AgentCreditLine is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     enum Status {
@@ -39,6 +40,9 @@ contract AgentCreditLine is Ownable {
     uint256 public delinquencyPeriod = 14 days;
     uint256 public defaultPeriod = 30 days;
 
+    /// @notice RecoveryManager address authorized to write down debt
+    address public recoveryManager;
+
     mapping(uint256 => CreditFacility) public facilities;
     mapping(uint256 => uint256) public lastPaymentTimestamp;
 
@@ -46,6 +50,7 @@ contract AgentCreditLine is Ownable {
     event Repayment(uint256 indexed agentId, uint256 amount, uint256 interestPaid, uint256 principalPaid);
     event StatusChanged(uint256 indexed agentId, Status oldStatus, Status newStatus);
     event CreditLineRefreshed(uint256 indexed agentId, uint256 newLimit, uint256 newRate);
+    event DebtWrittenDown(uint256 indexed agentId, uint256 amount);
 
     constructor(address _usdc, address _registry, address _scorer, address _vaultFactory, address _owner)
         Ownable(_owner)
@@ -58,6 +63,10 @@ contract AgentCreditLine is Ownable {
 
     function setVaultFactory(address _vaultFactory) external onlyOwner {
         vaultFactory = IAgentVaultFactory(_vaultFactory);
+    }
+
+    function setRecoveryManager(address _recoveryManager) external onlyOwner {
+        recoveryManager = _recoveryManager;
     }
 
     function setGracePeriod(uint256 _period) external onlyOwner {
@@ -92,7 +101,7 @@ contract AgentCreditLine is Ownable {
     }
 
     /// @notice Borrow from the agent's individual vault up to credit limit
-    function drawdown(uint256 agentId, uint256 amount) external {
+    function drawdown(uint256 agentId, uint256 amount) external nonReentrant {
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
         require(msg.sender == profile.wallet, "AgentCreditLine: not agent owner");
         require(facilities[agentId].status == Status.ACTIVE, "AgentCreditLine: not active");
@@ -124,7 +133,7 @@ contract AgentCreditLine is Ownable {
     }
 
     /// @notice Repay principal + interest to the agent's individual vault
-    function repay(uint256 agentId, uint256 amount) external {
+    function repay(uint256 agentId, uint256 amount) external nonReentrant {
         require(amount > 0, "AgentCreditLine: zero amount");
         _accrueInterest(agentId);
 
@@ -161,10 +170,43 @@ contract AgentCreditLine is Ownable {
         // Transfer repayment to the agent's individual vault
         address vault = _getAgentVault(agentId);
         usdc.safeTransferFrom(msg.sender, address(this), amount);
-        usdc.approve(vault, amount);
+        usdc.forceApprove(vault, amount);
         IAgentVault(vault).receiveRepayment(amount);
 
         emit Repayment(agentId, amount, interestPaid, principalPaid);
+    }
+
+    /// @notice Write down debt after recovery/liquidation without requiring USDC transfer.
+    ///         Called by RecoveryManager after distributing auction proceeds.
+    /// @param agentId The agent whose debt to write down
+    /// @param amount Amount of debt to forgive
+    function writeDown(uint256 agentId, uint256 amount) external {
+        require(
+            msg.sender == recoveryManager || msg.sender == owner(),
+            "AgentCreditLine: not authorized"
+        );
+        require(amount > 0, "AgentCreditLine: zero amount");
+
+        _accrueInterest(agentId);
+
+        CreditFacility storage facility = facilities[agentId];
+        uint256 totalOutstanding = facility.principal + facility.accruedInterest;
+
+        if (amount >= totalOutstanding) {
+            facility.principal = 0;
+            facility.accruedInterest = 0;
+        } else {
+            // Write down interest first, then principal
+            if (amount <= facility.accruedInterest) {
+                facility.accruedInterest -= amount;
+            } else {
+                uint256 principalReduction = amount - facility.accruedInterest;
+                facility.accruedInterest = 0;
+                facility.principal -= principalReduction;
+            }
+        }
+
+        emit DebtWrittenDown(agentId, amount);
     }
 
     /// @notice Get total outstanding debt
