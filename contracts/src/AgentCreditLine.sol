@@ -6,9 +6,12 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 import {ICreditScorer} from "./interfaces/ICreditScorer.sol";
+import {IAgentVault} from "./interfaces/IAgentVault.sol";
+import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 
-/// @title AgentCreditLine - Per-agent credit facility
-/// @notice Manages borrowing, repayment, and status tracking for each AI agent
+/// @title AgentCreditLine - Per-agent credit facility (vault-per-agent model)
+/// @notice Manages borrowing, repayment, and status tracking for each AI agent.
+///         Each agent borrows from and repays to their individual AgentVault.
 contract AgentCreditLine is Ownable {
     using SafeERC20 for IERC20;
 
@@ -30,7 +33,7 @@ contract AgentCreditLine is Ownable {
     IERC20 public immutable usdc;
     IAgentRegistry public immutable registry;
     ICreditScorer public immutable scorer;
-    address public vault;
+    IAgentVaultFactory public vaultFactory;
 
     uint256 public gracePeriod = 7 days;
     uint256 public delinquencyPeriod = 14 days;
@@ -44,15 +47,17 @@ contract AgentCreditLine is Ownable {
     event StatusChanged(uint256 indexed agentId, Status oldStatus, Status newStatus);
     event CreditLineRefreshed(uint256 indexed agentId, uint256 newLimit, uint256 newRate);
 
-    constructor(address _usdc, address _registry, address _scorer, address _vault, address _owner) Ownable(_owner) {
+    constructor(address _usdc, address _registry, address _scorer, address _vaultFactory, address _owner)
+        Ownable(_owner)
+    {
         usdc = IERC20(_usdc);
         registry = IAgentRegistry(_registry);
         scorer = ICreditScorer(_scorer);
-        vault = _vault;
+        vaultFactory = IAgentVaultFactory(_vaultFactory);
     }
 
-    function setVault(address _vault) external onlyOwner {
-        vault = _vault;
+    function setVaultFactory(address _vaultFactory) external onlyOwner {
+        vaultFactory = IAgentVaultFactory(_vaultFactory);
     }
 
     function setGracePeriod(uint256 _period) external onlyOwner {
@@ -67,6 +72,13 @@ contract AgentCreditLine is Ownable {
         defaultPeriod = _period;
     }
 
+    /// @notice Get the agent's individual vault address
+    function _getAgentVault(uint256 agentId) internal view returns (address) {
+        address vault = vaultFactory.getVault(agentId);
+        require(vault != address(0), "AgentCreditLine: no vault for agent");
+        return vault;
+    }
+
     /// @notice Refresh an agent's credit limit and rate from the scorer
     function refreshCreditLine(uint256 agentId) external {
         require(registry.isRegistered(agentId), "AgentCreditLine: agent not registered");
@@ -79,7 +91,7 @@ contract AgentCreditLine is Ownable {
         emit CreditLineRefreshed(agentId, limit, rate);
     }
 
-    /// @notice Borrow from the vault up to credit limit
+    /// @notice Borrow from the agent's individual vault up to credit limit
     function drawdown(uint256 agentId, uint256 amount) external {
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
         require(msg.sender == profile.wallet, "AgentCreditLine: not agent owner");
@@ -104,13 +116,14 @@ contract AgentCreditLine is Ownable {
         facility.principal += amount;
         lastPaymentTimestamp[agentId] = block.timestamp;
 
-        // Transfer USDC from vault to agent
-        usdc.safeTransferFrom(vault, profile.wallet, amount);
+        // Borrow from the agent's individual vault
+        address vault = _getAgentVault(agentId);
+        IAgentVault(vault).borrow(profile.wallet, amount);
 
         emit Drawdown(agentId, amount);
     }
 
-    /// @notice Repay principal + interest
+    /// @notice Repay principal + interest to the agent's individual vault
     function repay(uint256 agentId, uint256 amount) external {
         require(amount > 0, "AgentCreditLine: zero amount");
         _accrueInterest(agentId);
@@ -145,7 +158,11 @@ contract AgentCreditLine is Ownable {
             facility.status = Status.ACTIVE;
         }
 
-        usdc.safeTransferFrom(msg.sender, vault, amount);
+        // Transfer repayment to the agent's individual vault
+        address vault = _getAgentVault(agentId);
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
+        usdc.approve(vault, amount);
+        IAgentVault(vault).receiveRepayment(amount);
 
         emit Repayment(agentId, amount, interestPaid, principalPaid);
     }
@@ -173,12 +190,9 @@ contract AgentCreditLine is Ownable {
         Status oldStatus = facility.status;
 
         if (timeSincePayment > defaultPeriod) {
-            // Default after 30 days without sufficient repayment
             facility.status = Status.DEFAULT;
-            // Slash reputation on default
             try registry.updateReputation(agentId, 0) {} catch {}
         } else if (timeSincePayment > gracePeriod) {
-            // Delinquent after grace period (7 days), reputation penalty begins
             facility.status = Status.DELINQUENT;
         }
 

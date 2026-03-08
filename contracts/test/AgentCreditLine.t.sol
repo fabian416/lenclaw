@@ -7,14 +7,15 @@ import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {RevenueLockbox} from "../src/RevenueLockbox.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
-import {LenclawVault} from "../src/LenclawVault.sol";
+import {AgentVault} from "../src/AgentVault.sol";
+import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract AgentCreditLineTest is Test {
     ERC20Mock public usdc;
     AgentRegistry public registry;
     CreditScorer public scorer;
-    LenclawVault public vault;
+    AgentVaultFactory public factory;
     AgentCreditLine public creditLine;
 
     address public owner = address(this);
@@ -22,24 +23,31 @@ contract AgentCreditLineTest is Test {
     address public depositor = makeAddr("depositor");
 
     uint256 public agentId;
+    address public agentVaultAddr;
 
     function setUp() public {
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
         registry = new AgentRegistry(owner);
-        vault = new LenclawVault(IERC20(address(usdc)), owner);
         scorer = new CreditScorer(address(registry), owner);
+        factory = new AgentVaultFactory(address(usdc), address(registry), owner);
         creditLine = new AgentCreditLine(
-            address(usdc), address(registry), address(scorer), address(vault), owner
+            address(usdc), address(registry), address(scorer), address(factory), owner
         );
 
-        // Authorize credit line as borrower
-        vault.authorizeBorrower(address(creditLine), true);
+        // Link registry to factory for auto vault deployment
+        registry.setVaultFactory(address(factory));
 
-        // Register agent with lockbox and revenue
+        // Register agent (auto-deploys vault via factory)
         bytes32 codeHash = keccak256("agent-code");
-        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent");
+        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
+        agentVaultAddr = factory.getVault(agentId);
+
+        // Set credit line on the vault
+        factory.setVaultCreditLine(agentId, address(creditLine));
+
+        // Deploy lockbox pointing to the agent's vault
         RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, address(vault), agentId, address(usdc), 5000
+            agentWallet, agentVaultAddr, agentId, address(usdc), 5000
         );
         registry.setLockbox(agentId, address(lockbox));
 
@@ -47,22 +55,18 @@ contract AgentCreditLineTest is Test {
         usdc.mint(address(lockbox), 50_000e6);
         lockbox.processRevenue();
 
-        // Seed the vault with liquidity
-        usdc.mint(depositor, 1_000_000e6);
+        // Seed the agent's vault with additional liquidity from depositor
+        // (vault has 25K from lockbox revenue, cap is 500K, so deposit up to 400K)
+        usdc.mint(depositor, 400_000e6);
         vm.startPrank(depositor);
-        usdc.approve(address(vault), 1_000_000e6);
-        vault.deposit(1_000_000e6, depositor);
+        usdc.approve(agentVaultAddr, 400_000e6);
+        AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
         vm.stopPrank();
-
-        // Approve vault to transfer USDC on behalf of credit line
-        vm.prank(address(vault));
-        usdc.approve(address(creditLine), type(uint256).max);
     }
 
     // ── Drawdown ────────────────────────────────────────────────
 
     function test_drawdown_success() public {
-        // Refresh credit line first
         creditLine.refreshCreditLine(agentId);
 
         uint256 balanceBefore = usdc.balanceOf(agentWallet);
@@ -84,7 +88,6 @@ contract AgentCreditLineTest is Test {
     function test_drawdown_revertsWhenExceedsCreditLimit() public {
         creditLine.refreshCreditLine(agentId);
 
-        // Try to borrow more than credit limit
         vm.prank(agentWallet);
         vm.expectRevert("AgentCreditLine: exceeds credit limit");
         creditLine.drawdown(agentId, 999_999_999e6);
@@ -99,7 +102,7 @@ contract AgentCreditLineTest is Test {
         creditLine.drawdown(agentId, 5000e6);
 
         // Agent repays
-        usdc.mint(agentWallet, 5000e6); // ensure they have enough
+        usdc.mint(agentWallet, 5000e6);
         vm.startPrank(agentWallet);
         usdc.approve(address(creditLine), 5000e6);
         creditLine.repay(agentId, 5000e6);
@@ -155,7 +158,6 @@ contract AgentCreditLineTest is Test {
         vm.prank(agentWallet);
         creditLine.drawdown(agentId, 1000e6);
 
-        // Warp past grace period (7 days default)
         vm.warp(block.timestamp + 8 days);
 
         creditLine.updateStatus(agentId);
@@ -170,7 +172,6 @@ contract AgentCreditLineTest is Test {
         vm.prank(agentWallet);
         creditLine.drawdown(agentId, 1000e6);
 
-        // Warp past grace + delinquency period (7 + 30 = 37 days)
         vm.warp(block.timestamp + 38 days);
 
         creditLine.updateStatus(agentId);

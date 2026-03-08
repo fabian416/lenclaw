@@ -2,8 +2,6 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 /// @title VerifyContracts - Block explorer verification script
 /// @notice Reads deployed addresses from environment and verifies them on block explorers.
 ///         Run with: forge script VerifyContracts --chain <chain> --verify
@@ -12,7 +10,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///   CHAIN=base \
 ///   USDC=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
 ///   AGENT_REGISTRY=<addr> \
-///   LENCLAW_VAULT=<addr> \
+///   AGENT_VAULT_FACTORY=<addr> \
 ///   CREDIT_SCORER=<addr> \
 ///   AGENT_CREDIT_LINE=<addr> \
 ///   OWNER=<addr> \
@@ -23,7 +21,7 @@ contract VerifyContracts is Script {
         // Read deployed addresses from environment
         address usdc = vm.envAddress("USDC");
         address agentRegistry = vm.envAddress("AGENT_REGISTRY");
-        address lenclawVault = vm.envAddress("LENCLAW_VAULT");
+        address agentVaultFactory = vm.envAddress("AGENT_VAULT_FACTORY");
         address creditScorer = vm.envAddress("CREDIT_SCORER");
         address agentCreditLine = vm.envAddress("AGENT_CREDIT_LINE");
         address owner = vm.envAddress("OWNER");
@@ -35,7 +33,7 @@ contract VerifyContracts is Script {
         console.log("");
         console.log("--- Deployed Contracts ---");
         console.log("AgentRegistry:", agentRegistry);
-        console.log("LenclawVault:", lenclawVault);
+        console.log("AgentVaultFactory:", agentVaultFactory);
         console.log("CreditScorer:", creditScorer);
         console.log("AgentCreditLine:", agentCreditLine);
         console.log("");
@@ -47,8 +45,8 @@ contract VerifyContracts is Script {
         // AgentRegistry: constructor(address _owner)
         _logVerifyCommand("AgentRegistry", agentRegistry, abi.encode(owner));
 
-        // LenclawVault: constructor(IERC20 _usdc, address _owner)
-        _logVerifyCommand("LenclawVault", lenclawVault, abi.encode(usdc, owner));
+        // AgentVaultFactory: constructor(address _usdc, address _registry, address _owner)
+        _logVerifyCommand("AgentVaultFactory", agentVaultFactory, abi.encode(usdc, agentRegistry, owner));
 
         // CreditScorer: constructor(address _registry, address _owner)
         _logVerifyCommand("CreditScorer", creditScorer, abi.encode(agentRegistry, owner));
@@ -57,7 +55,7 @@ contract VerifyContracts is Script {
         _logVerifyCommand(
             "AgentCreditLine",
             agentCreditLine,
-            abi.encode(usdc, agentRegistry, creditScorer, lenclawVault, owner)
+            abi.encode(usdc, agentRegistry, creditScorer, agentVaultFactory, owner)
         );
     }
 

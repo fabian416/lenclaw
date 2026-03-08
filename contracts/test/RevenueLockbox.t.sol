@@ -4,27 +4,32 @@ pragma solidity ^0.8.24;
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "./mocks/ERC20Mock.sol";
 import {RevenueLockbox} from "../src/RevenueLockbox.sol";
+import {AgentVault} from "../src/AgentVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract RevenueLockboxTest is Test {
     ERC20Mock public usdc;
+    AgentVault public agentVault;
     RevenueLockbox public lockbox;
 
     address public agentWallet = makeAddr("agent");
-    address public vaultAddr = makeAddr("vault");
     uint256 public agentId = 1;
     uint256 public repaymentRate = 5000; // 50%
 
     function setUp() public {
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
-        lockbox = new RevenueLockbox(agentWallet, vaultAddr, agentId, address(usdc), repaymentRate);
+        // Deploy a real AgentVault (the factory is msg.sender)
+        agentVault = new AgentVault(
+            IERC20(address(usdc)), agentId, "Lenclaw Agent 1 USDC", "lcA1USDC", 1000, 500_000e6
+        );
+        lockbox = new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), repaymentRate);
     }
 
     // ── Constructor ─────────────────────────────────────────────
 
     function test_constructor_setsImmutables() public view {
         assertEq(lockbox.agent(), agentWallet);
-        assertEq(lockbox.vault(), vaultAddr);
+        assertEq(lockbox.vault(), address(agentVault));
         assertEq(lockbox.agentId(), agentId);
         assertEq(address(lockbox.usdc()), address(usdc));
         assertEq(lockbox.repaymentRateBps(), repaymentRate);
@@ -32,7 +37,7 @@ contract RevenueLockboxTest is Test {
 
     function test_constructor_revertsOnZeroAgent() public {
         vm.expectRevert("RevenueLockbox: zero agent");
-        new RevenueLockbox(address(0), vaultAddr, agentId, address(usdc), repaymentRate);
+        new RevenueLockbox(address(0), address(agentVault), agentId, address(usdc), repaymentRate);
     }
 
     function test_constructor_revertsOnZeroVault() public {
@@ -42,12 +47,12 @@ contract RevenueLockboxTest is Test {
 
     function test_constructor_revertsOnZeroUSDC() public {
         vm.expectRevert("RevenueLockbox: zero usdc");
-        new RevenueLockbox(agentWallet, vaultAddr, agentId, address(0), repaymentRate);
+        new RevenueLockbox(agentWallet, address(agentVault), agentId, address(0), repaymentRate);
     }
 
     function test_constructor_revertsOnRateTooHigh() public {
         vm.expectRevert("RevenueLockbox: rate too high");
-        new RevenueLockbox(agentWallet, vaultAddr, agentId, address(usdc), 10001);
+        new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), 10001);
     }
 
     // ── Revenue processing ──────────────────────────────────────
@@ -57,33 +62,39 @@ contract RevenueLockboxTest is Test {
 
         lockbox.processRevenue();
 
-        assertEq(usdc.balanceOf(vaultAddr), 500e6, "Vault should get 50%");
+        assertEq(usdc.balanceOf(address(agentVault)), 500e6, "Vault should get 50%");
         assertEq(usdc.balanceOf(agentWallet), 500e6, "Agent should get 50%");
         assertEq(lockbox.totalRevenueCapture(), 1000e6);
         assertEq(lockbox.totalRepaid(), 500e6);
     }
 
     function test_processRevenue_100PercentRepayment() public {
+        AgentVault v2 = new AgentVault(
+            IERC20(address(usdc)), 2, "Lenclaw Agent 2 USDC", "lcA2USDC", 1000, 500_000e6
+        );
         RevenueLockbox fullRepay = new RevenueLockbox(
-            agentWallet, vaultAddr, agentId, address(usdc), 10000 // 100%
+            agentWallet, address(v2), agentId, address(usdc), 10000 // 100%
         );
         usdc.mint(address(fullRepay), 1000e6);
 
         fullRepay.processRevenue();
 
-        assertEq(usdc.balanceOf(vaultAddr), 1000e6, "Vault should get 100%");
+        assertEq(usdc.balanceOf(address(v2)), 1000e6, "Vault should get 100%");
         assertEq(usdc.balanceOf(agentWallet), 0, "Agent should get 0%");
     }
 
     function test_processRevenue_zeroRepaymentRate() public {
+        AgentVault v3 = new AgentVault(
+            IERC20(address(usdc)), 3, "Lenclaw Agent 3 USDC", "lcA3USDC", 1000, 500_000e6
+        );
         RevenueLockbox zeroRepay = new RevenueLockbox(
-            agentWallet, vaultAddr, agentId, address(usdc), 0 // 0%
+            agentWallet, address(v3), agentId, address(usdc), 0 // 0%
         );
         usdc.mint(address(zeroRepay), 1000e6);
 
         zeroRepay.processRevenue();
 
-        assertEq(usdc.balanceOf(vaultAddr), 0, "Vault should get 0%");
+        assertEq(usdc.balanceOf(address(v3)), 0, "Vault should get 0%");
         assertEq(usdc.balanceOf(agentWallet), 1000e6, "Agent should get 100%");
     }
 
@@ -96,7 +107,7 @@ contract RevenueLockboxTest is Test {
 
         assertEq(lockbox.totalRevenueCapture(), 3000e6);
         assertEq(lockbox.totalRepaid(), 1500e6);
-        assertEq(usdc.balanceOf(vaultAddr), 1500e6);
+        assertEq(usdc.balanceOf(address(agentVault)), 1500e6);
         assertEq(usdc.balanceOf(agentWallet), 1500e6);
     }
 
@@ -122,7 +133,7 @@ contract RevenueLockboxTest is Test {
     function test_setCreditLine_onlyVault() public {
         address cl = makeAddr("creditLine");
 
-        vm.prank(vaultAddr);
+        vm.prank(address(agentVault));
         lockbox.setCreditLine(cl);
 
         assertEq(lockbox.creditLine(), cl);
@@ -131,10 +142,10 @@ contract RevenueLockboxTest is Test {
     function test_setCreditLine_canOnlyBeSetOnce() public {
         address cl = makeAddr("creditLine");
 
-        vm.prank(vaultAddr);
+        vm.prank(address(agentVault));
         lockbox.setCreditLine(cl);
 
-        vm.prank(vaultAddr);
+        vm.prank(address(agentVault));
         vm.expectRevert("RevenueLockbox: credit line already set");
         lockbox.setCreditLine(makeAddr("anotherCL"));
     }
@@ -156,10 +167,8 @@ contract RevenueLockboxTest is Test {
     // ── Immutability ────────────────────────────────────────────
 
     function test_immutableFields_cannotBeChanged() public view {
-        // Verify immutable fields are set correctly and cannot change
-        // (Solidity immutables are compile-time enforced, but let's verify values)
         assertEq(lockbox.agent(), agentWallet);
-        assertEq(lockbox.vault(), vaultAddr);
+        assertEq(lockbox.vault(), address(agentVault));
         assertEq(lockbox.agentId(), agentId);
     }
 
@@ -169,8 +178,11 @@ contract RevenueLockboxTest is Test {
         amount = bound(amount, 1, 1_000_000_000e6);
         rateBps = bound(rateBps, 0, 10000);
 
+        AgentVault fuzzVault = new AgentVault(
+            IERC20(address(usdc)), 99, "Fuzz Vault", "lcFUZZ", 0, type(uint256).max
+        );
         RevenueLockbox lb = new RevenueLockbox(
-            agentWallet, vaultAddr, agentId, address(usdc), rateBps
+            agentWallet, address(fuzzVault), agentId, address(usdc), rateBps
         );
         usdc.mint(address(lb), amount);
 
@@ -179,7 +191,7 @@ contract RevenueLockboxTest is Test {
         uint256 expectedRepayment = (amount * rateBps) / 10000;
         uint256 expectedAgent = amount - expectedRepayment;
 
-        assertEq(usdc.balanceOf(vaultAddr), expectedRepayment);
+        assertEq(usdc.balanceOf(address(fuzzVault)), expectedRepayment);
         assertEq(usdc.balanceOf(agentWallet), expectedAgent);
     }
 }

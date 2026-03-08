@@ -7,6 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {DutchAuction} from "./DutchAuction.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
+import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 
 /// @title RecoveryManager - Coordinates full recovery process for defaulted positions
 /// @notice Receives auction proceeds from DutchAuction, distributes to vault,
@@ -39,7 +40,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     DutchAuction public immutable dutchAuction;
     IAgentRegistry public immutable registry;
 
-    address public vault;
+    IAgentVaultFactory public vaultFactory;
     address public keeper;
 
     /// @notice Recovery records: recoveryId => RecoveryRecord
@@ -89,18 +90,18 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         address _usdc,
         address _dutchAuction,
         address _registry,
-        address _vault,
+        address _vaultFactory,
         address _owner
     ) Ownable(_owner) {
         require(_usdc != address(0), "RecoveryManager: zero usdc");
         require(_dutchAuction != address(0), "RecoveryManager: zero auction");
         require(_registry != address(0), "RecoveryManager: zero registry");
-        require(_vault != address(0), "RecoveryManager: zero vault");
+        require(_vaultFactory != address(0), "RecoveryManager: zero vaultFactory");
 
         usdc = IERC20(_usdc);
         dutchAuction = DutchAuction(_dutchAuction);
         registry = IAgentRegistry(_registry);
-        vault = _vault;
+        vaultFactory = IAgentVaultFactory(_vaultFactory);
     }
 
     // -- Admin --
@@ -110,9 +111,9 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         keeper = _keeper;
     }
 
-    function setVault(address _vault) external onlyOwner {
-        require(_vault != address(0), "RecoveryManager: zero address");
-        vault = _vault;
+    function setVaultFactory(address _vaultFactory) external onlyOwner {
+        require(_vaultFactory != address(0), "RecoveryManager: zero address");
+        vaultFactory = IAgentVaultFactory(_vaultFactory);
     }
 
     function setDefaultReputationPenalty(uint256 _penalty) external onlyOwner {
@@ -192,9 +193,13 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         recovery.recoveredAmount = recoveredAmount;
         recovery.completedAt = block.timestamp;
 
-        // Distribute recovered proceeds to vault
+        // Look up the agent-specific vault
+        address agentVault = vaultFactory.getVault(recovery.agentId);
+        require(agentVault != address(0), "RecoveryManager: no vault for agent");
+
+        // Distribute recovered proceeds to the agent's individual vault
         if (recoveredAmount > 0) {
-            usdc.safeTransfer(vault, recoveredAmount);
+            usdc.safeTransfer(agentVault, recoveredAmount);
             totalAmountRecovered += recoveredAmount;
             emit ProceedsDistributed(recoveryId, recoveredAmount);
         }

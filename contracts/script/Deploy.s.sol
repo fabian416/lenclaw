@@ -3,11 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {LenclawVault} from "../src/LenclawVault.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
+import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 
 /// @notice Mock USDC for local testing
 contract MockUSDC is ERC20 {
@@ -37,21 +36,21 @@ contract DeployLenclaw is Script {
         AgentRegistry registry = new AgentRegistry(deployer);
         console.log("AgentRegistry deployed at:", address(registry));
 
-        // 3. Deploy LenclawVault
-        LenclawVault vault = new LenclawVault(IERC20(address(usdc)), deployer);
-        console.log("LenclawVault deployed at:", address(vault));
+        // 3. Deploy AgentVaultFactory
+        AgentVaultFactory factory = new AgentVaultFactory(address(usdc), address(registry), deployer);
+        console.log("AgentVaultFactory deployed at:", address(factory));
 
         // 4. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), deployer);
         console.log("CreditScorer deployed at:", address(scorer));
 
-        // 5. Deploy AgentCreditLine
+        // 5. Deploy AgentCreditLine (now takes factory instead of vault)
         AgentCreditLine creditLine =
-            new AgentCreditLine(address(usdc), address(registry), address(scorer), address(vault), deployer);
+            new AgentCreditLine(address(usdc), address(registry), address(scorer), address(factory), deployer);
         console.log("AgentCreditLine deployed at:", address(creditLine));
 
-        // 6. Configure: authorize credit line as borrower
-        vault.authorizeBorrower(address(creditLine), true);
+        // 6. Configure: link registry to factory for auto vault deployment
+        registry.setVaultFactory(address(factory));
 
         // 7. Mint some test USDC to deployer
         usdc.mint(deployer, 1_000_000e6); // 1M USDC

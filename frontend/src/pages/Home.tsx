@@ -1,28 +1,67 @@
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Bot, Shield, TrendingUp, Lock } from "lucide-react"
+import { ArrowRight, Bot, TrendingUp, Zap, Trophy, AlertTriangle } from "lucide-react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { MOCK_POOL_DATA } from "@/lib/constants"
+import { MOCK_AGENTS_WITH_VAULT, MOCK_ACTIVITY_FEED, MOCK_GLOBAL_STATS } from "@/lib/constants"
+import { formatCompact } from "@/lib/utils"
+import type { RiskLevel } from "@/lib/types"
 import { SplitText } from "@/components/reactbits/SplitText"
 import { ShinyText } from "@/components/reactbits/ShinyText"
 import { Aurora } from "@/components/reactbits/Aurora"
 import { Squares } from "@/components/reactbits/Squares"
 import { RotatingText } from "@/components/reactbits/RotatingText"
 import { TiltedCard } from "@/components/reactbits/TiltedCard"
-import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
 import { Marquee } from "@/components/reactbits/Marquee"
-
 import { NumberTicker } from "@/components/reactbits/NumberTicker"
 import { TextReveal } from "@/components/reactbits/TextReveal"
 import { SpotlightButton } from "@/components/reactbits/SpotlightButton"
 import { BorderBeam } from "@/components/reactbits/BorderBeam"
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard"
+
+const EVENT_ICONS: Record<string, string> = {
+  revenue: "\u{1F4B0}",
+  backing: "\u{1F3AF}",
+  repayment: "\u2705",
+  late_payment: "\u26A0\uFE0F",
+  default: "\u{1F480}",
+  milestone: "\u{1F4C8}",
+  new_agent: "\u{1F195}",
+  withdrawal: "\u{1F4E4}",
+}
+
+const RISK_COLORS: Record<RiskLevel, string> = {
+  safe: "text-emerald-500",
+  moderate: "text-amber-500",
+  risky: "text-red-500",
+  degen: "text-red-600",
+}
+
+const RISK_BG: Record<RiskLevel, string> = {
+  safe: "bg-emerald-500/10 border-emerald-500/20",
+  moderate: "bg-amber-500/10 border-amber-500/20",
+  risky: "bg-red-500/10 border-red-500/20",
+  degen: "bg-red-600/10 border-red-600/20",
+}
+
+// Top 3 trending agents sorted by revenue
+const TRENDING_AGENTS = [...MOCK_AGENTS_WITH_VAULT]
+  .filter((a) => a.status === "active")
+  .sort((a, b) => b.revenue30d - a.revenue30d)
+  .slice(0, 3)
+
+const ARENA_STATS = [
+  { label: "Total Backed", value: MOCK_GLOBAL_STATS.totalBacked, prefix: "$" },
+  { label: "Active Agents", value: MOCK_GLOBAL_STATS.activeAgents },
+  { label: "Best APY", value: MOCK_GLOBAL_STATS.bestPerformerApy, suffix: "%" },
+  { label: "Avg Return", value: 13.2, suffix: "%" },
+]
 
 export default function Home() {
   return (
     <div>
-      <main className="max-w-6xl mx-auto px-6">
-        {/* Hero -- asymmetric, typography-driven with Aurora background */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Hero */}
         <section className="pt-24 md:pt-40 pb-20 md:pb-32 relative overflow-hidden">
           <Aurora />
           <Squares borderColor="var(--primary)" squareSize={80} speed={25} className="opacity-15 z-0" />
@@ -34,23 +73,23 @@ export default function Home() {
             className="relative z-10"
           >
             <p className="text-sm text-primary mb-6 tracking-widest uppercase font-medium">
-              <ShinyText text="AI Agent Lending Protocol" speed={4} />
+              <ShinyText text="Lenclaw Protocol" speed={4} />
             </p>
 
-            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground tracking-tight leading-[0.95] max-w-4xl">
-              <SplitText text="Credit for" delay={0.1} />
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold text-foreground tracking-tight leading-[0.95] max-w-4xl">
+              <SplitText text="Pick your agent." delay={0.1} />
               <br />
               <span className="text-primary">
                 <RotatingText
-                  texts={["autonomous agents", "DeFi protocols", "the agentic economy"]}
+                  texts={["Back the future.", "autonomous traders", "data oracles", "yield hunters", "the agentic economy"]}
                   interval={2500}
-                  className="h-[1.1em]"
+                  className="min-h-[1.1em]"
                 />
               </span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground mt-8 max-w-lg leading-relaxed">
-              Revenue-backed credit lines for AI agents. Powered by on-chain identity, TEE attestations, and smart contract lockboxes.
+              Pick your runner. Back them with USDC. Watch them earn. Every agent is a bet on the autonomous economy.
             </p>
           </motion.div>
 
@@ -61,10 +100,10 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="flex flex-col sm:flex-row gap-3 mt-10 relative z-10"
           >
-            <Link to="/lend">
+            <Link to="/agents">
               <SpotlightButton className="font-semibold bg-primary text-primary-foreground hover:opacity-90 rounded-lg px-6 py-2.5 text-sm cursor-pointer">
                 <span className="flex items-center gap-2">
-                  Deposit USDC
+                  Browse Agents
                   <ArrowRight className="w-4 h-4" />
                 </span>
               </SpotlightButton>
@@ -77,17 +116,12 @@ export default function Home() {
             </Button>
           </motion.div>
 
-          {/* Stats with NumberTicker */}
+          {/* Global Stats with NumberTicker */}
           <AnimatedContent delay={0.3} className="relative z-10">
             <BorderBeam duration={8}>
               <div className="mt-20 md:mt-28 grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden border border-border">
-                {[
-                  { label: "TVL", value: MOCK_POOL_DATA.tvl, prefix: "$" },
-                  { label: "Active Agents", value: MOCK_POOL_DATA.activeAgents },
-                  { label: "Pool APY", value: MOCK_POOL_DATA.apy, suffix: "%" },
-                  { label: "Revenue Generated", value: MOCK_POOL_DATA.totalRevenue, prefix: "$" },
-                ].map((stat) => (
-                  <div key={stat.label} className="bg-background p-5 md:p-6">
+                {ARENA_STATS.map((stat) => (
+                  <div key={stat.label} className="bg-background p-3 sm:p-5 md:p-6">
                     <div className="text-[10px] text-muted-foreground mb-2 uppercase tracking-widest">{stat.label}</div>
                     <div className="text-xl md:text-2xl font-semibold mono-text text-foreground">
                       <NumberTicker
@@ -103,46 +137,140 @@ export default function Home() {
           </AnimatedContent>
         </section>
 
+        {/* Live Ticker */}
+        <section className="pb-16 md:pb-24">
+          <Marquee speed={35} pauseOnHover className="py-4 text-sm font-medium">
+            {MOCK_ACTIVITY_FEED.map((event) => (
+              <span key={event.id} className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
+                <span>{EVENT_ICONS[event.type] || ""}</span>
+                <span>{event.message}</span>
+                <span className="text-primary/30 ml-2">&bull;</span>
+              </span>
+            ))}
+          </Marquee>
+        </section>
+
+        {/* Top 3 Trending Agents */}
+        <section className="pb-24 md:pb-32">
+          <AnimatedContent>
+            <div className="border-t border-border pt-16 md:pt-20">
+              <div className="flex items-center justify-between mb-10">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+                    Trending Runners
+                  </h2>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Top performers this month. Pick your runner.
+                  </p>
+                </div>
+                <Link to="/agents" className="text-sm text-primary hover:underline font-medium hidden sm:block">
+                  View all agents &rarr;
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                {TRENDING_AGENTS.map((agent, i) => (
+                  <TiltedCard key={agent.id}>
+                    <Link to={`/agents/${agent.id}`} className="block group">
+                      <SpotlightCard className="p-6 md:p-8 h-full">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                              {i === 0 ? (
+                                <Trophy className="w-5 h-5 text-primary" />
+                              ) : (
+                                <TrendingUp className="w-5 h-5 text-primary/70" />
+                              )}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">{agent.name}</h3>
+                              <p className="text-xs text-muted-foreground">{agent.erc8004Id}</p>
+                            </div>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${RISK_BG[agent.riskLevel]}`}>
+                            <span className={RISK_COLORS[agent.riskLevel]}>{agent.riskLevel}</span>
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-6">
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">APY</div>
+                            <div className="text-lg font-semibold mono-text text-foreground">{agent.vault.apy}%</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Revenue 30d</div>
+                            <div className="text-lg font-semibold mono-text text-foreground">${formatCompact(agent.revenue30d)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Backers</div>
+                            <div className="text-lg font-semibold mono-text text-foreground">{agent.vault.backersCount}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Total Backed</div>
+                            <div className="text-lg font-semibold mono-text text-foreground">${formatCompact(agent.vault.totalBacked)}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="text-xs text-muted-foreground">Rep: {agent.reputationScore}</span>
+                          </div>
+                          <span className="text-xs text-primary md:opacity-0 md:group-hover:opacity-100 transition-opacity font-medium flex items-center gap-1">
+                            Back this agent <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      </SpotlightCard>
+                    </Link>
+                  </TiltedCard>
+                ))}
+              </div>
+
+              <Link to="/agents" className="text-sm text-primary hover:underline font-medium sm:hidden mt-6 block text-center">
+                View all agents &rarr;
+              </Link>
+            </div>
+          </AnimatedContent>
+        </section>
+
         {/* Mission Statement */}
         <section className="pb-16 md:pb-24">
           <TextReveal
-            text="Building the credit infrastructure for the autonomous economy. Every agent should have access to capital."
+            text="The protocol where humans back AI agents. Pick your agent. Watch them earn. This is the future of autonomous finance."
             className="max-w-3xl"
           />
         </section>
 
-        {/* How It Works */}
+        {/* How It Works -- Arena style */}
         <section className="pb-24 md:pb-32">
           <AnimatedContent>
             <div className="border-t border-border pt-16 md:pt-20">
               <div className="md:grid md:grid-cols-12 md:gap-16">
-                {/* Left: section label */}
                 <div className="md:col-span-4 mb-8 md:mb-0">
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
                     How it works
                   </h2>
                   <p className="text-muted-foreground mt-3 text-sm leading-relaxed max-w-sm">
-                    A two-sided marketplace connecting capital providers with revenue-generating AI agents.
+                    Every agent has its own vault. You pick who to back. Your yield comes from their real revenue.
                   </p>
                 </div>
 
-                {/* Right: feature list */}
                 <div className="md:col-span-8 space-y-4">
                   {[
                     {
-                      icon: Shield,
-                      title: "Agent Identity",
-                      desc: "AI agents register with ERC-8004 on-chain identity, TEE attestation, and verified code hashes for trustless operation.",
-                    },
-                    {
-                      icon: Lock,
-                      title: "Revenue Lockbox",
-                      desc: "Agent revenue flows through a smart contract lockbox, ensuring lenders have priority claims on cash flows.",
+                      icon: Zap,
+                      title: "Pick Your Agent",
+                      desc: "Browse AI agents and their vaults. Each has real revenue data, reputation scores, and risk profiles. Find the one you believe in.",
                     },
                     {
                       icon: TrendingUp,
-                      title: "Credit Lines",
-                      desc: "Agents receive credit lines proportional to their reputation score and historical revenue performance.",
+                      title: "Back With USDC",
+                      desc: "Deposit into your agent's personal vault. Your capital fuels their credit line. Their revenue pays your yield.",
+                    },
+                    {
+                      icon: AlertTriangle,
+                      title: "Risk Is Real",
+                      desc: "If your agent earns, you earn. If they default, your capital is at risk. Higher APY means higher stakes. Choose wisely.",
                     },
                   ].map((item, i) => (
                     <SpotlightCard key={item.title} className="p-6 md:p-8">
@@ -165,107 +293,34 @@ export default function Home() {
           </AnimatedContent>
         </section>
 
-        {/* Lend/Borrow Cards */}
+        {/* Bottom CTA */}
         <section className="pb-24 md:pb-32">
           <AnimatedContent>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6">
-              {/* Lend card -- takes more space, accent card */}
-              <TiltedCard className="md:col-span-3">
-                <Link to="/lend" className="block group">
-                  <div className="bg-gradient-to-br from-primary/90 to-orange-700/80 dark:from-[#c2631f] dark:to-[#7c3d10] text-primary-foreground rounded-xl p-8 md:p-10 h-full transition-all duration-200 hover:shadow-lg">
-                    <div className="flex items-center gap-3 mb-6">
-                      <TrendingUp className="w-5 h-5 opacity-60" />
-                      <span className="text-sm font-semibold opacity-60 uppercase tracking-wider">For Lenders</span>
-                    </div>
-                    <h3 className="text-2xl md:text-3xl font-bold mb-3">
-                      Earn yield from
-                      <br className="hidden md:block" /> AI agent loans
-                    </h3>
-                    <p className="opacity-60 text-sm leading-relaxed mb-8 max-w-md">
-                      Deposit USDC into the lending pool. Earn yield from AI agent loan repayments with transparent risk metrics.
-                    </p>
-                    <div className="flex gap-8 text-sm mono-text">
-                      <div>
-                        <div className="opacity-40 mb-1 text-xs uppercase tracking-wider">Pool APY</div>
-                        <div className="text-lg font-semibold">{MOCK_POOL_DATA.apy}%</div>
-                      </div>
-                      <div>
-                        <div className="opacity-40 mb-1 text-xs uppercase tracking-wider">Utilization</div>
-                        <div className="text-lg font-semibold">{MOCK_POOL_DATA.utilizationRate}%</div>
-                      </div>
-                    </div>
-                    <div className="mt-8 flex items-center gap-2 text-sm font-semibold opacity-0 group-hover:opacity-60 transition-opacity">
-                      Start lending <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </div>
+            <div className="text-center">
+              <h2 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight mb-4">
+                Ready to get started?
+              </h2>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                Browse agents, study the data, and back the ones you believe in.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/agents">
+                  <SpotlightButton className="font-semibold bg-primary text-primary-foreground hover:opacity-90 rounded-lg px-8 py-3 text-sm cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      Browse Agents
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
+                  </SpotlightButton>
                 </Link>
-              </TiltedCard>
-
-              {/* Borrow card -- glass card */}
-              <TiltedCard className="md:col-span-2 h-full">
-                <Link to="/borrow" className="block group h-full">
-                  <div className="border border-border bg-card rounded-xl p-8 md:p-10 h-full transition-all hover:border-primary/30 hover:shadow-md">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Bot className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">For AI Agents</span>
-                    </div>
-                    <h3 className="text-xl font-bold mb-3 text-foreground">
-                      Access credit lines
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed mb-8">
-                      Register your agent, establish on-chain identity, and access revenue-backed credit.
-                    </p>
-                    <div className="flex gap-8 text-sm mono-text">
-                      <div>
-                        <div className="text-muted-foreground/60 mb-1 text-xs uppercase tracking-wider">Max Credit</div>
-                        <div className="text-lg font-semibold text-foreground">$75,000</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground/60 mb-1 text-xs uppercase tracking-wider">Agents</div>
-                        <div className="text-lg font-semibold text-foreground">{MOCK_POOL_DATA.activeAgents}</div>
-                      </div>
-                    </div>
-                    <div className="mt-8 flex items-center gap-2 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      Get started <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                </Link>
-              </TiltedCard>
+                <Button asChild variant="outline" size="lg" className="font-medium rounded-lg">
+                  <Link to="/agents/onboard" className="flex items-center gap-2">
+                    <Bot className="w-4 h-4" />
+                    Register Agent
+                  </Link>
+                </Button>
+              </div>
             </div>
           </AnimatedContent>
-        </section>
-
-        {/* Marquee */}
-        <section className="pb-16 md:pb-24">
-          <Marquee speed={25} pauseOnHover className="py-4 text-muted-foreground dark:text-muted-foreground/40 text-sm font-medium tracking-widest uppercase">
-            <span>Protocol Revenue: <span className="text-primary dark:text-primary/50">$2.4M+</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Active Agents: <span className="text-primary dark:text-primary/50">847</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>TVL: <span className="text-primary dark:text-primary/50">$12M+</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Avg APY: <span className="text-primary dark:text-primary/50">12.4%</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Loans Originated: <span className="text-primary dark:text-primary/50">$8.2M+</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Avg Credit Score: <span className="text-primary dark:text-primary/50">782</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Default Rate: <span className="text-primary dark:text-primary/50">2.1%</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Protocol Revenue: <span className="text-primary dark:text-primary/50">$2.4M+</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Active Agents: <span className="text-primary dark:text-primary/50">847</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>TVL: <span className="text-primary dark:text-primary/50">$12M+</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Avg APY: <span className="text-primary dark:text-primary/50">12.4%</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Loans Originated: <span className="text-primary dark:text-primary/50">$8.2M+</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Avg Credit Score: <span className="text-primary dark:text-primary/50">782</span></span>
-            <span className="text-primary/50 dark:text-primary/30">&#x2022;</span>
-            <span>Default Rate: <span className="text-primary dark:text-primary/50">2.1%</span></span>
-          </Marquee>
         </section>
       </main>
     </div>

@@ -13,6 +13,7 @@ import {
   FileCode,
   Cpu,
 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAccount, useConnect } from "wagmi"
 import { injected } from "wagmi/connectors"
@@ -32,6 +33,7 @@ const STEPS = [
 
 export default function AgentOnboarding() {
   const [step, setStep] = useState(1)
+  const navigate = useNavigate()
   const { address, isConnected } = useAccount()
   const { connect } = useConnect()
 
@@ -45,6 +47,8 @@ export default function AgentOnboarding() {
 
   const [deploying, setDeploying] = useState(false)
   const [deployed, setDeployed] = useState(false)
+  const [activating, setActivating] = useState(false)
+  const [activated, setActivated] = useState(false)
 
   const updateForm = (field: keyof OnboardingFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -68,12 +72,19 @@ export default function AgentOnboarding() {
     setDeployed(true)
   }
 
+  const handleActivate = async () => {
+    setActivating(true)
+    await new Promise((r) => setTimeout(r, 2500))
+    setActivating(false)
+    setActivated(true)
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="max-w-2xl mx-auto px-6 py-8 md:py-12"
+      className="max-w-2xl mx-auto px-4 sm:px-6 py-8 md:py-12"
     >
       <div className="mb-8 md:mb-10">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-foreground">Register Agent</h1>
@@ -131,7 +142,7 @@ export default function AgentOnboarding() {
       </div>
 
       {/* Step Content */}
-      <div className="border border-border bg-card rounded-xl p-6 md:p-8">
+      <div className="border border-border bg-card rounded-xl p-4 sm:p-6 md:p-8">
         <div className="mb-6">
           <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
             {(() => { const StepIcon = STEPS[step - 1].icon; return <StepIcon className="w-4 h-4 text-primary/60" /> })()}
@@ -175,7 +186,7 @@ export default function AgentOnboarding() {
             {step === 2 && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Agent Name</label>
+                  <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Agent Name</label>
                   <Input
                     placeholder="e.g., AutoTrader-v3"
                     value={form.name}
@@ -184,7 +195,7 @@ export default function AgentOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Description</label>
+                  <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Description</label>
                   <Textarea
                     placeholder="Describe what your agent does and how it generates revenue..."
                     value={form.description}
@@ -193,7 +204,7 @@ export default function AgentOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
+                  <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
                     <span className="flex items-center gap-1.5">
                       <FileCode className="w-3.5 h-3.5" />
                       Code Hash (SHA-256)
@@ -216,7 +227,7 @@ export default function AgentOnboarding() {
             {step === 3 && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
+                  <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
                     <span className="flex items-center gap-1.5">
                       <Cpu className="w-3.5 h-3.5" />
                       TEE Provider
@@ -230,12 +241,12 @@ export default function AgentOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Attestation Data</label>
+                  <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Attestation Data</label>
                   <Textarea
                     placeholder="Paste your TEE attestation report..."
                     value={form.teeAttestation}
                     onChange={(e) => updateForm("teeAttestation", e.target.value)}
-                    className="font-mono text-xs"
+                    className="font-mono text-xs sm:text-sm min-h-[120px]"
                     rows={6}
                   />
                 </div>
@@ -297,40 +308,79 @@ export default function AgentOnboarding() {
             {/* Step 5: Activate */}
             {step === 5 && (
               <div className="space-y-5">
-                <BorderBeam duration={6}>
-                  <div className="text-center py-4 px-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle2 className="w-6 h-6 text-primary" />
+                {activated ? (
+                  <BorderBeam duration={6}>
+                    <div className="text-center py-6 px-4">
+                      <div className="w-14 h-14 rounded-full bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle2 className="w-7 h-7 text-success" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-1 text-foreground">Agent Activated!</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-5">
+                        {form.name} is now registered on-chain and ready to start building credit history.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate("/agents")}
+                        className="font-medium min-h-[44px] md:min-h-0"
+                      >
+                        <span className="flex items-center gap-2">
+                          View All Agents
+                          <ArrowRight className="w-4 h-4" />
+                        </span>
+                      </Button>
                     </div>
-                    <h3 className="text-lg font-semibold mb-1 text-foreground">Ready to Activate</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                      Your agent is configured. Activate to register on-chain and start building credit history.
-                    </p>
-                  </div>
-                </BorderBeam>
+                  </BorderBeam>
+                ) : (
+                  <>
+                    <BorderBeam duration={6}>
+                      <div className="text-center py-4 px-4">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+                          <CheckCircle2 className="w-6 h-6 text-primary" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-1 text-foreground">Ready to Activate</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                          Your agent is configured. Activate to register on-chain and start building credit history.
+                        </p>
+                      </div>
+                    </BorderBeam>
 
-                <div className="divide-y divide-border rounded-lg bg-muted overflow-hidden">
-                  {[
-                    { label: "Agent Name", value: form.name },
-                    { label: "Operator", value: address ? shortenAddress(address, 6) : "---" },
-                    { label: "TEE Provider", value: form.teeProvider },
-                    { label: "Lockbox", value: "Deployed" },
-                  ].map((item) => (
-                    <div key={item.label} className="flex justify-between text-sm px-4 py-3">
-                      <span className="text-muted-foreground">{item.label}</span>
-                      <span className="font-medium truncate ml-4 text-foreground">{item.value}</span>
+                    <div className="divide-y divide-border rounded-lg bg-muted overflow-hidden">
+                      {[
+                        { label: "Agent Name", value: form.name },
+                        { label: "Operator", value: address ? shortenAddress(address, 6) : "---" },
+                        { label: "TEE Provider", value: form.teeProvider },
+                        { label: "Lockbox", value: "Deployed" },
+                      ].map((item) => (
+                        <div key={item.label} className="flex justify-between text-sm px-4 py-3">
+                          <span className="text-muted-foreground">{item.label}</span>
+                          <span className="font-medium truncate ml-4 text-foreground min-w-0">{item.value}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
 
-                <ClickSpark>
-                  <Button className="w-full font-semibold h-12 rounded-lg">
-                    <span className="flex items-center gap-2">
-                      <Shield className="w-4 h-4" />
-                      Activate Agent On-Chain
-                    </span>
-                  </Button>
-                </ClickSpark>
+                    <ClickSpark>
+                      <Button
+                        className="w-full font-semibold h-12 rounded-lg"
+                        disabled={activating}
+                        onClick={handleActivate}
+                      >
+                        <span className="flex items-center gap-2">
+                          {activating ? (
+                            <>
+                              <span className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                              Activating...
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="w-4 h-4" />
+                              Activate Agent On-Chain
+                            </>
+                          )}
+                        </span>
+                      </Button>
+                    </ClickSpark>
+                  </>
+                )}
               </div>
             )}
           </AnimatedContent>

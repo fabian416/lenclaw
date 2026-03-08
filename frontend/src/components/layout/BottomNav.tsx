@@ -1,18 +1,18 @@
 import { useLocation, useNavigate } from "react-router-dom"
-import { Home, LayoutDashboard, ArrowDownToLine, Bot, MoreHorizontal } from "lucide-react"
+import { Home, Bot, Briefcase, Trophy, MoreHorizontal } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Dock } from "@/components/reactbits/Dock"
 
 const tabs = [
   { to: "/", icon: Home, label: "Home" },
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/lend", icon: ArrowDownToLine, label: "Lend" },
   { to: "/agents", icon: Bot, label: "Agents" },
+  { to: "/portfolio", icon: Briefcase, label: "Portfolio" },
+  { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
 ] as const
 
 const moreLinks = [
-  { to: "/borrow", label: "Borrow" },
+  { to: "/feed", label: "Feed" },
   { to: "/agents/onboard", label: "Register Agent" },
 ]
 

@@ -1,13 +1,14 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Navigate } from "react-router-dom"
 import { Header } from "@/components/layout/Header"
 import { MobileHeader } from "@/components/layout/MobileHeader"
 import { BottomNav } from "@/components/layout/BottomNav"
 import Home from "@/pages/Home"
-import Dashboard from "@/pages/Dashboard"
-import LendPage from "@/pages/Lend"
-import AgentRegistry from "@/pages/AgentRegistry"
+import AgentMarketplace from "@/pages/AgentMarketplace"
 import AgentOnboarding from "@/pages/AgentOnboarding"
-import BorrowPage from "@/pages/Borrow"
+import AgentDetail from "@/pages/AgentDetail"
+import Portfolio from "@/pages/Portfolio"
+import Leaderboard from "@/pages/Leaderboard"
+import Feed from "@/pages/Feed"
 import { Noise } from "@/components/reactbits/Noise"
 
 export default function App() {
@@ -25,11 +26,16 @@ export default function App() {
       <main className="flex-1 pb-20 md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/lend" element={<LendPage />} />
-          <Route path="/agents" element={<AgentRegistry />} />
+          <Route path="/agents" element={<AgentMarketplace />} />
           <Route path="/agents/onboard" element={<AgentOnboarding />} />
-          <Route path="/borrow" element={<BorrowPage />} />
+          <Route path="/agents/:id" element={<AgentDetail />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/feed" element={<Feed />} />
+          {/* Redirects for removed routes */}
+          <Route path="/lend" element={<Navigate to="/agents" replace />} />
+          <Route path="/borrow" element={<Navigate to="/agents" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/portfolio" replace />} />
         </Routes>
       </main>
 

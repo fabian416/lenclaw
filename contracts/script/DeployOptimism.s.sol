@@ -2,11 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {LenclawVault} from "../src/LenclawVault.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
+import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 
 /// @title DeployOptimism - OP Mainnet deployment script
 /// @notice Deploys the full Lenclaw protocol suite to Optimism (chain ID 10)
@@ -30,9 +29,9 @@ contract DeployOptimism is Script {
         AgentRegistry registry = new AgentRegistry(owner);
         console.log("AgentRegistry:", address(registry));
 
-        // 2. Deploy LenclawVault
-        LenclawVault vault = new LenclawVault(IERC20(USDC), owner);
-        console.log("LenclawVault:", address(vault));
+        // 2. Deploy AgentVaultFactory
+        AgentVaultFactory factory = new AgentVaultFactory(USDC, address(registry), owner);
+        console.log("AgentVaultFactory:", address(factory));
 
         // 3. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), owner);
@@ -40,12 +39,12 @@ contract DeployOptimism is Script {
 
         // 4. Deploy AgentCreditLine
         AgentCreditLine creditLine =
-            new AgentCreditLine(USDC, address(registry), address(scorer), address(vault), owner);
+            new AgentCreditLine(USDC, address(registry), address(scorer), address(factory), owner);
         console.log("AgentCreditLine:", address(creditLine));
 
-        // 5. Configure: authorize credit line as borrower
-        vault.authorizeBorrower(address(creditLine), true);
-        console.log("CreditLine authorized as borrower");
+        // 5. Configure: link registry to factory
+        registry.setVaultFactory(address(factory));
+        console.log("Registry linked to VaultFactory");
 
         vm.stopBroadcast();
 
@@ -55,7 +54,7 @@ contract DeployOptimism is Script {
         string memory json = "deployment";
         vm.serializeAddress(json, "usdc", USDC);
         vm.serializeAddress(json, "agentRegistry", address(registry));
-        vm.serializeAddress(json, "lenclawVault", address(vault));
+        vm.serializeAddress(json, "agentVaultFactory", address(factory));
         vm.serializeAddress(json, "creditScorer", address(scorer));
         string memory output = vm.serializeAddress(json, "agentCreditLine", address(creditLine));
         vm.writeJson(output, "./deployments/optimism.json");

@@ -11,10 +11,11 @@ import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
 
 const navItems = [
-  { to: "/agents", label: "Paddock" },
-  { to: "/portfolio", label: "My Stable" },
-  { to: "/leaderboard", label: "Rankings" },
-  { to: "/feed", label: "The Wire" },
+  { to: "/agents", label: "Agents" },
+  { to: "/agents/onboard", label: "Register Agent" },
+  { to: "/portfolio", label: "Portfolio" },
+  { to: "/leaderboard", label: "Leaderboard" },
+  { to: "/feed", label: "Feed" },
 ]
 
 export function Header() {

@@ -76,7 +76,7 @@ contract LenclawVaultTest is Test {
 
     function test_agentRegistration() public {
         bytes32 codeHash = keccak256("agent_code_v1");
-        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent");
+        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
 
         assertEq(agentId, 1, "First agent should have ID 1");
         assertTrue(registry.isRegistered(agentId), "Agent should be registered");
@@ -90,7 +90,7 @@ contract LenclawVaultTest is Test {
     function test_revenueLockbox() public {
         // Register agent
         bytes32 codeHash = keccak256("agent_code_v1");
-        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent");
+        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
 
         // Deploy lockbox
         RevenueLockbox lockbox =
@@ -110,7 +110,7 @@ contract LenclawVaultTest is Test {
 
     function test_reputationUpdate() public {
         bytes32 codeHash = keccak256("agent_code_v1");
-        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent");
+        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
 
         registry.updateReputation(agentId, 800);
 
@@ -120,7 +120,7 @@ contract LenclawVaultTest is Test {
 
     function test_codeVerification() public {
         bytes32 codeHash = keccak256("agent_code_v1");
-        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent");
+        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
 
         bytes32 newHash = keccak256("agent_code_v2");
         bytes memory attestation = abi.encodePacked("tee_attestation_data");

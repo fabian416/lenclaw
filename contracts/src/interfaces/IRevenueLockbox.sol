@@ -7,6 +7,8 @@ interface IRevenueLockbox {
     event RepaymentRateUpdated(uint256 oldRate, uint256 newRate);
 
     function processRevenue() external;
+    function setRepaymentRate(uint256 newRateBps) external;
+    function adjustRateByDebt(uint256 outstandingDebt, uint256 creditLimit) external;
     function totalRevenueCapture() external view returns (uint256);
     function totalRepaid() external view returns (uint256);
     function pendingRepayment() external view returns (uint256);

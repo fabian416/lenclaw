@@ -9,10 +9,10 @@ import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
 
 const secondaryLinks = [
-  { to: "/agents", label: "Paddock" },
-  { to: "/portfolio", label: "My Stable" },
-  { to: "/leaderboard", label: "Rankings" },
-  { to: "/feed", label: "The Wire" },
+  { to: "/agents", label: "Agents" },
+  { to: "/portfolio", label: "Portfolio" },
+  { to: "/leaderboard", label: "Leaderboard" },
+  { to: "/feed", label: "Feed" },
   { to: "/agents/onboard", label: "Register Agent" },
 ]
 

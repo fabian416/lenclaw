@@ -7,17 +7,19 @@ import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {CreditScorer} from "../src/CreditScorer.sol";
 import {RevenueLockbox} from "../src/RevenueLockbox.sol";
 import {AgentCreditLine} from "../src/AgentCreditLine.sol";
-import {LenclawVault} from "../src/LenclawVault.sol";
+import {AgentVault} from "../src/AgentVault.sol";
+import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {DutchAuction} from "../src/DutchAuction.sol";
 import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 import {RecoveryManager} from "../src/RecoveryManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IAgentRegistry} from "../src/interfaces/IAgentRegistry.sol";
 
 contract LiquidationTest is Test {
     ERC20Mock public usdc;
     AgentRegistry public registry;
     CreditScorer public scorer;
-    LenclawVault public vault;
+    AgentVaultFactory public factory;
     AgentCreditLine public creditLine;
     DutchAuction public dutchAuction;
     LiquidationKeeper public keeper;
@@ -30,26 +32,44 @@ contract LiquidationTest is Test {
     address public bidder = makeAddr("bidder");
 
     uint256 public agentId;
+    address public agentVaultAddr;
 
     function setUp() public {
         // Deploy core contracts
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
         registry = new AgentRegistry(owner);
-        vault = new LenclawVault(IERC20(address(usdc)), owner);
         scorer = new CreditScorer(address(registry), owner);
+        factory = new AgentVaultFactory(address(usdc), address(registry), owner);
         creditLine = new AgentCreditLine(
-            address(usdc), address(registry), address(scorer), address(vault), owner
+            address(usdc), address(registry), address(scorer), address(factory), owner
         );
 
+        // Link registry to factory
+        registry.setVaultFactory(address(factory));
+
         // Deploy liquidation system
+        // RecoveryManager still forwards proceeds to the agent's vault.
+        // For these tests we pass address(0) as the vault param since RecoveryManager
+        // sends funds to a configured address. We'll use the agent's vault address.
         dutchAuction = new DutchAuction(address(usdc), address(this), owner);
+
+        // Register agent (auto-deploys vault)
+        bytes32 codeHash = keccak256("agent-code");
+        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
+        agentVaultAddr = factory.getVault(agentId);
+
+        // Set credit line on vault
+        factory.setVaultCreditLine(agentId, address(creditLine));
+
+        // RecoveryManager uses vaultFactory to look up per-agent vaults
         recoveryManager = new RecoveryManager(
             address(usdc),
             address(dutchAuction),
             address(registry),
-            address(vault),
+            address(factory),
             owner
         );
+
         // Update the DutchAuction to point at the real RecoveryManager
         dutchAuction.setRecoveryManager(address(recoveryManager));
 
@@ -62,17 +82,14 @@ contract LiquidationTest is Test {
         );
 
         // Wire up permissions
-        vault.authorizeBorrower(address(creditLine), true);
         recoveryManager.setKeeper(address(keeper));
 
         // Allow RecoveryManager to call registry.updateReputation()
         registry.setProtocol(address(recoveryManager));
 
-        // Register agent with lockbox and revenue
-        bytes32 codeHash = keccak256("agent-code");
-        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent");
+        // Deploy lockbox pointing to agent's vault
         RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, address(vault), agentId, address(usdc), 5000
+            agentWallet, agentVaultAddr, agentId, address(usdc), 5000
         );
         registry.setLockbox(agentId, address(lockbox));
 
@@ -80,16 +97,13 @@ contract LiquidationTest is Test {
         usdc.mint(address(lockbox), 50_000e6);
         lockbox.processRevenue();
 
-        // Seed vault with liquidity
-        usdc.mint(depositor, 1_000_000e6);
+        // Seed agent vault with depositor liquidity
+        // (vault has 25K from lockbox revenue, cap is 500K, so deposit up to 400K)
+        usdc.mint(depositor, 400_000e6);
         vm.startPrank(depositor);
-        usdc.approve(address(vault), 1_000_000e6);
-        vault.deposit(1_000_000e6, depositor);
+        usdc.approve(agentVaultAddr, 400_000e6);
+        AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
         vm.stopPrank();
-
-        // Approve vault -> creditLine for drawdowns
-        vm.prank(address(vault));
-        usdc.approve(address(creditLine), type(uint256).max);
 
         // Fund keeper bounty pool
         usdc.mint(address(keeper), 10_000e6);
@@ -370,12 +384,12 @@ contract LiquidationTest is Test {
         vm.stopPrank();
 
         // Finalize recovery
-        uint256 vaultBalanceBefore = usdc.balanceOf(address(vault));
+        uint256 vaultBalBefore = usdc.balanceOf(agentVaultAddr);
         recoveryManager.finalizeRecovery(recoveryId);
-        uint256 vaultBalanceAfter = usdc.balanceOf(address(vault));
+        uint256 vaultBalAfter = usdc.balanceOf(agentVaultAddr);
 
         // Proceeds should be forwarded to vault
-        assertEq(vaultBalanceAfter - vaultBalanceBefore, currentPrice);
+        assertEq(vaultBalAfter - vaultBalBefore, currentPrice);
 
         record = recoveryManager.getRecovery(recoveryId);
         assertEq(record.recoveredAmount, currentPrice);
@@ -432,12 +446,10 @@ contract LiquidationTest is Test {
         // Should be partial recovery with proportional loss
         assertEq(uint8(record.status), uint8(RecoveryManager.RecoveryStatus.PARTIAL_RECOVERY));
         assertGt(record.lossAmount, 0);
-        // Loss is tracked in totalLosses aggregate
         assertEq(recoveryManager.totalLosses(), record.lossAmount);
     }
 
     function test_recovery_reputationSlashedOnDefault() public {
-        // Get initial reputation
         IAgentRegistry.AgentProfile memory profileBefore = registry.getAgent(agentId);
         uint256 repBefore = profileBefore.reputationScore;
 
@@ -526,9 +538,9 @@ contract LiquidationTest is Test {
         assertFalse(dutchAuction.hasActiveAuction(agentId));
 
         // 6. Recovery manager finalizes and distributes proceeds
-        uint256 vaultBalBefore = usdc.balanceOf(address(vault));
+        uint256 vaultBalBefore = usdc.balanceOf(agentVaultAddr);
         recoveryManager.finalizeRecovery(recoveryId);
-        uint256 vaultBalAfter = usdc.balanceOf(address(vault));
+        uint256 vaultBalAfter = usdc.balanceOf(agentVaultAddr);
 
         assertEq(vaultBalAfter - vaultBalBefore, bidPrice, "Vault should receive proceeds");
 
@@ -595,6 +607,3 @@ contract LiquidationTest is Test {
         assertEq(rmBalAfter - rmBalBefore, price, "Proceeds go to RecoveryManager");
     }
 }
-
-// Needed to import the interface used in the test
-import {IAgentRegistry} from "../src/interfaces/IAgentRegistry.sol";

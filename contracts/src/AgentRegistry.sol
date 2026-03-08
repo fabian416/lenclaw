@@ -4,16 +4,26 @@ pragma solidity ^0.8.24;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
+import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 
 /// @title AgentRegistry - ERC-8004 inspired AI Agent identity registry
-/// @notice Assigns ERC-721 identities to AI agents with reputation tracking and code verification
+/// @notice Assigns ERC-721 identities to AI agents with reputation tracking and code verification.
+///         On registration, automatically deploys an individual AgentVault via the factory.
 contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
+    // Agent category constants
+    bytes32 public constant CATEGORY_TRADING = keccak256("TRADING");
+    bytes32 public constant CATEGORY_CONTENT = keccak256("CONTENT");
+    bytes32 public constant CATEGORY_ORACLE = keccak256("ORACLE");
+    bytes32 public constant CATEGORY_DEFI = keccak256("DEFI");
+    bytes32 public constant CATEGORY_NFT = keccak256("NFT");
+
     uint256 private _nextAgentId = 1;
 
     mapping(uint256 => AgentProfile) private _agents;
     mapping(address => uint256) private _walletToAgent;
 
     address public protocol;
+    IAgentVaultFactory public vaultFactory;
 
     modifier onlyProtocol() {
         require(msg.sender == protocol || msg.sender == owner(), "AgentRegistry: not protocol");
@@ -28,10 +38,19 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         protocol = _protocol;
     }
 
-    function registerAgent(address agentWallet, bytes32 codeHash, string calldata metadata)
-        external
-        returns (uint256)
-    {
+    function setVaultFactory(address _factory) external onlyOwner {
+        require(_factory != address(0), "AgentRegistry: zero factory");
+        vaultFactory = IAgentVaultFactory(_factory);
+    }
+
+    function registerAgent(
+        address agentWallet,
+        bytes32 codeHash,
+        string calldata metadata,
+        address externalToken,
+        uint256 externalProtocolId,
+        bytes32 agentCategory
+    ) external returns (uint256) {
         require(agentWallet != address(0), "AgentRegistry: zero address");
         require(_walletToAgent[agentWallet] == 0, "AgentRegistry: already registered");
 
@@ -44,13 +63,25 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
             reputationScore: 500, // Start at 500/1000
             codeVerified: false,
             lockbox: address(0),
-            registeredAt: block.timestamp
+            vault: address(0),
+            registeredAt: block.timestamp,
+            externalToken: externalToken,
+            externalProtocolId: externalProtocolId,
+            agentCategory: agentCategory
         });
 
         _walletToAgent[agentWallet] = agentId;
         _mint(agentWallet, agentId);
 
         emit AgentRegistered(agentId, agentWallet, codeHash);
+
+        // Auto-deploy vault if factory is set
+        if (address(vaultFactory) != address(0)) {
+            address vault = vaultFactory.createVault(agentId);
+            _agents[agentId].vault = vault;
+            emit VaultSet(agentId, vault);
+        }
+
         return agentId;
     }
 
@@ -81,6 +112,35 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         _agents[agentId].lockbox = lockbox;
 
         emit LockboxSet(agentId, lockbox);
+    }
+
+    function setVault(uint256 agentId, address vault) external onlyProtocol {
+        require(_ownerOf(agentId) != address(0), "AgentRegistry: agent not found");
+        require(vault != address(0), "AgentRegistry: zero vault");
+
+        _agents[agentId].vault = vault;
+
+        emit VaultSet(agentId, vault);
+    }
+
+    function setExternalIdentity(uint256 agentId, address externalToken, uint256 externalProtocolId)
+        external
+        onlyProtocol
+    {
+        require(_ownerOf(agentId) != address(0), "AgentRegistry: agent not found");
+
+        _agents[agentId].externalToken = externalToken;
+        _agents[agentId].externalProtocolId = externalProtocolId;
+
+        emit ExternalIdentitySet(agentId, externalToken, externalProtocolId);
+    }
+
+    function setAgentCategory(uint256 agentId, bytes32 category) external onlyProtocol {
+        require(_ownerOf(agentId) != address(0), "AgentRegistry: agent not found");
+
+        _agents[agentId].agentCategory = category;
+
+        emit AgentCategorySet(agentId, category);
     }
 
     function getAgent(uint256 agentId) external view returns (AgentProfile memory) {
