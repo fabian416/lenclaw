@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom"
-import { Home, Bot, Briefcase, Trophy, MoreHorizontal } from "lucide-react"
+import { Home, Bot, Briefcase, Radio, MoreHorizontal } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Dock } from "@/components/reactbits/Dock"
@@ -8,11 +8,11 @@ const tabs = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/agents", icon: Bot, label: "Agents" },
   { to: "/portfolio", icon: Briefcase, label: "Portfolio" },
-  { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
+  { to: "/feed", icon: Radio, label: "Feed" },
 ] as const
 
 const moreLinks = [
-  { to: "/feed", label: "Feed" },
+  { to: "/leaderboard", label: "Leaderboard" },
   { to: "/agents/onboard", label: "Register Agent" },
 ]
 
