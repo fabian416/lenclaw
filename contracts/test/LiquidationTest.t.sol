@@ -73,6 +73,9 @@ contract LiquidationTest is Test {
         // Update the DutchAuction to point at the real RecoveryManager
         dutchAuction.setRecoveryManager(address(recoveryManager));
 
+        // Register RecoveryManager on factory so it can freeze/unfreeze vaults and write down losses
+        factory.setRecoveryManager(address(recoveryManager));
+
         keeper = new LiquidationKeeper(
             address(creditLine),
             address(registry),
@@ -87,6 +90,14 @@ contract LiquidationTest is Test {
         // Allow RecoveryManager to call registry.updateReputation()
         registry.setProtocol(address(recoveryManager));
 
+        // Seed agent vault with depositor liquidity FIRST (before lockbox revenue)
+        // so the ERC-4626 vault mints shares at 1:1 ratio on the initial deposit.
+        usdc.mint(depositor, 400_000e6);
+        vm.startPrank(depositor);
+        usdc.approve(agentVaultAddr, 400_000e6);
+        AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
+        vm.stopPrank();
+
         // Use the factory-deployed lockbox (auto-created during registerAgent)
         address lockboxAddr = factory.getLockbox(agentId);
 
@@ -94,14 +105,6 @@ contract LiquidationTest is Test {
         usdc.mint(lockboxAddr, 50_000e6);
         vm.prank(agentWallet);
         RevenueLockbox(payable(lockboxAddr)).processRevenue();
-
-        // Seed agent vault with depositor liquidity
-        // (vault has 25K from lockbox revenue, cap is 500K, so deposit up to 400K)
-        usdc.mint(depositor, 400_000e6);
-        vm.startPrank(depositor);
-        usdc.approve(agentVaultAddr, 400_000e6);
-        AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
-        vm.stopPrank();
 
         // Fund keeper bounty pool
         usdc.mint(address(keeper), 10_000e6);
@@ -383,11 +386,16 @@ contract LiquidationTest is Test {
 
         // Finalize recovery
         uint256 vaultBalBefore = usdc.balanceOf(agentVaultAddr);
+        uint256 bidderSharesBefore = AgentVault(agentVaultAddr).balanceOf(bidder);
         recoveryManager.finalizeRecovery(recoveryId);
         uint256 vaultBalAfter = usdc.balanceOf(agentVaultAddr);
+        uint256 bidderSharesAfter = AgentVault(agentVaultAddr).balanceOf(bidder);
 
-        // Proceeds should be forwarded to vault
+        // Proceeds should be forwarded to vault (via deposit)
         assertEq(vaultBalAfter - vaultBalBefore, currentPrice);
+
+        // Buyer should have received vault shares
+        assertGt(bidderSharesAfter - bidderSharesBefore, 0, "Buyer should receive vault shares");
 
         record = recoveryManager.getRecovery(recoveryId);
         assertEq(record.recoveredAmount, currentPrice);
@@ -445,6 +453,10 @@ contract LiquidationTest is Test {
         assertEq(uint8(record.status), uint8(RecoveryManager.RecoveryStatus.PARTIAL_RECOVERY));
         assertGt(record.lossAmount, 0);
         assertEq(recoveryManager.totalLosses(), record.lossAmount);
+
+        // Buyer should still receive vault shares even in partial recovery
+        uint256 bidderShares = AgentVault(agentVaultAddr).balanceOf(bidder);
+        assertGt(bidderShares, 0, "Buyer should receive shares in partial recovery");
     }
 
     function test_recovery_reputationSlashedOnDefault() public {
@@ -537,10 +549,13 @@ contract LiquidationTest is Test {
 
         // 6. Recovery manager finalizes and distributes proceeds
         uint256 vaultBalBefore = usdc.balanceOf(agentVaultAddr);
+        uint256 bidderSharesBefore = AgentVault(agentVaultAddr).balanceOf(bidder);
         recoveryManager.finalizeRecovery(recoveryId);
         uint256 vaultBalAfter = usdc.balanceOf(agentVaultAddr);
+        uint256 bidderSharesAfter = AgentVault(agentVaultAddr).balanceOf(bidder);
 
         assertEq(vaultBalAfter - vaultBalBefore, bidPrice, "Vault should receive proceeds");
+        assertGt(bidderSharesAfter - bidderSharesBefore, 0, "Buyer should receive vault shares");
 
         record = recoveryManager.getRecovery(recoveryId);
         assertGt(record.completedAt, 0, "Recovery should be completed");
@@ -588,6 +603,57 @@ contract LiquidationTest is Test {
     function test_zeroDebtCannotCreateAuction() public {
         vm.expectRevert("DutchAuction: zero debt");
         dutchAuction.createAuction(agentId, 0);
+    }
+
+    function test_auctionBuyer_receivesVaultShares() public {
+        // Setup: agent borrows and defaults
+        _defaultAgent(5_000e6);
+
+        // Trigger liquidation
+        vm.prank(keeperBot);
+        keeper.triggerLiquidation(agentId);
+
+        uint256 recoveryId = recoveryManager.getActiveRecovery(agentId);
+        RecoveryManager.RecoveryRecord memory record = recoveryManager.getRecovery(recoveryId);
+        uint256 auctionId = record.auctionId;
+
+        // Bidder buys at current auction price (after 2 hours)
+        vm.warp(block.timestamp + 2 hours);
+        uint256 currentPrice = dutchAuction.getCurrentPrice(auctionId);
+        assertGt(currentPrice, 0, "Price should be positive");
+
+        // Verify bidder has no vault shares before
+        uint256 bidderSharesBefore = AgentVault(agentVaultAddr).balanceOf(bidder);
+        assertEq(bidderSharesBefore, 0, "Bidder should have no shares before");
+
+        // Bidder bids on the auction
+        vm.startPrank(bidder);
+        usdc.approve(address(dutchAuction), currentPrice);
+        dutchAuction.bid(auctionId);
+        vm.stopPrank();
+
+        // Still no shares — shares are minted on finalization, not on bid
+        assertEq(AgentVault(agentVaultAddr).balanceOf(bidder), 0, "No shares yet before finalization");
+
+        // Finalize recovery — this should deposit USDC into vault on behalf of buyer
+        recoveryManager.finalizeRecovery(recoveryId);
+
+        // Buyer should now have vault shares
+        uint256 bidderSharesAfter = AgentVault(agentVaultAddr).balanceOf(bidder);
+        assertGt(bidderSharesAfter, 0, "Buyer should receive vault shares after finalization");
+
+        // Vault should have received the USDC
+        // The buyer's shares represent their claim on vault assets
+        uint256 buyerAssets = AgentVault(agentVaultAddr).convertToAssets(bidderSharesAfter);
+        assertGt(buyerAssets, 0, "Buyer shares should be redeemable for assets");
+
+        // Verify the vault is unfrozen after finalization
+        assertFalse(AgentVault(agentVaultAddr).frozen(), "Vault should be unfrozen after recovery");
+
+        // Verify recovery record is correct
+        record = recoveryManager.getRecovery(recoveryId);
+        assertEq(record.recoveredAmount, currentPrice, "Recovered amount should match bid price");
+        assertGt(record.completedAt, 0, "Recovery should be completed");
     }
 
     function test_auctionProceedsGoToRecoveryManager() public {

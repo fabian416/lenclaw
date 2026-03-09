@@ -10,6 +10,7 @@ import {AgentCreditLine} from "../src/AgentCreditLine.sol";
 import {AgentVault} from "../src/AgentVault.sol";
 import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SmartWalletFactory} from "../src/SmartWalletFactory.sol";
 
 contract AgentCreditLineTest is Test {
     ERC20Mock public usdc;
@@ -249,5 +250,60 @@ contract AgentCreditLineTest is Test {
         vm.prank(makeAddr("nonOwner"));
         vm.expectRevert();
         creditLine.setDelinquencyPeriod(60 days);
+    }
+
+    // ── Period minimum enforcement ──────────────────────────────
+
+    function test_setGracePeriod_revertsIfBelowMinimum() public {
+        vm.expectRevert("AgentCreditLine: period too short");
+        creditLine.setGracePeriod(0);
+
+        vm.expectRevert("AgentCreditLine: period too short");
+        creditLine.setGracePeriod(12 hours);
+
+        // Exactly 1 day should succeed
+        creditLine.setGracePeriod(1 days);
+        assertEq(creditLine.gracePeriod(), 1 days);
+    }
+
+    function test_setDelinquencyPeriod_revertsIfBelowMinimum() public {
+        vm.expectRevert("AgentCreditLine: period too short");
+        creditLine.setDelinquencyPeriod(0);
+
+        vm.expectRevert("AgentCreditLine: period too short");
+        creditLine.setDelinquencyPeriod(2 days);
+
+        // Exactly 3 days should succeed
+        creditLine.setDelinquencyPeriod(3 days);
+        assertEq(creditLine.delinquencyPeriod(), 3 days);
+    }
+
+    function test_setDefaultPeriod_revertsIfBelowMinimum() public {
+        vm.expectRevert("AgentCreditLine: period too short");
+        creditLine.setDefaultPeriod(0);
+
+        vm.expectRevert("AgentCreditLine: period too short");
+        creditLine.setDefaultPeriod(6 days);
+
+        // Exactly 7 days should succeed
+        creditLine.setDefaultPeriod(7 days);
+        assertEq(creditLine.defaultPeriod(), 7 days);
+    }
+
+    // ── SmartWallet enforcement ─────────────────────────────────
+
+    function test_drawdown_revertsWhenRequireSmartWalletAndNotSmartWallet() public {
+        // Deploy a SmartWalletFactory (agent's wallet is a plain EOA, not a SmartWallet)
+        SmartWalletFactory swFactory = new SmartWalletFactory(address(usdc), address(registry), owner);
+
+        // Enable SmartWallet enforcement
+        creditLine.setSmartWalletFactory(address(swFactory));
+        creditLine.setRequireSmartWallet(true);
+
+        creditLine.refreshCreditLine(agentId);
+
+        vm.prank(agentWallet);
+        vm.expectRevert("AgentCreditLine: must use SmartWallet");
+        creditLine.drawdown(agentId, 1000e6);
     }
 }

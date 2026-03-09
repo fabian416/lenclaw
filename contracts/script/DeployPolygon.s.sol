@@ -66,6 +66,7 @@ contract DeployPolygon is Script {
         recoveryManager.setCreditLine(address(creditLine));
         recoveryManager.setKeeper(address(keeper));
         creditLine.setRecoveryManager(address(recoveryManager));
+        scorer.setCreditLine(address(creditLine));
         factory.setCreditLine(address(creditLine));
         factory.setRecoveryManager(address(recoveryManager));
 

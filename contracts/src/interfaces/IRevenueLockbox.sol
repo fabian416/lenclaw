@@ -9,10 +9,12 @@ interface IRevenueLockbox {
 
     function processRevenue() external;
     function setRepaymentRate(uint256 newRateBps) external;
+    function setMaxRevenuePerProcess(uint256 _max) external;
     function adjustRateByDebt(uint256 outstandingDebt, uint256 creditLimit) external;
     function totalRevenueCapture() external view returns (uint256);
     function totalRepaid() external view returns (uint256);
     function pendingRepayment() external view returns (uint256);
+    function maxRevenuePerProcess() external view returns (uint256);
     function agentId() external view returns (uint256);
     function agent() external view returns (address);
     function vault() external view returns (address);

@@ -25,6 +25,8 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     uint256 public constant MIN_REPAYMENT_RATE_BPS = 1000; // 10% floor
     uint256 public constant MAX_REPAYMENT_RATE_BPS = 10000; // 100% ceiling
 
+    uint256 public maxRevenuePerProcess; // 0 = no cap (for backwards compat)
+
     uint256 public totalRevenueCapture;
     uint256 public totalRepaid;
 
@@ -52,7 +54,8 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         uint256 _agentId,
         address _usdc,
         uint256 _repaymentRateBps,
-        address _creditLine
+        address _creditLine,
+        uint256 _maxRevenuePerProcess
     ) {
         require(_agent != address(0), "RevenueLockbox: zero agent");
         require(_vault != address(0), "RevenueLockbox: zero vault");
@@ -67,6 +70,7 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         agentId = _agentId;
         usdc = IERC20(_usdc);
         repaymentRateBps = _repaymentRateBps;
+        maxRevenuePerProcess = _maxRevenuePerProcess;
 
         deployedAt = block.timestamp;
 
@@ -83,6 +87,12 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     function setCreditLine(address _creditLine) external onlyVaultOrOwner {
         require(creditLine == address(0), "RevenueLockbox: credit line already set");
         creditLine = _creditLine;
+    }
+
+    /// @notice Update the max revenue per process call. Only callable by vault.
+    /// @param _max New max (0 = no cap)
+    function setMaxRevenuePerProcess(uint256 _max) external onlyVaultOrOwner {
+        maxRevenuePerProcess = _max;
     }
 
     /// @notice Update the repayment rate. Only callable by vault.
@@ -123,9 +133,15 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     ///         When creditLine is set, routes debt portion through AgentCreditLine
     ///         so both vault.totalBorrowed AND creditLine.principal stay in sync.
     ///         Any repayment amount exceeding outstanding debt goes directly to vault as yield.
-    function processRevenue() external nonReentrant onlyAgentOrVault {
+    function processRevenue() external nonReentrant {
         uint256 balance = usdc.balanceOf(address(this));
         require(balance > 0, "RevenueLockbox: no revenue");
+
+        // Cap revenue per process to prevent flash loan inflation
+        if (maxRevenuePerProcess > 0 && balance > maxRevenuePerProcess) {
+            balance = maxRevenuePerProcess;
+            // Remaining stays in lockbox for next processRevenue() call
+        }
 
         // Checks-Effects: update state before external calls
         uint256 repaymentAmount = (balance * repaymentRateBps) / 10000;

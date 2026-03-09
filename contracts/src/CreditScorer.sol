@@ -23,6 +23,9 @@ contract CreditScorer is Ownable, ICreditScorer {
     // Revenue multiplier: credit line = revenue * multiplier / 100
     uint256 public revenueMultiplier = 300; // 3x revenue
 
+    // Minimum average revenue per epoch to count toward consistency (50 USDC)
+    uint256 public minEpochRevenue = 50e6;
+
     // Credit line contract for reading borrowing history
     address public creditLine;
 
@@ -49,7 +52,8 @@ contract CreditScorer is Ownable, ICreditScorer {
         uint256 _maxCreditLine,
         uint256 _minRateBps,
         uint256 _maxRateBps,
-        uint256 _revenueMultiplier
+        uint256 _revenueMultiplier,
+        uint256 _minEpochRevenue
     ) external onlyOwner {
         require(_minCreditLine <= _maxCreditLine, "CreditScorer: invalid credit range");
         require(_minRateBps <= _maxRateBps, "CreditScorer: invalid rate range");
@@ -60,8 +64,16 @@ contract CreditScorer is Ownable, ICreditScorer {
         minRateBps = _minRateBps;
         maxRateBps = _maxRateBps;
         revenueMultiplier = _revenueMultiplier;
+        minEpochRevenue = _minEpochRevenue;
 
         emit ParametersUpdated(_minCreditLine, _maxCreditLine, _minRateBps, _maxRateBps);
+    }
+
+    /// @notice Get the composite credit score (0-100) for an agent
+    /// @param agentId The agent's NFT ID
+    /// @return compositeScore Weighted score from 0 to 100
+    function getCompositeScore(uint256 agentId) external view returns (uint256 compositeScore) {
+        compositeScore = _computeCompositeScore(agentId);
     }
 
     /// @notice Calculate credit line based on observable on-chain behavior
@@ -73,101 +85,7 @@ contract CreditScorer is Ownable, ICreditScorer {
         view
         returns (uint256 creditLimit, uint256 interestRateBps)
     {
-        IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
-        require(profile.lockbox != address(0), "CreditScorer: no lockbox");
-
-        IRevenueLockbox lockbox = IRevenueLockbox(profile.lockbox);
-        uint256 totalRevenue = lockbox.totalRevenueCapture();
-
-        // --- 1. Revenue Level (30%): how much total revenue ---
-        uint256 baseCreditLine = (totalRevenue * revenueMultiplier) / 100;
-        uint256 revenueScore;
-        if (baseCreditLine >= maxCreditLine) {
-            revenueScore = 100;
-        } else if (baseCreditLine <= minCreditLine) {
-            revenueScore = 0;
-        } else {
-            revenueScore = ((baseCreditLine - minCreditLine) * 100) / (maxCreditLine - minCreditLine);
-        }
-
-        // --- 2. Revenue Consistency (25%): epochs with revenue / total epochs ---
-        // An agent with 6/6 months of revenue is far more creditworthy than 1/6
-        uint256 consistencyScore;
-        uint256 currentEp = lockbox.currentEpoch();
-        if (currentEp > 0) {
-            uint256 epochsActive = lockbox.epochsWithRevenue();
-            // +1 because epoch 0 counts
-            uint256 totalEpochs = currentEp + 1;
-            consistencyScore = (epochsActive * 100) / totalEpochs;
-            if (consistencyScore > 100) consistencyScore = 100;
-        } else if (totalRevenue > 0) {
-            // Still in first epoch but has revenue
-            consistencyScore = 50; // Partial credit — too early to judge consistency
-        }
-
-        // --- 3. Credit History (20%): past borrowing behavior ---
-        // Completed loan cycles are the strongest predictor of future repayment
-        uint256 creditHistoryScore;
-        if (creditLine != address(0)) {
-            (bool ok, bytes memory data) = creditLine.staticcall(
-                abi.encodeWithSignature("loansRepaid(uint256)", agentId)
-            );
-            if (ok && data.length >= 32) {
-                uint256 completedLoans = abi.decode(data, (uint256));
-                // Scale: 3+ completed loans = full score
-                if (completedLoans >= 3) {
-                    creditHistoryScore = 100;
-                } else {
-                    creditHistoryScore = (completedLoans * 100) / 3;
-                }
-            }
-            // Check if currently delinquent — penalize heavily
-            (bool ok2, bytes memory data2) = creditLine.staticcall(
-                abi.encodeWithSignature("getStatus(uint256)", agentId)
-            );
-            if (ok2 && data2.length >= 32) {
-                uint8 status = abi.decode(data2, (uint8));
-                if (status == 1) creditHistoryScore = creditHistoryScore / 2; // DELINQUENT: halve
-                if (status == 2) creditHistoryScore = 0;                      // DEFAULT: zero
-            }
-        }
-
-        // --- 4. Time in Protocol (15%): days since registration, max 180 days ---
-        uint256 timeScore;
-        if (profile.registeredAt > 0 && block.timestamp > profile.registeredAt) {
-            uint256 daysActive = (block.timestamp - profile.registeredAt) / 1 days;
-            if (daysActive >= MAX_MATURITY_DAYS) {
-                timeScore = 100;
-            } else {
-                timeScore = (daysActive * 100) / MAX_MATURITY_DAYS;
-            }
-        }
-
-        // --- 5. Debt-to-Revenue Ratio (10%): not overextended ---
-        // Lower current debt relative to revenue = better score
-        uint256 debtRatioScore = 100; // Default: no debt = perfect
-        if (creditLine != address(0) && totalRevenue > 0) {
-            (bool ok3, bytes memory data3) = creditLine.staticcall(
-                abi.encodeWithSignature("getOutstanding(uint256)", agentId)
-            );
-            if (ok3 && data3.length >= 32) {
-                uint256 outstanding = abi.decode(data3, (uint256));
-                if (outstanding > 0) {
-                    // Debt as % of total revenue: 0% = 100 score, 100%+ = 0 score
-                    uint256 debtPct = (outstanding * 100) / totalRevenue;
-                    debtRatioScore = debtPct >= 100 ? 0 : 100 - debtPct;
-                }
-            }
-        }
-
-        // --- Composite weighted score ---
-        uint256 compositeScore = (
-            revenueScore * WEIGHT_REVENUE
-            + consistencyScore * WEIGHT_CONSISTENCY
-            + creditHistoryScore * WEIGHT_CREDIT_HISTORY
-            + timeScore * WEIGHT_TIME
-            + debtRatioScore * WEIGHT_DEBT_RATIO
-        ) / 100;
+        uint256 compositeScore = _computeCompositeScore(agentId);
 
         // --- Credit limit from composite score ---
         creditLimit = minCreditLine + (compositeScore * (maxCreditLine - minCreditLine)) / 100;
@@ -185,5 +103,112 @@ contract CreditScorer is Ownable, ICreditScorer {
         // Clamp rate
         if (interestRateBps < minRateBps) interestRateBps = minRateBps;
         if (interestRateBps > maxRateBps) interestRateBps = maxRateBps;
+    }
+
+    /// @dev Internal: compute the composite credit score (0-100) from on-chain data
+    /// Uses sub-functions to avoid stack-too-deep
+    function _computeCompositeScore(uint256 agentId) internal view returns (uint256) {
+        IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
+        require(profile.lockbox != address(0), "CreditScorer: no lockbox");
+
+        IRevenueLockbox lockbox = IRevenueLockbox(profile.lockbox);
+        uint256 totalRevenue = lockbox.totalRevenueCapture();
+
+        uint256 epochsElapsed = lockbox.currentEpoch() + 1; // +1 because epoch 0 counts
+        uint256 revenueScore = _scoreRevenue(totalRevenue, epochsElapsed);
+        uint256 consistencyScore = _scoreConsistency(lockbox, totalRevenue);
+        uint256 creditHistoryScore = _scoreCreditHistory(agentId);
+        uint256 timeScore = _scoreTime(profile.registeredAt);
+        uint256 debtRatioScore = _scoreDebtRatio(agentId, totalRevenue);
+
+        return (
+            revenueScore * WEIGHT_REVENUE
+            + consistencyScore * WEIGHT_CONSISTENCY
+            + creditHistoryScore * WEIGHT_CREDIT_HISTORY
+            + timeScore * WEIGHT_TIME
+            + debtRatioScore * WEIGHT_DEBT_RATIO
+        ) / 100;
+    }
+
+    function _scoreRevenue(uint256 totalRevenue, uint256 epochsElapsed) internal view returns (uint256) {
+        // Use average revenue per epoch, not total lifetime, to dampen flash-loan spikes
+        uint256 avgRevenue = epochsElapsed > 0 ? totalRevenue / epochsElapsed : totalRevenue;
+        uint256 baseCreditLine = (avgRevenue * revenueMultiplier) / 100;
+        if (baseCreditLine >= maxCreditLine) return 100;
+        if (baseCreditLine <= minCreditLine) return 0;
+        return ((baseCreditLine - minCreditLine) * 100) / (maxCreditLine - minCreditLine);
+    }
+
+    function _scoreConsistency(IRevenueLockbox lockbox, uint256 totalRevenue) internal view returns (uint256 score) {
+        uint256 currentEp = lockbox.currentEpoch();
+        uint256 epochsActive;
+        if (currentEp > 0) {
+            epochsActive = lockbox.epochsWithRevenue();
+            uint256 totalEpochs = currentEp + 1;
+            score = (epochsActive * 100) / totalEpochs;
+            if (score > 100) score = 100;
+        } else if (totalRevenue > 0) {
+            epochsActive = 1;
+            score = 50;
+        }
+        // Penalize low-quality epochs
+        if (epochsActive > 0 && totalRevenue / epochsActive < minEpochRevenue) {
+            score = score / 2;
+        }
+    }
+
+    function _scoreCreditHistory(uint256 agentId) internal view returns (uint256 score) {
+        if (creditLine == address(0)) return 0;
+
+        (bool ok, bytes memory data) = creditLine.staticcall(
+            abi.encodeWithSignature("loansRepaid(uint256)", agentId)
+        );
+        if (ok && data.length >= 32) {
+            uint256 completedLoans = abi.decode(data, (uint256));
+            score = completedLoans >= 3 ? 100 : (completedLoans * 100) / 3;
+        }
+
+        // Only count credit history if meaningful amounts were borrowed
+        (bool okB, bytes memory dataB) = creditLine.staticcall(
+            abi.encodeWithSignature("totalAmountBorrowed(uint256)", agentId)
+        );
+        if (okB && dataB.length >= 32) {
+            uint256 totalBorrowed = abi.decode(dataB, (uint256));
+            if (totalBorrowed < minCreditLine * 5) {
+                score = score / 3;
+            }
+        }
+
+        // Penalize delinquent/default
+        (bool ok2, bytes memory data2) = creditLine.staticcall(
+            abi.encodeWithSignature("getStatus(uint256)", agentId)
+        );
+        if (ok2 && data2.length >= 32) {
+            uint8 status = abi.decode(data2, (uint8));
+            if (status == 1) score = score / 2;
+            if (status == 2) score = 0;
+        }
+    }
+
+    function _scoreTime(uint256 registeredAt) internal view returns (uint256) {
+        if (registeredAt == 0 || block.timestamp <= registeredAt) return 0;
+        uint256 daysActive = (block.timestamp - registeredAt) / 1 days;
+        if (daysActive >= MAX_MATURITY_DAYS) return 100;
+        return (daysActive * 100) / MAX_MATURITY_DAYS;
+    }
+
+    function _scoreDebtRatio(uint256 agentId, uint256 totalRevenue) internal view returns (uint256) {
+        if (creditLine == address(0) || totalRevenue == 0) return 100;
+        (bool ok, bytes memory data) = creditLine.staticcall(
+            abi.encodeWithSignature("getOutstanding(uint256)", agentId)
+        );
+        if (ok && data.length >= 32) {
+            uint256 outstanding = abi.decode(data, (uint256));
+            if (outstanding > 0) {
+                uint256 debtPct = (outstanding * 100) / totalRevenue;
+                return debtPct >= 100 ? 0 : 100 - debtPct;
+            }
+        }
+        return 100;
     }
 }

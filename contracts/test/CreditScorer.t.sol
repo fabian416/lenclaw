@@ -170,34 +170,35 @@ contract CreditScorerTest is Test {
     // ── Parameters ──────────────────────────────────────────────
 
     function test_setParameters_success() public {
-        scorer.setParameters(50e6, 200_000e6, 200, 3000, 400);
+        scorer.setParameters(50e6, 200_000e6, 200, 3000, 400, 100e6);
 
         assertEq(scorer.minCreditLine(), 50e6);
         assertEq(scorer.maxCreditLine(), 200_000e6);
         assertEq(scorer.minRateBps(), 200);
         assertEq(scorer.maxRateBps(), 3000);
         assertEq(scorer.revenueMultiplier(), 400);
+        assertEq(scorer.minEpochRevenue(), 100e6);
     }
 
     function test_setParameters_revertsOnInvalidCreditRange() public {
         vm.expectRevert("CreditScorer: invalid credit range");
-        scorer.setParameters(200_000e6, 50e6, 300, 2500, 300);
+        scorer.setParameters(200_000e6, 50e6, 300, 2500, 300, 50e6);
     }
 
     function test_setParameters_revertsOnInvalidRateRange() public {
         vm.expectRevert("CreditScorer: invalid rate range");
-        scorer.setParameters(100e6, 100_000e6, 2500, 300, 300);
+        scorer.setParameters(100e6, 100_000e6, 2500, 300, 300, 50e6);
     }
 
     function test_setParameters_revertsOnRateTooHigh() public {
         vm.expectRevert("CreditScorer: rate too high");
-        scorer.setParameters(100e6, 100_000e6, 300, 10001, 300);
+        scorer.setParameters(100e6, 100_000e6, 300, 10001, 300, 50e6);
     }
 
     function test_setParameters_onlyOwner() public {
         vm.prank(makeAddr("nonOwner"));
         vm.expectRevert();
-        scorer.setParameters(50e6, 200_000e6, 200, 3000, 400);
+        scorer.setParameters(50e6, 200_000e6, 200, 3000, 400, 50e6);
     }
 
     // ── Rate clamping ───────────────────────────────────────────
@@ -244,5 +245,47 @@ contract CreditScorerTest is Test {
 
         assertEq(lockbox.epochsWithRevenue(), 2, "Two epochs with revenue");
         assertEq(lockbox.currentEpoch(), 1, "Now in epoch 1");
+    }
+
+    // ── Composite score ─────────────────────────────────────────
+
+    function test_getCompositeScore_matchesCreditLineCalc() public {
+        uint256 agentId = _registerAgent(agentWallet, 10_000e6);
+
+        uint256 compositeScore = scorer.getCompositeScore(agentId);
+
+        // Score should be between 0 and 100
+        assertLe(compositeScore, 100, "Composite score should be <= 100");
+
+        // Verify consistency: credit line from calculateCreditLine should match
+        // the formula: minCreditLine + (compositeScore * range) / 100
+        (uint256 creditLimit,) = scorer.calculateCreditLine(agentId);
+        uint256 expectedLimit = scorer.minCreditLine()
+            + (compositeScore * (scorer.maxCreditLine() - scorer.minCreditLine())) / 100;
+        // Clamp expected
+        if (expectedLimit < scorer.minCreditLine()) expectedLimit = scorer.minCreditLine();
+        if (expectedLimit > scorer.maxCreditLine()) expectedLimit = scorer.maxCreditLine();
+        assertEq(creditLimit, expectedLimit, "Credit limit should match composite score formula");
+    }
+
+    function test_getCompositeScore_revertsWithoutLockbox() public {
+        AgentRegistry reg2 = new AgentRegistry(owner);
+        CreditScorer scorer2 = new CreditScorer(address(reg2), owner);
+        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0));
+
+        vm.expectRevert("CreditScorer: no lockbox");
+        scorer2.getCompositeScore(agentId);
+    }
+
+    function test_getCompositeScore_higherRevenue_higherScore() public {
+        address agent2 = makeAddr("agent2");
+
+        uint256 id1 = _registerAgent(agentWallet, 1_000e6);
+        uint256 id2 = _registerAgent(agent2, 100_000e6);
+
+        uint256 score1 = scorer.getCompositeScore(id1);
+        uint256 score2 = scorer.getCompositeScore(id2);
+
+        assertGe(score2, score1, "Higher revenue should give higher composite score");
     }
 }

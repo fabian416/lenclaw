@@ -227,10 +227,11 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
         return super.deposit(assets, receiver);
     }
 
-    /// @dev Override mint to enforce deposit cap and freeze check
-    function mint(uint256 shares, address receiver) public override nonReentrant returns (uint256) {
+    /// @dev Override mint to enforce deposit cap, minimum deposit, pause, and freeze check
+    function mint(uint256 shares, address receiver) public override nonReentrant whenNotPaused returns (uint256) {
         if (frozen) revert VaultIsFrozen();
         uint256 assets = previewMint(shares);
+        if (assets < MIN_DEPOSIT) revert DepositTooSmall();
         if (depositCap > 0 && totalAssets() + assets > depositCap) revert DepositCapExceeded();
         return super.mint(shares, receiver);
     }

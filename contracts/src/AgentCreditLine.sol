@@ -43,6 +43,10 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     /// @notice RecoveryManager address authorized to write down debt
     address public recoveryManager;
 
+    /// @notice SmartWallet enforcement: require agents to use a SmartWallet for drawdowns
+    address public smartWalletFactory;
+    bool public requireSmartWallet;
+
     mapping(uint256 => CreditFacility) public facilities;
     mapping(uint256 => uint256) public lastPaymentTimestamp;
 
@@ -83,18 +87,29 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     }
 
     function setGracePeriod(uint256 _period) external onlyOwner {
+        require(_period >= 1 days, "AgentCreditLine: period too short");
         require(_period <= 30 days, "AgentCreditLine: period too long");
         gracePeriod = _period;
     }
 
     function setDelinquencyPeriod(uint256 _period) external onlyOwner {
+        require(_period >= 3 days, "AgentCreditLine: period too short");
         require(_period <= 60 days, "AgentCreditLine: period too long");
         delinquencyPeriod = _period;
     }
 
     function setDefaultPeriod(uint256 _period) external onlyOwner {
+        require(_period >= 7 days, "AgentCreditLine: period too short");
         require(_period <= 90 days, "AgentCreditLine: period too long");
         defaultPeriod = _period;
+    }
+
+    function setSmartWalletFactory(address _factory) external onlyOwner {
+        smartWalletFactory = _factory;
+    }
+
+    function setRequireSmartWallet(bool _require) external onlyOwner {
+        requireSmartWallet = _require;
     }
 
     /// @notice Get the agent's individual vault address
@@ -130,8 +145,8 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
 
         CreditFacility storage facility = facilities[agentId];
 
-        // Initialize if first drawdown
-        if (facility.creditLimit == 0) {
+        // Always refresh credit limit from scorer on every drawdown
+        {
             (uint256 limit, uint256 rate) = scorer.calculateCreditLine(agentId);
             facility.creditLimit = limit;
             facility.interestRateBps = rate;
@@ -141,6 +156,14 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
             facility.principal + facility.accruedInterest + amount <= facility.creditLimit,
             "AgentCreditLine: exceeds credit limit"
         );
+
+        // Require SmartWallet for revenue enforcement
+        if (requireSmartWallet) {
+            (bool ok, bytes memory result) = smartWalletFactory.staticcall(
+                abi.encodeWithSignature("isSmartWallet(address)", profile.wallet)
+            );
+            require(ok && abi.decode(result, (bool)), "AgentCreditLine: must use SmartWallet");
+        }
 
         facility.principal += amount;
         totalAmountBorrowed[agentId] += amount;
@@ -186,8 +209,10 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
             loansRepaid[agentId]++;
         }
 
-        // Only reset timer if meaningful payment (>= 5% of outstanding or fully paid off)
-        if (totalAfterRepay == 0 || amount >= totalOutstanding / 20) {
+        // Only reset timer if authorized caller makes meaningful payment (>= 5% of outstanding or fully paid off)
+        IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
+        bool isAuthorizedRepayer = (msg.sender == profile.wallet || msg.sender == profile.lockbox);
+        if (totalAfterRepay == 0 || (isAuthorizedRepayer && amount >= totalOutstanding / 20)) {
             lastPaymentTimestamp[agentId] = block.timestamp;
             // If was delinquent and meaningful payment made, revert to active
             if (facility.status == Status.DELINQUENT) {

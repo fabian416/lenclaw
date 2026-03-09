@@ -28,4 +28,6 @@ interface IAgentVault {
     function frozen() external view returns (bool);
     function lockbox() external view returns (address);
     function writeDownLoss(uint256 lossAmount) external;
+    function deposit(uint256 assets, address receiver) external returns (uint256);
+    function MIN_DEPOSIT() external view returns (uint256);
 }

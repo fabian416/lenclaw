@@ -17,6 +17,7 @@ contract AgentVaultFactory is Ownable {
     uint256 public defaultProtocolFeeBps = 1000; // 10% of interest
     uint256 public defaultDepositCap = 500_000e6; // 500K USDC default cap
     uint256 public defaultRepaymentRateBps = 5000; // 50% of revenue to repayment
+    uint256 public defaultMaxRevenuePerProcess = 100_000e6; // 100K USDC cap per processRevenue()
 
     /// @notice AgentCreditLine address, set on lockboxes at deployment
     address public creditLine;
@@ -41,6 +42,7 @@ contract AgentVaultFactory is Ownable {
     event DefaultProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
     event DefaultDepositCapUpdated(uint256 oldCap, uint256 newCap);
     event DefaultRepaymentRateUpdated(uint256 oldRate, uint256 newRate);
+    event DefaultMaxRevenuePerProcessUpdated(uint256 oldMax, uint256 newMax);
     event CreditLineUpdated(address indexed creditLine);
     event TreasuryUpdated(address indexed treasury);
     event RecoveryManagerUpdated(address indexed recoveryManager);
@@ -103,7 +105,8 @@ contract AgentVaultFactory is Ownable {
             agentId,
             address(usdc),
             defaultRepaymentRateBps,
-            creditLine // Pass credit line so lockbox routes repayments correctly
+            creditLine, // Pass credit line so lockbox routes repayments correctly
+            defaultMaxRevenuePerProcess
         );
 
         lockboxes[agentId] = address(newLockbox);
@@ -162,9 +165,9 @@ contract AgentVaultFactory is Ownable {
         emit RecoveryManagerUpdated(_recoveryManager);
     }
 
-    /// @notice Freeze or unfreeze an agent's vault (called by creditLine or owner)
+    /// @notice Freeze or unfreeze an agent's vault (called by creditLine, recoveryManager, or owner)
     function freezeVault(uint256 agentId, bool _frozen) external {
-        require(msg.sender == creditLine || msg.sender == owner(), "not authorized");
+        require(msg.sender == creditLine || msg.sender == recoveryManager || msg.sender == owner(), "not authorized");
         address vault = vaults[agentId];
         require(vault != address(0), "no vault");
         AgentVault(vault).setFrozen(_frozen);
@@ -197,6 +200,13 @@ contract AgentVaultFactory is Ownable {
         uint256 oldRate = defaultRepaymentRateBps;
         defaultRepaymentRateBps = _rateBps;
         emit DefaultRepaymentRateUpdated(oldRate, _rateBps);
+    }
+
+    /// @notice Update the default max revenue per process for new lockboxes
+    function setDefaultMaxRevenuePerProcess(uint256 _max) external onlyOwner {
+        uint256 oldMax = defaultMaxRevenuePerProcess;
+        defaultMaxRevenuePerProcess = _max;
+        emit DefaultMaxRevenuePerProcessUpdated(oldMax, _max);
     }
 
     /// @notice Get total number of deployed vaults

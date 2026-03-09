@@ -87,6 +87,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     event ReputationSlashed(uint256 indexed agentId, uint256 newScore);
     event WriteOff(uint256 indexed recoveryId, uint256 indexed agentId, uint256 lossAmount);
     event VaultOperationFailed(string operation, uint256 indexed agentId);
+    event BuyerSharesMinted(uint256 indexed recoveryId, address indexed buyer, uint256 assets, uint256 shares);
 
     // -- Constructor --
 
@@ -180,6 +181,9 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
     /// @notice Finalize recovery after auction settles or expires.
     ///         Distributes proceeds to the vault and records losses.
+    ///         When a buyer exists, the recovered USDC is deposited into the vault
+    ///         ON BEHALF of the auction buyer, minting them ERC-4626 vault shares.
+    ///         The buyer effectively purchases discounted exposure to the vault.
     ///         Losses are absorbed proportionally by all vault depositors
     ///         (reflected as reduced share value in the ERC-4626 vault).
     /// @param recoveryId The recovery record to finalize
@@ -195,6 +199,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             "RecoveryManager: not active"
         );
 
+        // 1. Get auction details: settled price AND buyer address
         DutchAuction.Auction memory auction = dutchAuction.getAuction(recovery.auctionId);
 
         // Auction must be settled or expired
@@ -205,8 +210,10 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         );
 
         uint256 recoveredAmount = 0;
+        address buyer = address(0);
         if (auction.status == DutchAuction.AuctionStatus.SETTLED) {
             recoveredAmount = auction.settledPrice;
+            buyer = auction.buyer;
         }
 
         recovery.recoveredAmount = recoveredAmount;
@@ -216,15 +223,38 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         address agentVault = vaultFactory.getVault(recovery.agentId);
         require(agentVault != address(0), "RecoveryManager: no vault for agent");
 
-        // Send recovered USDC directly to vault (no receiveRepayment — recovery proceeds
-        // should NOT be subject to protocol fee, and totalBorrowed is handled by writeDown)
+        // 2. Unfreeze vault FIRST so deposit works (frozen vaults revert on deposit)
+        {
+            (bool _ok, ) = address(vaultFactory).call(abi.encodeWithSignature("freezeVault(uint256,bool)", recovery.agentId, false));
+            if (!_ok) emit VaultOperationFailed("unfreezeVault", recovery.agentId);
+        }
+
+        // 3. Deposit recovered USDC into vault on behalf of the auction buyer (mints shares)
         if (recoveredAmount > 0) {
-            usdc.safeTransfer(agentVault, recoveredAmount);
             totalAmountRecovered += recoveredAmount;
+
+            if (buyer != address(0)) {
+                // Check vault's MIN_DEPOSIT threshold
+                uint256 minDeposit = IAgentVault(agentVault).MIN_DEPOSIT();
+                if (recoveredAmount >= minDeposit) {
+                    // Approve vault to pull USDC from RecoveryManager
+                    usdc.approve(agentVault, recoveredAmount);
+                    // Deposit on behalf of buyer — mints vault shares to buyer
+                    uint256 sharesMinted = IAgentVault(agentVault).deposit(recoveredAmount, buyer);
+                    emit BuyerSharesMinted(recoveryId, buyer, recoveredAmount, sharesMinted);
+                } else {
+                    // Amount below MIN_DEPOSIT — fallback to direct transfer (no shares minted)
+                    usdc.safeTransfer(agentVault, recoveredAmount);
+                }
+            } else {
+                // No buyer (shouldn't happen for SETTLED, but defensive)
+                usdc.safeTransfer(agentVault, recoveredAmount);
+            }
+
             emit ProceedsDistributed(recoveryId, recoveredAmount);
         }
 
-        // Calculate losses
+        // 4. Calculate losses
         if (recoveredAmount >= recovery.debtAmount) {
             // Full recovery (possibly at a premium)
             recovery.lossAmount = 0;
@@ -245,15 +275,15 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
                 : RecoveryStatus.WRITE_OFF;
         }
 
-        // Write down the full debt on the credit line so principal/accruedInterest
-        // are zeroed out after recovery (whether full, partial, or write-off)
+        // 5. Write down the FULL debt on the credit line so principal/accruedInterest
+        //    are zeroed out after recovery (whether full, partial, or write-off)
         if (creditLine != address(0)) {
             IAgentCreditLine(creditLine).writeDown(recovery.agentId, recovery.debtAmount);
         }
 
-        // Write down full debt on vault's totalBorrowed (covers both recovered and lost portions)
-        // The vault balance already has the recovered USDC, so totalAssets adjusts correctly:
-        // totalAssets = (balance + recoveredAmount) + (totalBorrowed - debtAmount) - fees
+        // 6. Write down full debt on vault's totalBorrowed (debt is forgiven regardless of recovery %)
+        //    The vault balance already has the recovered USDC, so totalAssets adjusts correctly:
+        //    totalAssets = (balance + recoveredAmount) + (totalBorrowed - debtAmount) - fees
         {
             (bool wdSuccess, ) = address(vaultFactory).call(
                 abi.encodeWithSignature("writeDownVaultLoss(uint256,uint256)", recovery.agentId, recovery.debtAmount)
@@ -277,11 +307,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             emit WriteOff(recoveryId, recovery.agentId, recovery.lossAmount);
         }
 
-        // Always unfreeze vault after recovery finalization
-        {
-            (bool _ok, ) = address(vaultFactory).call(abi.encodeWithSignature("freezeVault(uint256,bool)", recovery.agentId, false));
-            if (!_ok) emit VaultOperationFailed("unfreezeVault", recovery.agentId);
-        }
+        // Note: vault was already unfrozen in step 2
     }
 
     // -- Internal --

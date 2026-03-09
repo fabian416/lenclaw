@@ -39,6 +39,8 @@ interface IAgentCreditLine {
     function setGracePeriod(uint256 _period) external;
     function setDelinquencyPeriod(uint256 _period) external;
     function setDefaultPeriod(uint256 _period) external;
+    function setSmartWalletFactory(address _factory) external;
+    function setRequireSmartWallet(bool _require) external;
 
     // --- View functions ---
     function getOutstanding(uint256 agentId) external view returns (uint256);
@@ -59,4 +61,6 @@ interface IAgentCreditLine {
     function gracePeriod() external view returns (uint256);
     function delinquencyPeriod() external view returns (uint256);
     function defaultPeriod() external view returns (uint256);
+    function smartWalletFactory() external view returns (address);
+    function requireSmartWallet() external view returns (bool);
 }

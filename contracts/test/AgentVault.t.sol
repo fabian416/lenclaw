@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AgentVault} from "../src/AgentVault.sol";
 import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract MockUSDC6 is IERC20 {
     string public name = "USD Coin";
@@ -370,5 +371,30 @@ contract AgentVaultTest is Test {
         vm.prank(backer1);
         vm.expectRevert(AgentVault.NotFactory.selector);
         vault.collectFees(backer1);
+    }
+
+    function test_mint_revertsWhenPaused() public {
+        // Pause the vault via factory (pause() has onlyFactory modifier)
+        vm.prank(address(factory));
+        vault.pause();
+
+        vm.startPrank(backer1);
+        usdc.approve(address(vault), 10_000e6);
+
+        // mint should revert when paused
+        uint256 shares = vault.previewDeposit(10_000e6);
+        vm.expectRevert(abi.encodeWithSelector(Pausable.EnforcedPause.selector));
+        vault.mint(shares, backer1);
+        vm.stopPrank();
+    }
+
+    function test_mint_revertsUnderMinDeposit() public {
+        vm.startPrank(backer1);
+        usdc.approve(address(vault), 10_000e6);
+
+        // mint(1) should revert because the underlying assets are below MIN_DEPOSIT
+        vm.expectRevert(AgentVault.DepositTooSmall.selector);
+        vault.mint(1, backer1);
+        vm.stopPrank();
     }
 }

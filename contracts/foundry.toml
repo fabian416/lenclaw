@@ -8,6 +8,7 @@ evm_version = "cancun"
 optimizer = true
 optimizer_runs = 20_000
 
+
 fs_permissions = [
     { access = "read-write", path = "./" },
 ]
