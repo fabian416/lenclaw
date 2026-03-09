@@ -32,7 +32,14 @@ export type RepaymentStatus = "paid" | "upcoming" | "overdue"
  * The string labels here are the human-readable versions.
  * On-chain: keccak256("TRADING"), keccak256("CONTENT"), etc.
  */
-export type AgentCategory = "Trading" | "Content" | "Oracle" | "DeFi" | "NFT" | "Sniping" | "Stablecoin" | "Other"
+export type AgentCategory = "Trading" | "Content" | "Oracle" | "DeFi" | "NFT" | "Sniping" | "Stablecoin" | "Service" | "MEV" | "Other"
+
+/**
+ * Agent ecosystem origin. Determines onboarding flow branching,
+ * auto-fill behavior, and platform verification multipliers.
+ * Maps to externalProtocolId on-chain.
+ */
+export type AgentEcosystem = "virtuals" | "openclaw" | "clawnch" | "independent"
 
 // ── Agent (maps to IAgentRegistry.AgentProfile) ─────────────────────────────
 
@@ -123,12 +130,19 @@ export interface BorrowerData {
 // ── Onboarding form ─────────────────────────────────────────────────────────
 
 export interface OnboardingFormData {
+  // Step 1: Ecosystem
+  ecosystem: AgentEcosystem
+  // Step 2: Details (adaptive per ecosystem)
   name: string
   description: string
+  agentCategory: AgentCategory
   codeHash: string
-  teeProvider: string
-  teeAttestation: string
+  externalTokenAddress: string     // Virtuals/Clawnch: agent token contract
+  externalAgentId: string          // Platform-specific agent ID
+  // Trust
   deploySmartWallet: boolean
+  teeProvider: string              // Independent only (Advanced)
+  teeAttestation: string           // Independent only (Advanced)
 }
 
 // ── Vault-per-Agent types ───────────────────────────────────────────────────

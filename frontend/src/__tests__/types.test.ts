@@ -102,64 +102,53 @@ describe("Borrower data validation", () => {
 })
 
 describe("OnboardingFormData shape", () => {
-  it("can create a valid form object", () => {
-    const form: OnboardingFormData = {
-      name: "TestAgent",
-      description: "A test agent",
-      codeHash: "0xabcdef",
-      teeProvider: "Intel SGX",
-      teeAttestation: "attestation-data",
-      deploySmartWallet: true,
-    }
-    expect(form.name).toBe("TestAgent")
-    expect(form.codeHash.startsWith("0x")).toBe(true)
+  const baseForm: OnboardingFormData = {
+    ecosystem: "virtuals",
+    name: "TestAgent",
+    description: "A test agent",
+    agentCategory: "Trading",
+    codeHash: "0xabcdef",
+    externalTokenAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD1e",
+    externalAgentId: "",
+    deploySmartWallet: true,
+    teeProvider: "",
+    teeAttestation: "",
+  }
+
+  it("can create a valid form object with ecosystem", () => {
+    expect(baseForm.name).toBe("TestAgent")
+    expect(baseForm.ecosystem).toBe("virtuals")
+    expect(baseForm.externalTokenAddress.startsWith("0x")).toBe(true)
   })
 
-  it("validates empty form fails onboarding step 2 rules", () => {
+  it("validates step 2 requires name and description", () => {
     const emptyForm: OnboardingFormData = {
+      ...baseForm,
       name: "",
       description: "",
-      codeHash: "",
-      teeProvider: "",
-      teeAttestation: "",
-      deploySmartWallet: true,
     }
-    // Step 2 requires name, description, codeHash to be non-empty
-    const step2Valid =
-      emptyForm.name.length > 0 &&
-      emptyForm.description.length > 0 &&
-      emptyForm.codeHash.length > 0
+    const step2Valid = emptyForm.name.length > 0 && emptyForm.description.length > 0
     expect(step2Valid).toBe(false)
   })
 
-  it("validates filled form passes onboarding step 2 rules", () => {
-    const filledForm: OnboardingFormData = {
-      name: "Agent",
-      description: "Description",
-      codeHash: "0xhash",
-      teeProvider: "",
-      teeAttestation: "",
-      deploySmartWallet: true,
-    }
-    const step2Valid =
-      filledForm.name.length > 0 &&
-      filledForm.description.length > 0 &&
-      filledForm.codeHash.length > 0
+  it("validates step 2 passes with name and description", () => {
+    const step2Valid = baseForm.name.length > 0 && baseForm.description.length > 0
     expect(step2Valid).toBe(true)
   })
 
-  it("step 3 always passes - TEE is optional, smart wallet is a toggle", () => {
-    const form: OnboardingFormData = {
-      name: "Agent",
-      description: "Description",
-      codeHash: "0xhash",
-      teeProvider: "",
-      teeAttestation: "",
-      deploySmartWallet: true,
-    }
-    // Step 3 always allows proceeding (TEE optional, smart wallet toggle)
-    const step3Valid = true
-    expect(step3Valid).toBe(true)
-    expect(form.deploySmartWallet).toBe(true)
+  it("virtuals/clawnch require externalTokenAddress", () => {
+    const needsToken = baseForm.ecosystem === "virtuals" || baseForm.ecosystem === "clawnch"
+    expect(needsToken).toBe(true)
+    expect(baseForm.externalTokenAddress.length > 0).toBe(true)
+  })
+
+  it("independent agents do not need externalTokenAddress", () => {
+    const indyForm: OnboardingFormData = { ...baseForm, ecosystem: "independent", externalTokenAddress: "" }
+    const needsToken = indyForm.ecosystem === "virtuals" || indyForm.ecosystem === "clawnch"
+    expect(needsToken).toBe(false)
+  })
+
+  it("smart wallet defaults to true for all ecosystems", () => {
+    expect(baseForm.deploySmartWallet).toBe(true)
   })
 })

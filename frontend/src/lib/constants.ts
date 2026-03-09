@@ -52,6 +52,50 @@ export function getContracts(chainId: number = CHAIN_ID) {
   return contracts
 }
 
+// ── Ecosystem config ────────────────────────────────────────────────────────
+
+export const ECOSYSTEM_PROTOCOL_IDS = {
+  independent: 0,
+  virtuals: 1,
+  clawnch: 2,
+  openclaw: 3,
+} as const
+
+export const ECOSYSTEM_CONFIG = {
+  virtuals: {
+    name: "Virtuals Protocol",
+    description: "Agent token + LP on Virtuals",
+    color: "#7C3AED",
+    autoFills: ["name", "category", "token"],
+    needsTokenAddress: true,
+  },
+  openclaw: {
+    name: "ElizaOS / OpenClaw",
+    description: "Bankr wallet, x402, Moltbook",
+    color: "#059669",
+    autoFills: ["wallet", "identity"],
+    needsTokenAddress: false,
+  },
+  clawnch: {
+    name: "Clawnch",
+    description: "Agent-only token launchpad",
+    color: "#EA580C",
+    autoFills: ["name", "category", "revenue"],
+    needsTokenAddress: true,
+  },
+  independent: {
+    name: "Independent Agent",
+    description: "Custom bot or DeFi agent",
+    color: "#6B7280",
+    autoFills: [],
+    needsTokenAddress: false,
+  },
+} as const
+
+export const AGENT_CATEGORIES = [
+  "Trading", "DeFi", "Content", "Oracle", "NFT", "Sniping", "Stablecoin", "Service", "MEV", "Other",
+] as const
+
 // ============================================================================
 // MOCK DATA - Replace with contract reads when Web3 is connected
 // ============================================================================
