@@ -1,6 +1,5 @@
-import { Link, NavLink } from "react-router-dom"
-import { Menu, X, Sun, Moon } from "lucide-react"
-import { useState } from "react"
+import { Link } from "react-router-dom"
+import { Sun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
@@ -8,16 +7,7 @@ import { shortenAddress } from "@/lib/utils"
 import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
 
-const secondaryLinks = [
-  { to: "/agents", label: "Agents" },
-  { to: "/portfolio", label: "Portfolio" },
-  { to: "/leaderboard", label: "Leaderboard" },
-  { to: "/feed", label: "Feed" },
-  { to: "/agents/onboard", label: "Register Agent" },
-]
-
 export function MobileHeader() {
-  const [menuOpen, setMenuOpen] = useState(false)
   const { address, isConnected } = useAccount()
   const { connect } = useConnect()
   const { disconnect } = useDisconnect()
@@ -65,37 +55,8 @@ export function MobileHeader() {
               Connect
             </Button>
           )}
-
-          <button
-            className="p-2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-          >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </div>
-
-      {menuOpen && (
-        <nav className="border-t border-border px-4 py-3 flex flex-col gap-0.5 bg-background/95 backdrop-blur-xl">
-          {secondaryLinks.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `text-sm py-3 px-3 rounded-lg transition-colors min-h-[44px] flex items-center ${
-                  isActive
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:text-foreground"
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      )}
     </header>
   )
 }

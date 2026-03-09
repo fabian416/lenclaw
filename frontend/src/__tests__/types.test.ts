@@ -109,6 +109,7 @@ describe("OnboardingFormData shape", () => {
       codeHash: "0xabcdef",
       teeProvider: "Intel SGX",
       teeAttestation: "attestation-data",
+      deploySmartWallet: true,
     }
     expect(form.name).toBe("TestAgent")
     expect(form.codeHash.startsWith("0x")).toBe(true)
@@ -121,6 +122,7 @@ describe("OnboardingFormData shape", () => {
       codeHash: "",
       teeProvider: "",
       teeAttestation: "",
+      deploySmartWallet: true,
     }
     // Step 2 requires name, description, codeHash to be non-empty
     const step2Valid =
@@ -137,6 +139,7 @@ describe("OnboardingFormData shape", () => {
       codeHash: "0xhash",
       teeProvider: "",
       teeAttestation: "",
+      deploySmartWallet: true,
     }
     const step2Valid =
       filledForm.name.length > 0 &&
@@ -145,15 +148,18 @@ describe("OnboardingFormData shape", () => {
     expect(step2Valid).toBe(true)
   })
 
-  it("validates step 3 rules for TEE", () => {
+  it("step 3 always passes - TEE is optional, smart wallet is a toggle", () => {
     const form: OnboardingFormData = {
       name: "Agent",
       description: "Description",
       codeHash: "0xhash",
-      teeProvider: "Intel SGX",
-      teeAttestation: "attestation",
+      teeProvider: "",
+      teeAttestation: "",
+      deploySmartWallet: true,
     }
-    const step3Valid = form.teeProvider.length > 0 && form.teeAttestation.length > 0
+    // Step 3 always allows proceeding (TEE optional, smart wallet toggle)
+    const step3Valid = true
     expect(step3Valid).toBe(true)
+    expect(form.deploySmartWallet).toBe(true)
   })
 })

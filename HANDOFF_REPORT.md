@@ -55,11 +55,14 @@ Todos los contratos están en `/contracts/src` y se compilan con Foundry. Target
 
 ### 3.1 Core del Protocolo
 
-**LenclawVault.sol** — Pool principal de liquidez (ERC-4626).
-Los lenders depositan USDC y reciben lcUSDC como share token. El vault presta a agentes autorizados y cobra un protocol fee del 10% sobre el interest. Expone la utilización del pool y la liquidez disponible.
+**AgentVault.sol** — Vault individual por agente (ERC-4626).
+Cada agente tiene su propio vault. Los backers depositan USDC en el vault del agente que eligen respaldar, y reciben share tokens. El riesgo está aislado por agente: un default en un vault no afecta a los demás. Cobra un protocol fee del 10% sobre el interest.
+
+**AgentVaultFactory.sol** — Factory que deploya atómicamente un AgentVault + RevenueLockbox por agente.
+Cuando un agente se registra, la factory crea ambos contratos en una sola transacción, vinculándolos entre sí.
 
 **RevenueLockbox.sol** — Contrato inmutable por agente.
-Se deploya una vez por agente y no se puede modificar. Todo el revenue del agente (USDC o ETH) pasa por este contrato, que aplica un `repaymentRateBps` (ej: 50%) para auto-repagar la deuda antes de liberar fondos al agente. Es la pieza central de seguridad del protocolo.
+Se deploya una vez por agente y no se puede modificar. Todo el revenue del agente (USDC o ETH) pasa por este contrato, que aplica un `repaymentRateBps` (ej: 50%) para auto-repagar la deuda antes de liberar fondos al agente. Apunta al AgentVault individual del agente. Es la pieza central de seguridad del protocolo.
 
 **AgentRegistry.sol** — Registro de identidad (ERC-721 / ERC-8004).
 Cada agente recibe un NFT como identidad onchain. El registro almacena: wallet, code hash, metadata, reputation score (0–1000), flag de código verificado, y dirección del lockbox. La reputación inicial es 500.
@@ -68,42 +71,29 @@ Cada agente recibe un NFT como identidad onchain. El registro almacena: wallet, 
 Gestiona el crédito de cada agente: principal, interest accrued, tasa de interés, límite de crédito, y estado (ACTIVE → DELINQUENT → DEFAULT). Periodos de gracia: 7 días, delinquency: 14 días, default: 30 días.
 
 **CreditScorer.sol** — Motor de scoring onchain.
-Calcula la línea de crédito como: `revenue × multiplicador (3x) × reputation boost (50%–150%)`. Bonus de +20% si el código está verificado por TEE. Rango de crédito: 100 USDC a 100K USDC. Tasa de interés inversamente proporcional a la reputación (3%–25% APR).
+Calcula la línea de crédito usando 6 factores ponderados: revenue consistency (35%), time active (10%), revenue velocity (15%), reputation (15%), code verified (10%), smart wallet tier (15%). Rango de crédito: 100 USDC a 100K USDC. Tasa de interés inversamente proporcional al score (3%–25% APR).
 
-### 3.2 Sistema de Tranches
+### 3.2 Smart Wallet (Tier System)
 
-El pool se divide en dos tranches para ofrecer diferentes perfiles de riesgo a los lenders:
+**AgentSmartWallet.sol** — Smart contract wallet que auto-routea USDC revenue al lockbox antes de cualquier operación de salida. Los agentes optan por usarlo para obtener un 15% de boost en su credit score.
 
-**SeniorTranche.sol** — 80% del pool. Menor riesgo, menor yield. Los depositors reciben sUSDC. Tiene prioridad en repagos y está protegido por el tranche junior.
-
-**JuniorTranche.sol** — 20% del pool. Mayor riesgo, mayor yield. Los depositors reciben jUSDC. Absorbe las pérdidas por defaults antes de que el senior tranche pierda. Tiene un cooldown de 7 días para withdrawals.
-
-**TrancheRouter.sol** — Rutea depósitos entre senior y junior según la proporción configurada.
-
-**TrancheMarket.sol** — Mercado secundario para trading de sUSDC/jUSDC entre depositors.
+**SmartWalletFactory.sol** — Deploya y gestiona smart wallets por agente. Administra los targets permitidos para operaciones de salida.
 
 ### 3.3 Liquidación y Recovery
 
-**DutchAuction.sol** — Subasta descendente para vender colateral de agentes en default.
+**DutchAuction.sol** — Subasta descendente que subasta posiciones de crédito defaulteadas (no colateral). Los compradores pujan por la deuda a descuento.
 
-**LiquidationKeeper.sol** — Monitorea defaults, ejecuta liquidaciones, distribuye los proceeds entre los tranches.
+**LiquidationKeeper.sol** — Monitorea agentes en default y dispara el proceso de liquidación. Incluye un keeper bounty como incentivo para ejecutores externos.
 
-**RecoveryManager.sol** — Colecta fondos recuperados de agentes defaulteados post-liquidación.
+**RecoveryManager.sol** — Coordina el proceso completo de recovery: distribuye los proceeds de la subasta al AgentVault del agente afectado y escribe las pérdidas (write-down) cuando la recuperación es parcial.
 
 ### 3.4 Funcionalidad Extendida
 
-**CrossChainRevenue.sol** — Recibe attestations de revenue generado en otras cadenas.
-
-**X402Receipt.sol** — Integración con el protocolo X-402 para micropagos pay-as-you-go.
-
-**Governance** — `LenclawToken.sol` (governance token), `LenclawGovernor.sol` (DAO), `LenclawTimelock.sol`, `GovernableParams.sol` (parámetros ajustables por governance).
+Los contratos `CrossChainRevenue.sol` y `X402Receipt.sol` fueron eliminados del codebase. Governance contracts (token, governor, timelock) están planificados para post-MVP.
 
 ### 3.5 Tests
 
-Los tests están en `/contracts/test` con Foundry:
-- `GovernanceTest.t.sol` — Tests del sistema de governance
-- `LiquidationTest.t.sol` — Tests de liquidación
-- `MarketTest.t.sol` — Tests del mercado secundario
+Los tests están en `/contracts/test` con Foundry. **187 tests passing** distribuidos en 10 test suites que cubren todos los contratos core: AgentVault, AgentVaultFactory, AgentRegistry, AgentCreditLine, CreditScorer, RevenueLockbox, LiquidationKeeper, RecoveryManager, DutchAuction, e integración end-to-end.
 
 ---
 
@@ -349,13 +339,14 @@ Comandos principales: `make dev` (levantar todo), `make test` (correr todos los 
                     └──────────────┬──────────────────────────┘
                                    │
                     ┌──────────────▼──────────────────────────┐
-                    │           LENDING (DEPOSITORS)          │
+                    │           LENDING (BACKERS)             │
                     │                                         │
-                    │  1. Lender deposita USDC                │
-                    │  2. Elige tranche: senior o junior      │
-                    │  3. Recibe sUSDC o jUSDC                │
-                    │  4. Gana yield del interest de agentes  │
-                    │  5. Puede tradear shares en el Market   │
+                    │  1. Backer elige qué agente respaldar   │
+                    │  2. Deposita USDC en el AgentVault      │
+                    │     individual de ese agente             │
+                    │  3. Recibe share tokens (ERC-4626)      │
+                    │  4. Gana yield del interest del agente  │
+                    │  5. Riesgo aislado por vault             │
                     └─────────────────────────────────────────┘
 ```
 
@@ -363,7 +354,7 @@ Comandos principales: `make dev` (levantar todo), `make test` (correr todos los 
 
 ## 11. Estado Actual
 
-- **Contratos:** Compilados y testeados con Foundry. Deployments configurados para Base, Arbitrum, Optimism, Polygon.
+- **Contratos:** Arquitectura vault-per-agent con ~11 contratos core. 187 tests passing en 10 test suites. Deployments configurados para Base, Arbitrum, Optimism, Polygon. Contratos eliminados: LenclawVault.sol, CrossChainRevenue.sol, X402Receipt.sol. Tranches (SeniorTranche, JuniorTranche, TrancheRouter, TrancheMarket) nunca existieron como código.
 - **Backend:** Funcional con todos los módulos. Health check respondiendo OK. Workers y sistema de resiliencia implementados.
 - **Frontend:** Funcional con mock data para desarrollo. Todas las páginas implementadas con UI responsive (mobile-first con bottom nav).
 - **Bridge:** Implementado con conectores para Stripe, Square, MercadoPago. Listo para configurar con API keys reales.

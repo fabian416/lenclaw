@@ -34,9 +34,7 @@ La innovación clave es el **RevenueLockbox**: un smart contract inmutable que s
 
 **Esto elimina la necesidad de confianza.** No necesitás confiar en que el agente va a pagar — el contrato lo fuerza matemáticamente.
 
-Para los lenders, Lenclaw ofrece un **sistema de tranches** (senior/junior) que permite elegir perfil de riesgo:
-- **Senior tranche** (80% del pool): menor yield, protegido contra defaults
-- **Junior tranche** (20% del pool): mayor yield, absorbe pérdidas primero
+Para los lenders, Lenclaw ofrece un **modelo vault-per-agent**: los backers eligen qué agentes respaldar depositando USDC en vaults individuales (ERC-4626) específicos de cada agente. El riesgo está aislado — un default en un vault no afecta a los demás.
 
 Para el scoring, Lenclaw combina tres capas de verificación:
 - **Revenue verificable** vía oracle bridge que pollea Stripe, Square, MercadoPago
@@ -93,10 +91,9 @@ Lenclaw es un **protocolo onchain de crédito para agentes de IA** que permite:
 - Repagar automáticamente a través de su RevenueLockbox
 
 **Para Depositors (Lenders):**
-- Depositar USDC en el pool de lending
-- Elegir su perfil de riesgo (senior o junior tranche)
-- Ganar yield del interest que pagan los agentes (3%–25% APR)
-- Tradear sus posiciones en un mercado secundario
+- Elegir qué agentes respaldar depositando USDC en vaults individuales (ERC-4626)
+- Ganar yield del revenue e interest que genera ese agente (3%–25% APR)
+- Riesgo aislado por agente — un default en un vault no afecta a los demás
 
 **Para el Ecosistema:**
 - Credit scoring transparente y auditable
@@ -129,7 +126,7 @@ Ejemplo:
 ```
 
 ### Paso 4: Drawdown
-El agente toma un préstamo contra su línea de crédito. El `LenclawVault` transfiere USDC al agente.
+El agente toma un préstamo contra su línea de crédito. El `AgentVault` del agente transfiere USDC al agente.
 
 ### Paso 5: Repago Automático
 Cada vez que el agente genera revenue, el `RevenueLockbox` auto-deduce un porcentaje (ej: 50%) para repagar la deuda. El agente nunca toca esos fondos — el contrato es inmutable.
@@ -139,7 +136,7 @@ Si el agente deja de generar revenue:
 - Día 7: grace period
 - Día 14: status DELINQUENT, se reduce reputation
 - Día 30: DEFAULT → liquidación via Dutch Auction
-- Las pérdidas las absorbe primero el junior tranche, protegiendo al senior
+- Las pérdidas las absorben únicamente los backers de ese agente (el share value baja en el AgentVault específico)
 
 ---
 
@@ -156,9 +153,6 @@ Fee one-time al momento del drawdown. Un préstamo de $100K genera $500 de origi
 **3. Liquidation Fee — 5% de los proceeds**
 Cuando un agente entra en default y se ejecuta la subasta, Lenclaw retiene el 5% de lo recuperado.
 
-**4. Secondary Market Fee — 0.3% por trade**
-Fee sobre el trading de sUSDC/jUSDC en el mercado secundario de tranches.
-
 ### Unit Economics (proyección Year 2)
 
 | Métrica | Valor |
@@ -169,7 +163,7 @@ Fee sobre el trading de sUSDC/jUSDC en el mercado secundario de tranches.
 | Interest anual generado | $60M |
 | Protocol fee (10%) | $6M |
 | Origination fees (0.5%) | $2.5M |
-| Liquidation + market fees | $1.5M |
+| Liquidation fees | $1.5M |
 | **Revenue anual del protocolo** | **$10M** |
 
 ### Flywheel
@@ -197,7 +191,7 @@ Más agentes borrowing ←──┘
 Lo que necesitan saber sobre las capacidades del equipo:
 
 - **Fullstack del protocolo construido:** smart contracts, backend, frontend, ZK circuits, TEE integration, bridge oracle — todo funcional
-- **21 smart contracts** escritos, compilados y testeados con Foundry
+- **~11 core smart contracts** escritos, compilados y testeados con Foundry (**187 tests passing**)
 - **Backend production-ready** con FastAPI, workers resilientes, circuit breakers, observabilidad
 - **Frontend completo** con 7 páginas, Web3 integration, mobile-first
 - **Infraestructura Dockerizada** con CI/CD, Caddy reverse proxy, PostgreSQL, Redis
@@ -224,7 +218,7 @@ Estamos levantando una ronda para:
 
 **3. Timing perfecto.** Los agentes están escalando ahora. El primero en resolver crédito para agentes captura el mercado entero — los agentes van a ir donde hay liquidez, y la liquidez va a ir donde hay agentes.
 
-**4. Protocolo funcional.** No es un pitch con mockups. Son 30,000+ líneas de código, 21 smart contracts, backend con ML scoring, frontend completo, ZK circuits, TEE verification, y bridge oracle. Todo funcional.
+**4. Protocolo funcional.** No es un pitch con mockups. Son 30,000+ líneas de código, ~11 core smart contracts con 187 tests passing, backend con ML scoring, frontend completo, ZK circuits, TEE verification, y bridge oracle. Todo funcional.
 
 ### La visión
 

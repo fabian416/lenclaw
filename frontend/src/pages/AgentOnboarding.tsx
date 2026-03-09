@@ -6,12 +6,14 @@ import {
   Wallet,
   Bot,
   Shield,
+  ShieldCheck,
   Lock,
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
   FileCode,
   Cpu,
+  Rocket,
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -26,8 +28,8 @@ import { BorderBeam } from "@/components/reactbits/BorderBeam"
 const STEPS = [
   { id: 1, title: "Connect Wallet", icon: Wallet, description: "Link the agent's operator wallet" },
   { id: 2, title: "Agent Details", icon: Bot, description: "Name, description, and code hash" },
-  { id: 3, title: "TEE Attestation", icon: Shield, description: "Provide TEE provider and attestation" },
-  { id: 4, title: "Deploy Lockbox", icon: Lock, description: "Deploy the RevenueLockbox contract" },
+  { id: 3, title: "Trust & Verification", icon: ShieldCheck, description: "Smart Wallet and optional TEE attestation" },
+  { id: 4, title: "Deploy", icon: Rocket, description: "Deploy Lockbox and Smart Wallet contracts" },
   { id: 5, title: "Activate", icon: CheckCircle2, description: "Finalize and activate agent" },
 ]
 
@@ -43,6 +45,7 @@ export default function AgentOnboarding() {
     codeHash: "",
     teeProvider: "",
     teeAttestation: "",
+    deploySmartWallet: true,
   })
 
   const [deploying, setDeploying] = useState(false)
@@ -50,7 +53,7 @@ export default function AgentOnboarding() {
   const [activating, setActivating] = useState(false)
   const [activated, setActivated] = useState(false)
 
-  const updateForm = (field: keyof OnboardingFormData, value: string) => {
+  const updateForm = <K extends keyof OnboardingFormData>(field: K, value: OnboardingFormData[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -58,7 +61,7 @@ export default function AgentOnboarding() {
     switch (step) {
       case 1: return isConnected
       case 2: return form.name.length > 0 && form.description.length > 0 && form.codeHash.length > 0
-      case 3: return form.teeProvider.length > 0 && form.teeAttestation.length > 0
+      case 3: return true // TEE is optional, smart wallet is a toggle
       case 4: return deployed
       case 5: return true
       default: return false
@@ -67,7 +70,7 @@ export default function AgentOnboarding() {
 
   const handleDeploy = async () => {
     setDeploying(true)
-    await new Promise((r) => setTimeout(r, 2000))
+    await new Promise((r) => setTimeout(r, form.deploySmartWallet ? 3000 : 2000))
     setDeploying(false)
     setDeployed(true)
   }
@@ -223,63 +226,159 @@ export default function AgentOnboarding() {
               </div>
             )}
 
-            {/* Step 3: TEE Attestation */}
+            {/* Step 3: Trust & Verification */}
             {step === 3 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
+                {/* Smart Wallet — primary trust mechanism */}
                 <div>
-                  <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5">
-                      <Cpu className="w-3.5 h-3.5" />
-                      TEE Provider
-                    </span>
-                  </label>
+                  <button
+                    onClick={() => updateForm("deploySmartWallet", !form.deploySmartWallet)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                      form.deploySmartWallet
+                        ? "border-sky-400 bg-sky-50 dark:bg-sky-900/20 dark:border-sky-500/60"
+                        : "border-border bg-card hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        form.deploySmartWallet
+                          ? "bg-sky-100 dark:bg-sky-800/40"
+                          : "bg-muted"
+                      }`}>
+                        <ShieldCheck className={`w-5 h-5 ${
+                          form.deploySmartWallet ? "text-sky-600 dark:text-sky-400" : "text-muted-foreground"
+                        }`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-foreground">Deploy Smart Wallet</span>
+                          <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400">
+                            Recommended
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Smart Wallet auto-routes all USDC revenue to the RevenueLockbox, ensuring trustless repayment without manual intervention. Agents with Smart Wallet get the highest trust score and better credit terms.
+                        </p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+                        form.deploySmartWallet
+                          ? "border-sky-500 bg-sky-500"
+                          : "border-muted-foreground/40"
+                      }`}>
+                        {form.deploySmartWallet && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {form.deploySmartWallet && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="grid grid-cols-3 gap-3"
+                  >
+                    <div className="p-3 rounded-lg bg-sky-50 dark:bg-sky-900/15 border border-sky-200/60 dark:border-sky-500/20 text-center">
+                      <div className="text-lg font-bold text-sky-600 dark:text-sky-400">+15%</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Credit Score</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-sky-50 dark:bg-sky-900/15 border border-sky-200/60 dark:border-sky-500/20 text-center">
+                      <div className="text-lg font-bold text-sky-600 dark:text-sky-400">Auto</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Repayments</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-sky-50 dark:bg-sky-900/15 border border-sky-200/60 dark:border-sky-500/20 text-center">
+                      <div className="text-lg font-bold text-sky-600 dark:text-sky-400">Max</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Trust Tier</div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Divider */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Optional</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                {/* TEE Attestation — optional */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Cpu className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">TEE Attestation</span>
+                    <span className="text-[10px] text-muted-foreground/70 italic">optional</span>
+                  </div>
                   <Input
                     placeholder="e.g., Intel SGX, AWS Nitro, ARM TrustZone"
                     value={form.teeProvider}
                     onChange={(e) => updateForm("teeProvider", e.target.value)}
                     className="h-11"
                   />
-                </div>
-                <div>
-                  <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Attestation Data</label>
                   <Textarea
                     placeholder="Paste your TEE attestation report..."
                     value={form.teeAttestation}
                     onChange={(e) => updateForm("teeAttestation", e.target.value)}
-                    className="font-mono text-xs sm:text-sm min-h-[120px]"
-                    rows={6}
+                    className="font-mono text-xs sm:text-sm min-h-[80px]"
+                    rows={3}
                   />
-                </div>
-                <div className="p-3 rounded-lg bg-muted border border-border text-xs text-muted-foreground flex items-start gap-2">
-                  <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary/50" />
-                  <span>TEE attestation proves your agent runs in a secure enclave, ensuring code integrity and preventing tampering.</span>
+                  <div className="p-3 rounded-lg bg-muted border border-border text-xs text-muted-foreground flex items-start gap-2">
+                    <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-muted-foreground/50" />
+                    <span>TEE attestation proves your agent runs in a secure hardware enclave. This is optional but adds an extra layer of trust.</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Step 4: Deploy Lockbox */}
+            {/* Step 4: Deploy */}
             {step === 4 && (
               <div className="space-y-5">
-                <div className="p-4 rounded-lg bg-muted border border-border">
-                  <div className="flex items-start gap-3">
-                    <Lock className="w-4 h-4 text-primary/50 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-sm font-medium mb-1 text-foreground">RevenueLockbox Contract</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        The RevenueLockbox receives all revenue generated by your agent.
-                        Lenders have priority claims on this revenue, ensuring trustless repayment.
-                      </p>
+                <div className="space-y-3">
+                  {/* Lockbox — always deployed */}
+                  <div className="p-4 rounded-lg bg-muted border border-border">
+                    <div className="flex items-start gap-3">
+                      <Lock className="w-4 h-4 text-primary/50 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-medium mb-1 text-foreground">RevenueLockbox</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Receives all revenue from your agent. Lenders have priority claims for trustless repayment.
+                        </p>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Smart Wallet — if selected */}
+                  {form.deploySmartWallet && (
+                    <div className="p-4 rounded-lg bg-sky-50 dark:bg-sky-900/15 border border-sky-200 dark:border-sky-500/30">
+                      <div className="flex items-start gap-3">
+                        <ShieldCheck className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="text-sm font-medium mb-1 text-foreground">Smart Wallet</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Auto-routes USDC revenue to lockbox. Highest trust tier for backers.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {deployed ? (
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/[0.06] border border-primary/20">
-                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-foreground">Lockbox Deployed</div>
-                      <div className="text-xs text-muted-foreground mono-text truncate">0x7a23...4f8b (Base Sepolia)</div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/[0.06] border border-primary/20">
+                      <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-foreground">Lockbox Deployed</div>
+                        <div className="text-xs text-muted-foreground mono-text truncate">0x7a23...4f8b (Base Sepolia)</div>
+                      </div>
                     </div>
+                    {form.deploySmartWallet && (
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-sky-50 dark:bg-sky-900/15 border border-sky-200 dark:border-sky-500/30">
+                        <ShieldCheck className="w-5 h-5 text-sky-600 dark:text-sky-400 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground">Smart Wallet Deployed</div>
+                          <div className="text-xs text-muted-foreground mono-text truncate">0x9c41...2d7a (Base Sepolia)</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-4">
@@ -291,12 +390,12 @@ export default function AgentOnboarding() {
                       {deploying ? (
                         <span className="flex items-center gap-2">
                           <span className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
-                          Deploying Contract...
+                          Deploying Contracts...
                         </span>
                       ) : (
                         <span className="flex items-center gap-2">
-                          <Lock className="w-4 h-4" />
-                          Deploy RevenueLockbox
+                          <Rocket className="w-4 h-4" />
+                          Deploy {form.deploySmartWallet ? "Lockbox + Smart Wallet" : "Lockbox"}
                         </span>
                       )}
                     </Button>
@@ -348,12 +447,22 @@ export default function AgentOnboarding() {
                       {[
                         { label: "Agent Name", value: form.name },
                         { label: "Operator", value: address ? shortenAddress(address, 6) : "---" },
-                        { label: "TEE Provider", value: form.teeProvider },
+                        { label: "Smart Wallet", value: form.deploySmartWallet ? "Enabled" : "No" },
+                        { label: "TEE Provider", value: form.teeProvider || "Not provided" },
                         { label: "Lockbox", value: "Deployed" },
                       ].map((item) => (
                         <div key={item.label} className="flex justify-between text-sm px-4 py-3">
                           <span className="text-muted-foreground">{item.label}</span>
-                          <span className="font-medium truncate ml-4 text-foreground min-w-0">{item.value}</span>
+                          <span className={`font-medium truncate ml-4 min-w-0 ${
+                            item.label === "Smart Wallet" && form.deploySmartWallet
+                              ? "text-sky-600 dark:text-sky-400"
+                              : "text-foreground"
+                          }`}>
+                            {item.label === "Smart Wallet" && form.deploySmartWallet && (
+                              <ShieldCheck className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                            )}
+                            {item.value}
+                          </span>
                         </div>
                       ))}
                     </div>

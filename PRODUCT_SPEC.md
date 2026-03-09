@@ -2,21 +2,22 @@
 
 ## Product Vision
 
-Lenclaw is **credit infrastructure for the agentic economy**. As AI agents increasingly operate autonomously onchain -- running MEV strategies, solving intents, executing keeper jobs -- they generate verifiable revenue but lack access to credit. Lenclaw enables these agents to borrow against their onchain revenue streams using an immutable RevenueLockbox contract that captures income and auto-deducts repayments before forwarding the remainder to the agent. The agent's code may change, but the lockbox cannot be circumvented. This architectural guarantee replaces legal enforcement with smart contract certainty, creating the first credible lending market for non-human borrowers.
+Lenclaw is **credit infrastructure for the agentic economy**. As AI agents increasingly operate autonomously onchain -- running MEV strategies, solving intents, executing keeper jobs -- they generate verifiable revenue but lack access to credit. Lenclaw uses a **vault-per-agent model**: each agent gets its own ERC-4626 vault, so risk is isolated per agent and backers choose exactly which agents to fund. An immutable RevenueLockbox per agent captures income and auto-deducts repayments before forwarding the remainder to the agent. The agent's code may change, but the lockbox cannot be circumvented. This architectural guarantee replaces legal enforcement with smart contract certainty, creating the first credible lending market for non-human borrowers.
 
 ---
 
 ## User Personas
 
-### 1. Depositor (Liquidity Provider)
+### 1. Backer (Liquidity Provider)
 
 **Who:** DeFi yield seekers, institutional allocators, treasury managers.
 
-**Goal:** Earn yield by supplying USDC to Lenclaw's lending pool.
+**Goal:** Earn yield by choosing specific agents to back with USDC.
 
 **Key needs:**
-- Transparent pool statistics: TVL, utilization, APY, default rates
-- Easy deposit/withdraw with ERC-4626 share accounting
+- Browse and evaluate individual agents: revenue history, credit score, vault APY
+- Deposit into an agent-specific ERC-4626 vault, receiving agent-specific shares
+- Risk isolation: losses from one agent do not affect other vaults
 - Confidence that repayments are enforced at the smart contract level
 
 ### 2. Agent Operator
@@ -36,14 +37,15 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 ## Core User Flows
 
-### Flow 1: Depositor Supplies Liquidity
+### Flow 1: Backer Deposits Into an Agent Vault
 
 1. Connect wallet (MetaMask, WalletConnect, etc.)
-2. View pool dashboard: TVL, utilization rate, APY
-3. Approve and deposit USDC
-4. Receive lcUSDC shares (ERC-4626 vault shares)
-5. Monitor position: accrued yield, share value, pool health
-6. Withdraw: redeem shares for USDC
+2. Browse agent marketplace: view agents by revenue, credit score, vault APY
+3. Pick an agent to back, view its vault details (TVL, utilization, APY)
+4. Approve and deposit USDC into that agent's AgentVault
+5. Receive agent-specific shares (lcA{id}USDC, ERC-4626 vault shares)
+6. Monitor position: accrued yield, share value, vault health
+7. Withdraw: redeem shares for USDC from that agent's vault
 
 ### Flow 2: Agent Operator Registers Agent
 
@@ -51,16 +53,16 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 2. Navigate to Agent Onboarding
 3. Submit agent details: name, description, wallet address
 4. Submit code hash + TEE attestation for verification
-5. Protocol deploys an immutable RevenueLockbox for the agent
+5. AgentVaultFactory auto-deploys an AgentVault + immutable RevenueLockbox for the agent
 6. Agent receives ERC-8004 identity token (ERC-721)
 7. Agent starts routing revenue through the lockbox to build history
 
 ### Flow 3: Agent Borrows Against Revenue
 
 1. Agent operator views credit dashboard
-2. Protocol calculates credit line based on: revenue history (30/60/90d), consistency score, reputation, code verification status
+2. Protocol calculates credit line using 6 weighted factors: revenue history (35%), time active (10%), revenue velocity (15%), reputation score (15%), code verified (10%), smart wallet opt-in (15%)
 3. Agent draws down from available credit line
-4. Funds disbursed from lending pool to agent wallet
+4. Funds disbursed from the agent's individual AgentVault to agent wallet
 5. Revenue flows into RevenueLockbox -> auto-deduction for repayment -> remainder forwarded to agent
 6. Agent monitors outstanding debt, repayment progress, remaining credit
 
@@ -71,7 +73,9 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 3. Delinquency period (e.g. 14 days) -- status: DELINQUENT, reputation penalty begins
 4. Default (e.g. 30 days without sufficient repayment) -- status: DEFAULT
 5. Reputation slashed, credit line revoked
-6. Pool absorbs losses, lockbox continues capturing any future revenue
+6. Agent's vault freezes on default; Dutch auction triggered for collateral
+7. RecoveryManager distributes auction proceeds back to the agent's vault
+8. Losses are absorbed only by that agent's backers (risk isolated per vault)
 
 ---
 
@@ -80,11 +84,14 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 ### In Scope (MVP)
 
 - **Smart Contracts:**
-  - LenclawVault (ERC-4626 core lending pool)
+  - AgentVault (ERC-4626 individual vault per agent)
+  - AgentVaultFactory (deploys vault + lockbox per agent)
   - AgentRegistry (ERC-8004 identity, reputation tracking)
   - RevenueLockbox (immutable per-agent revenue capture + auto-repayment)
-  - CreditScorer (on-chain credit line calculation)
+  - CreditScorer (weighted multi-source scoring)
   - AgentCreditLine (per-agent borrow/repay facility)
+  - AgentSmartWallet + SmartWalletFactory (opt-in for higher credit)
+  - DutchAuction + RecoveryManager + LiquidationKeeper (liquidation stack)
 
 - **Backend (Python/FastAPI):**
   - SIWE authentication
@@ -96,8 +103,8 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 - **Frontend (React/Vite/Tailwind):**
   - Landing page with protocol overview
-  - Pool dashboard (TVL, APY, utilization)
-  - Deposit/withdraw for the lending pool
+  - Agent marketplace (browse agents, compare vault APYs)
+  - Deposit/withdraw for individual agent vaults
   - Agent registry browser
   - Agent onboarding multi-step form
   - Agent borrow/repay dashboard
@@ -112,7 +119,6 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 - TEE runtime verification (MVP accepts attestation, doesn't verify in real-time)
 - Governance token and DAO
 - Multi-chain deployment (MVP targets one EVM chain)
-- Liquidation auctions
 - Secondary market for credit positions
 - Advanced analytics and ML-based credit scoring
 - Mobile-optimized UI
@@ -123,25 +129,33 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 ## Technical Architecture Overview
 
 ```
-+-------------------+       +-------------------+       +------------------------+
-|    Frontend       |       |    Backend         |       |   Smart Contracts      |
-|  (React + Vite)   | <---> |  (FastAPI + SQLAlchemy)|<->|   (Solidity/Foundry)   |
-+-------------------+       +-------------------+       +------------------------+
-|                   |       |                   |       |                        |
-| Pages:            |       | Modules:          |       | Core:                  |
-|  - Home           |       |  - /auth (SIWE)   |       |  - LenclawVault        |
-|  - Dashboard      |       |  - /agent         |       |  - AgentRegistry       |
-|  - Lend           |       |  - /revenue       |       |  - RevenueLockbox      |
-|  - Agent Registry |       |  - /credit        |       |  - CreditScorer        |
-|  - Agent Onboard  |       |  - /pool          |       |  - AgentCreditLine     |
-|  - Borrow         |       |  - /monitoring    |       |                        |
-|                   |       |                   |       | Stack:                 |
-| Stack:            |       | Stack:            |       |  Solidity 0.8.24+      |
-|  Tailwind CSS     |       |  Python 3.12+     |       |  OpenZeppelin          |
-|  wagmi + viem     |       |  Pydantic v2      |       |  Foundry               |
-|  @tanstack/query  |       |  Alembic          |       |                        |
-|  React Router     |       |  web3.py          |       |                        |
-+-------------------+       +-------------------+       +------------------------+
++-------------------+       +-------------------+       +----------------------------+
+|    Frontend       |       |    Backend         |       |   Smart Contracts          |
+|  (React + Vite)   | <---> |  (FastAPI + SQLAlchemy)|<->|   (Solidity/Foundry)       |
++-------------------+       +-------------------+       +----------------------------+
+|                   |       |                   |       |                            |
+| Pages:            |       | Modules:          |       | Factory:                   |
+|  - Home           |       |  - /auth (SIWE)   |       |  - AgentVaultFactory       |
+|  - Marketplace    |       |  - /agent         |       |  - SmartWalletFactory      |
+|  - Agent Detail   |       |  - /revenue       |       |                            |
+|  - Portfolio      |       |  - /credit        |       | Per-Agent (deployed by     |
+|  - Leaderboard    |       |  - /pool          |       |  factory on registration): |
+|  - Agent Onboard  |       |  - /monitoring    |       |  - AgentVault (ERC-4626)   |
+|  - Borrow         |       |                   |       |  - RevenueLockbox          |
+|                   |       |                   |       |                            |
+| Stack:            |       | Stack:            |       | Singletons:                |
+|  Tailwind CSS     |       |  Python 3.12+     |       |  - AgentRegistry           |
+|  wagmi + viem     |       |  Pydantic v2      |       |  - CreditScorer            |
+|  @tanstack/query  |       |  Alembic          |       |  - AgentCreditLine         |
+|  React Router     |       |  web3.py          |       |  - DutchAuction            |
+|                   |       |                   |       |  - RecoveryManager         |
+|                   |       |                   |       |  - LiquidationKeeper       |
+|                   |       |                   |       |                            |
+|                   |       |                   |       | Stack:                     |
+|                   |       |                   |       |  Solidity 0.8.24+          |
+|                   |       |                   |       |  OpenZeppelin              |
+|                   |       |                   |       |  Foundry                   |
++-------------------+       +-------------------+       +----------------------------+
          |                           |                            |
          |                           v                            |
          |                  +----------------+                    |
@@ -158,15 +172,17 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 1. **Immutable RevenueLockbox:** One contract deployed per agent. Cannot be upgraded or modified. This is the trust anchor -- even if agent code changes, the lockbox enforces repayment.
 
-2. **Single Pool Architecture:** All depositors share one ERC-4626 vault. APY is determined by pool utilization. This simplifies the protocol and reduces smart contract surface area.
+2. **Vault-Per-Agent Architecture:** Each agent gets its own ERC-4626 AgentVault, deployed automatically by the AgentVaultFactory at registration. Risk is fully isolated: a default by one agent only affects backers of that specific vault. Backers choose which agents to fund rather than depositing into a shared pool.
 
 3. **ERC-8004 Identity:** Each agent gets an on-chain identity (ERC-721-based) that accumulates reputation. This identity is portable and composable.
 
-4. **ERC-4626 Vault:** Standard vault interface for deposits. Composable with other DeFi protocols.
+4. **ERC-4626 Agent Vaults:** Standard vault interface for deposits into each agent's vault. Composable with other DeFi protocols. Each vault mints agent-specific shares (lcA{id}USDC).
 
-5. **Off-chain Credit Scoring:** The backend runs a more sophisticated credit scoring algorithm than what's feasible on-chain. The on-chain CreditScorer provides a floor/ceiling, while the backend provides the nuanced score.
+5. **Weighted On-chain Credit Scoring:** CreditScorer uses 6 weighted factors: revenue history (35%), time active (10%), revenue velocity (15%), reputation score (15%), code verified (10%), smart wallet opt-in (15%). The backend may augment with additional off-chain signals.
 
-6. **SIWE Authentication:** Sign-In With Ethereum for both depositors and agent operators. No passwords, no email.
+6. **SIWE Authentication:** Sign-In With Ethereum for both backers and agent operators. No passwords, no email.
+
+7. **Liquidation Stack:** On default, the agent's vault freezes. A Dutch auction sells collateral, and the RecoveryManager distributes proceeds back to the vault. The LiquidationKeeper automates monitoring and triggering.
 
 ---
 
@@ -185,9 +201,9 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 - `POST /agents/{id}/credit/draw` -- Draw from credit line
 - `POST /agents/{id}/credit/repay` -- Manual repayment
 
-### Pool
-- `GET /pool/stats` -- Pool statistics (TVL, utilization, active agents, total depositors)
-- `GET /pool/apy` -- Current pool APY
+### Vaults
+- `GET /agents/{id}/vault` -- Agent vault details (TVL, utilization, APY, backer count)
+- `GET /vaults/stats` -- Aggregate statistics across all agent vaults
 
 ### Monitoring
 - `GET /agents/{id}/health` -- Agent health status and alerts
@@ -198,10 +214,12 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 | Concept | Frontend | Backend | Contracts |
 |---------|----------|---------|-----------|
-| Lending pool | Pool / Vault | pool | LenclawVault |
+| Agent vault | Agent Vault | agent_vault | AgentVault |
+| Vault factory | -- | vault_factory | AgentVaultFactory |
 | AI agent | Agent | agent | Agent (struct) |
 | Agent identity | ERC-8004 ID | agent_id | agentId (uint256) |
 | Revenue capture | Lockbox | revenue_lockbox | RevenueLockbox |
 | Credit line | Credit Line | credit_line | AgentCreditLine |
 | Credit score | Reputation Score | credit_score | creditScore |
-| Vault shares | lcUSDC | lc_usdc_shares | lcUSDC (ERC-20) |
+| Vault shares | lcA{id}USDC | lc_agent_shares | lcA{id}USDC (ERC-20) |
+| Liquidation | Auction | liquidation | DutchAuction / RecoveryManager |

@@ -1,66 +1,75 @@
-## Foundry
+# Lenclaw Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Solidity smart contracts for the Lenclaw protocol. Built with Foundry.
 
-Foundry consists of:
+## Contracts
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+| Contract | Description |
+|----------|-------------|
+| `AgentVault` | ERC-4626 vault per agent with deposit caps, withdrawal timelock, and freeze on default |
+| `AgentVaultFactory` | Atomically deploys an AgentVault + RevenueLockbox for each agent |
+| `AgentRegistry` | ERC-721 agent identity with wallet, codeHash, reputation (0-1000), and vault references |
+| `RevenueLockbox` | Immutable per-agent revenue capture; splits between repayment and agent wallet |
+| `AgentCreditLine` | Per-agent borrow/repay facility with ACTIVE/DELINQUENT/DEFAULT status tracking |
+| `CreditScorer` | Weighted scoring (revenue, time, velocity, reputation, code, wallet) for credit lines and rates |
+| `AgentSmartWallet` | Revenue-routing wallet that auto-splits USDC to lockbox before any execution |
+| `SmartWalletFactory` | Deploys AgentSmartWallet instances per agent |
+| `DutchAuction` | Linear price-decay auction for defaulted positions |
+| `RecoveryManager` | Coordinates post-default recovery and distributes auction proceeds to vault backers |
+| `LiquidationKeeper` | Monitors for defaults and triggers liquidation with keeper bounty |
 
-## Documentation
+## Architecture
 
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```
+                 Register
+  Agent ──────────────────> AgentRegistry (ERC-721)
+                                  │
+                      deploys atomically
+                         ┌────────┴────────┐
+                         v                  v
+                   AgentVault         RevenueLockbox
+                   (ERC-4626)          (immutable)
+                      ^                     │
+                      │              revenue splits
+           deposit    │            ┌────────┴────────┐
+  Backers ────────────┘            v                  v
+                            Repayment ──> Vault    Agent wallet
+                                  ^
+                                  │
+                           AgentCreditLine
+                           (borrow/repay)
+                                  │
+                            on default
+                                  v
+                     DutchAuction ──> RecoveryManager
 ```
 
-### Test
+## Build
 
-```shell
-$ forge test
+```bash
+forge build
 ```
 
-### Format
+## Test
 
-```shell
-$ forge fmt
+```bash
+forge test
 ```
 
-### Gas Snapshots
+187 tests across 10 test files.
 
-```shell
-$ forge snapshot
+## Deploy
+
+```bash
+# Base (primary)
+forge script script/DeployBase.s.sol --rpc-url $BASE_RPC --broadcast
+
+# Other chains
+forge script script/DeployArbitrum.s.sol --rpc-url $ARBITRUM_RPC --broadcast
+forge script script/DeployOptimism.s.sol --rpc-url $OPTIMISM_RPC --broadcast
+forge script script/DeployPolygon.s.sol --rpc-url $POLYGON_RPC --broadcast
 ```
 
-### Anvil
+## License
 
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+MIT

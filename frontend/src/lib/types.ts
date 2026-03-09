@@ -128,6 +128,7 @@ export interface OnboardingFormData {
   codeHash: string
   teeProvider: string
   teeAttestation: string
+  deploySmartWallet: boolean
 }
 
 // ── Vault-per-Agent types ───────────────────────────────────────────────────
