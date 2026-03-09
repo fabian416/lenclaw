@@ -33,7 +33,7 @@ contract RevenueLockboxTest is Test {
         assertEq(lockbox.agent(), agentWallet);
         assertEq(lockbox.vault(), address(agentVault));
         assertEq(lockbox.agentId(), agentId);
-        assertEq(address(lockbox.usdc()), address(usdc));
+        assertEq(address(lockbox.asset()), address(usdc));
         assertEq(lockbox.repaymentRateBps(), repaymentRate);
     }
 
@@ -47,8 +47,8 @@ contract RevenueLockboxTest is Test {
         new RevenueLockbox(agentWallet, address(0), agentId, address(usdc), repaymentRate, address(0), 0);
     }
 
-    function test_constructor_revertsOnZeroUSDC() public {
-        vm.expectRevert("RevenueLockbox: zero usdc");
+    function test_constructor_revertsOnZeroAsset() public {
+        vm.expectRevert("RevenueLockbox: zero asset");
         new RevenueLockbox(agentWallet, address(agentVault), agentId, address(0), repaymentRate, address(0), 0);
     }
 
@@ -125,17 +125,21 @@ contract RevenueLockboxTest is Test {
         assertEq(usdc.balanceOf(agentWallet), 1500e6);
     }
 
-    function test_processRevenue_callableByAnyone() public {
+    function test_processRevenue_onlyAgentOrVault() public {
         usdc.mint(address(lockbox), 1000e6);
 
+        // Random caller should be blocked
         address randomCaller = makeAddr("randomKeeper");
         vm.prank(randomCaller);
+        vm.expectRevert("RevenueLockbox: not authorized");
+        lockbox.processRevenue();
+
+        // Agent can call
+        vm.prank(agentWallet);
         lockbox.processRevenue();
 
         assertEq(usdc.balanceOf(address(agentVault)), 500e6, "Vault should get 50%");
         assertEq(usdc.balanceOf(agentWallet), 500e6, "Agent should get 50%");
-        assertEq(lockbox.totalRevenueCapture(), 1000e6);
-        assertEq(lockbox.totalRepaid(), 500e6);
     }
 
     function test_processRevenue_revertsWhenNoBalance() public {

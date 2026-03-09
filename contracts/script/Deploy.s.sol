@@ -40,8 +40,11 @@ contract DeployLenclaw is Script {
         console.log("AgentRegistry deployed at:", address(registry));
 
         // 3. Deploy AgentVaultFactory
-        AgentVaultFactory factory = new AgentVaultFactory(address(usdc), address(registry), deployer);
+        AgentVaultFactory factory = new AgentVaultFactory(address(registry), deployer);
         console.log("AgentVaultFactory deployed at:", address(factory));
+
+        // 3b. Whitelist USDC as allowed asset
+        factory.setAllowedAsset(address(usdc), true);
 
         // 4. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), deployer);
@@ -49,7 +52,7 @@ contract DeployLenclaw is Script {
 
         // 5. Deploy AgentCreditLine (now takes factory instead of vault)
         AgentCreditLine creditLine =
-            new AgentCreditLine(address(usdc), address(registry), address(scorer), address(factory), deployer);
+            new AgentCreditLine(address(registry), address(scorer), address(factory), deployer);
         console.log("AgentCreditLine deployed at:", address(creditLine));
 
         // 6. Deploy DutchAuction (deployer as placeholder recoveryManager, updated below)

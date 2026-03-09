@@ -32,7 +32,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
         AuctionStatus status;
     }
 
-    IERC20 public immutable usdc;
+    IERC20 public immutable asset;
     address public recoveryManager;
 
     /// @notice Configurable auction parameters
@@ -69,10 +69,10 @@ contract DutchAuction is Ownable, ReentrancyGuard {
 
     // ── Constructor ─────────────────────────────────────────────
 
-    constructor(address _usdc, address _recoveryManager, address _owner) Ownable(_owner) {
-        require(_usdc != address(0), "DutchAuction: zero usdc");
+    constructor(address _asset, address _recoveryManager, address _owner) Ownable(_owner) {
+        require(_asset != address(0), "DutchAuction: zero asset");
         require(_recoveryManager != address(0), "DutchAuction: zero recovery manager");
-        usdc = IERC20(_usdc);
+        asset = IERC20(_asset);
         recoveryManager = _recoveryManager;
     }
 
@@ -153,7 +153,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
         require(currentPrice > 0, "DutchAuction: price is zero");
 
         // Transfer USDC from bidder to this contract
-        usdc.safeTransferFrom(msg.sender, address(this), currentPrice);
+        asset.safeTransferFrom(msg.sender, address(this), currentPrice);
 
         // Settle the auction
         auction.settledPrice = currentPrice;
@@ -164,7 +164,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
         activeAuctionByAgent[auction.agentId] = 0;
 
         // Forward proceeds to the RecoveryManager
-        usdc.safeTransfer(recoveryManager, currentPrice);
+        asset.safeTransfer(recoveryManager, currentPrice);
 
         emit AuctionSettled(auctionId, auction.agentId, msg.sender, currentPrice);
     }

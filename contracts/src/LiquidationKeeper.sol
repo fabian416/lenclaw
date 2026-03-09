@@ -16,7 +16,7 @@ contract LiquidationKeeper is Ownable {
 
     AgentCreditLine public immutable creditLine;
     IAgentRegistry public immutable registry;
-    IERC20 public immutable usdc;
+    IERC20 public immutable asset;
 
     address public recoveryManager;
 
@@ -53,18 +53,18 @@ contract LiquidationKeeper is Ownable {
     constructor(
         address _creditLine,
         address _registry,
-        address _usdc,
+        address _asset,
         address _recoveryManager,
         address _owner
     ) Ownable(_owner) {
         require(_creditLine != address(0), "LiquidationKeeper: zero credit line");
         require(_registry != address(0), "LiquidationKeeper: zero registry");
-        require(_usdc != address(0), "LiquidationKeeper: zero usdc");
+        require(_asset != address(0), "LiquidationKeeper: zero asset");
         require(_recoveryManager != address(0), "LiquidationKeeper: zero recovery manager");
 
         creditLine = AgentCreditLine(_creditLine);
         registry = IAgentRegistry(_registry);
-        usdc = IERC20(_usdc);
+        asset = IERC20(_asset);
         recoveryManager = _recoveryManager;
     }
 
@@ -149,14 +149,14 @@ contract LiquidationKeeper is Ownable {
 
         // Pay keeper bounty if contract has funds
         uint256 bountyPaid = 0;
-        uint256 balance = usdc.balanceOf(address(this));
+        uint256 balance = asset.balanceOf(address(this));
         if (bounty > 0 && balance >= bounty) {
             bountyPaid = bounty;
-            usdc.safeTransfer(msg.sender, bountyPaid);
+            asset.safeTransfer(msg.sender, bountyPaid);
         } else if (balance > 0 && bounty > 0) {
             // Pay whatever is available
             bountyPaid = balance;
-            usdc.safeTransfer(msg.sender, bountyPaid);
+            asset.safeTransfer(msg.sender, bountyPaid);
         }
 
         // Notify recovery manager to start the recovery process
@@ -169,7 +169,7 @@ contract LiquidationKeeper is Ownable {
     /// @notice Fund the keeper contract with USDC for bounty payments
     /// @param amount Amount of USDC to deposit
     function fundBountyPool(uint256 amount) external {
-        usdc.safeTransferFrom(msg.sender, address(this), amount);
+        asset.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     /// @notice Withdraw bounty pool funds (owner only)
@@ -177,12 +177,12 @@ contract LiquidationKeeper is Ownable {
     /// @param amount Amount to withdraw
     function withdrawBountyPool(address to, uint256 amount) external onlyOwner {
         require(to != address(0), "LiquidationKeeper: zero address");
-        usdc.safeTransfer(to, amount);
+        asset.safeTransfer(to, amount);
     }
 
     /// @notice Get the bounty pool balance
     function bountyPoolBalance() external view returns (uint256) {
-        return usdc.balanceOf(address(this));
+        return asset.balanceOf(address(this));
     }
 }
 

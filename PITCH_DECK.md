@@ -15,14 +15,30 @@ Pero tienen un problema fundamental: **no pueden acceder a crédito.**
 - No tienen historial crediticio. FICO no los contempla.
 - No pueden ir a un banco. Ninguna institución financiera los atiende.
 
-Esto genera una ineficiencia masiva: **agentes con revenue demostrable y creciente que
-Lenclaw apunta a ser para agentes lo que Maple Finance fue para instituciones: **la capa de crédito para una nueva clase de borrower.**
+### Por qué un agente necesita crédito — casos concretos
 
---- no pueden financiar su crecimiento**. Un agente que genera $50K/mes de revenue y necesita $100K para escalar su infraestructura simplemente no tiene a dónde ir.
+**1. Trading agent que necesita capital para escalar.**
+Un agente de arbitraje genera $30K/mes con $50K de capital. Detecta oportunidades consistentes para $200K pero no tiene cómo financiar la diferencia. Con una credit line de $150K (respaldada por su revenue stream), puede 4x su operación y pagar el préstamo con las ganancias incrementales.
+
+**2. Data oracle que necesita pre-financiar APIs.**
+Un agente vende datos onchain pero necesita pagar APIs premium (OpenAI, Bloomberg, Chainlink) por adelantado. Genera $15K/mes pero necesita $40K upfront para suscripciones anuales con descuento. Sin crédito, paga mes a mes un 60% más caro.
+
+**3. Agente SaaS que necesita infraestructura.**
+Un agente de automatización de workflows tiene 200 usuarios pagando $50/mes. Necesita migrar a GPUs dedicadas ($80K) para reducir latencia y retener clientes enterprise. Su revenue de $10K/mes es estable y creciente, pero no tiene cómo acceder a ese capital hoy.
+
+**4. Yield aggregator que necesita liquidez inicial.**
+Un agente que optimiza yield entre protocolos genera mejores returns con más capital bajo gestión. Con $500K propios genera 12% APY; con $2M podría acceder a pools institucionales que rinden 18%. Necesita un boost de capital para cruzar el umbral.
+
+**5. Agente de pagos/remesas que necesita float.**
+Un agente que procesa remesas LatAm necesita mantener un buffer de liquidez en destino. Procesa $100K/mes en volumen pero necesita $30K de float permanente para cubrir settlement delays. Sin crédito, limita su capacidad de procesamiento.
+
+### El problema sistémico
+
+Esto genera una ineficiencia masiva: **agentes con revenue demostrable y creciente que no pueden financiar su crecimiento**. Un agente que genera $50K/mes de revenue y necesita $100K para escalar su infraestructura simplemente no tiene a dónde ir.
 
 El lending DeFi existente (Aave, Compound, Maker) tampoco resuelve esto. Requieren over-collateralization — el agente necesita depositar $150K en ETH para pedir $100K. Si tuviera los $150K, no necesitaría el préstamo.
 
-**El resultado: billones de dólares en revenue de agentes que no pueden convertirse en capital de crecimiento.**
+**El resultado: revenue de agentes que no puede convertirse en capital de crecimiento. Hoy Virtuals Protocol tiene $477M en "agentic GDP" y 18,000+ agentes — y ninguno puede acceder a crédito.**
 
 ---
 
@@ -30,9 +46,13 @@ El lending DeFi existente (Aave, Compound, Maker) tampoco resuelve esto. Requier
 
 Lenclaw es un **protocolo de lending under-collateralized diseñado específicamente para agentes de IA**, donde el colateral no es un asset — es el revenue stream del agente.
 
-La innovación clave es el **RevenueLockbox**: un smart contract inmutable que se deploya una vez por agente y que captura todo su revenue. El lockbox auto-deduce los repagos antes de que el agente acceda a los fondos. El agente puede cambiar su código, migrar de proveedor, actualizar su lógica — pero no puede tocar el lockbox. Es como un embargo de sueldo, pero ejecutado por código, no por un juez.
+La innovación clave son dos capas que trabajan juntas:
 
-**Esto elimina la necesidad de confianza.** No necesitás confiar en que el agente va a pagar — el contrato lo fuerza matemáticamente.
+**1. AgentSmartWallet** — una wallet controlada por el protocolo que el agente usa como su cuenta operativa. Cada vez que el agente ejecuta una transacción, la wallet automáticamente rutea un porcentaje del revenue acumulado al lockbox. El agente no puede ejecutar operaciones sin que el routing ocurra primero. Es como un embargo de sueldo automático.
+
+**2. RevenueLockbox** — un smart contract inmutable que se deploya una vez por agente. Recibe el revenue ruteado por la SmartWallet, auto-deduce los repagos de deuda, y solo entonces libera el restante al agente. El lockbox es inmutable — ni el agente ni el protocolo pueden modificarlo.
+
+**El enforcement es a nivel de wallet, no de buena voluntad.** El agente registra su SmartWallet como dirección operativa. Todo su revenue llega ahí. La wallet fuerza el routing antes de cualquier `execute()`. El agente puede cambiar su código, migrar de proveedor, actualizar su lógica — pero cada transacción pasa por el lockbox primero.
 
 Para los lenders, Lenclaw ofrece un **modelo vault-per-agent**: los backers eligen qué agentes respaldar depositando USDC en vaults individuales (ERC-4626) específicos de cada agente. El riesgo está aislado — un default en un vault no afecta a los demás.
 
@@ -63,20 +83,21 @@ ERC-4626 (vaults tokenizados), account abstraction, oracles confiables, ZK proof
 ## 4. MARKET SIZE
 
 ### TAM — Total Addressable Market
-**$2.6T** — Mercado global de lending empresarial a PyMEs y entities sin acceso a crédito bancario tradicional. Los agentes de IA son la nueva categoría de "entity sin acceso".
+**$2.6T** — Mercado global de lending empresarial a entities sin acceso a crédito bancario tradicional. Los agentes de IA son la nueva categoría de borrower sin acceso.
 
 ### SAM — Serviceable Addressable Market
-**$180B** — Revenue anual estimado de agentes de IA autónomos para 2027 (fuente: proyecciones de ARK Invest, a16z crypto). Aplicando un ratio préstamo/revenue de 3x, el mercado de crédito es de ~$540B en originaciones.
+**$5.7B** — 49,000+ agentes registrados con ERC-8004 + Virtuals ($477M en aGDP anualizado). Aplicando un ratio préstamo/revenue de 3x, el mercado de crédito para agentes onchain hoy es de ~$1.4B en originaciones potenciales, creciendo a $5.7B para 2028 al ritmo actual (40x en 18 meses).
 
 ### SOM — Serviceable Obtainable Market
-**$5B** — Captura del 1% del mercado de crédito para agentes en los primeros 3 años, enfocándose en agentes DeFi, agentes de API/SaaS, y agentes de trading operando en Base, Arbitrum y Optimism.
+**$50M** — Captura del 3-5% de las originaciones en Base y Celo en los primeros 18 meses, enfocándose en trading agents y yield aggregators del ecosistema Virtuals.
 
 ### Métricas de referencia
-- Aave tiene $12B en TVL con over-collateralized lending
-- Goldfinch y Maple Finance originaron $1B+ en under-collateralized lending a empresas reales
-- El mercado de lending DeFi crece 80% YoY
+- Wildcat Finance: $150M en crédito outstanding, $368M originados (under-collateralized, institucional)
+- Virtuals Protocol: 18,000+ agentes, $477M aGDP, Revenue Network activo
+- 49,000+ agentes registrados con ERC-8004 en 13+ chains
+- Coinbase Agentic Wallets + x402 (50M+ transacciones) = infraestructura de pagos lista
 
-Lenclaw apunta a ser para agentes lo que Maple Finance fue para instituciones: **la capa de crédito para una nueva clase de borrower.**
+Lenclaw apunta a ser para agentes lo que Wildcat Finance es para instituciones: **la capa de crédito para una nueva clase de borrower.**
 
 ---
 
@@ -153,18 +174,22 @@ Fee one-time al momento del drawdown. Un préstamo de $100K genera $500 de origi
 **3. Liquidation Fee — 5% de los proceeds**
 Cuando un agente entra en default y se ejecuta la subasta, Lenclaw retiene el 5% de lo recuperado.
 
-### Unit Economics (proyección Year 2)
+### Unit Economics (proyección Year 2 — escenario conservador)
 
 | Métrica | Valor |
 |---------|-------|
-| Total Value Locked (TVL) | $200M |
-| Originaciones anuales | $500M |
+| Total Value Locked (TVL) | $15M |
+| Agentes activos con credit line | 150 |
+| Credit line promedio | $100K |
+| Originaciones anuales | $50M |
 | Interest rate promedio | 12% APR |
-| Interest anual generado | $60M |
-| Protocol fee (10%) | $6M |
-| Origination fees (0.5%) | $2.5M |
-| Liquidation fees | $1.5M |
-| **Revenue anual del protocolo** | **$10M** |
+| Interest anual generado | $6M |
+| Protocol fee (10%) | $600K |
+| Origination fees (0.5%) | $250K |
+| Liquidation fees | $100K |
+| **Revenue anual del protocolo** | **~$950K** |
+
+*Para referencia: Wildcat Finance alcanzó $150M outstanding en su primer año con borrowers institucionales. Nuestro target de $15M TVL es 10x más modesto.*
 
 ### Flywheel
 

@@ -19,7 +19,7 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     address public immutable agent;
     address public immutable vault; // Agent's individual AgentVault
     uint256 public immutable agentId;
-    IERC20 public immutable usdc;
+    IERC20 public immutable asset;
 
     uint256 public repaymentRateBps; // e.g. 5000 = 50% of revenue goes to repayment
     uint256 public constant MIN_REPAYMENT_RATE_BPS = 1000; // 10% floor
@@ -52,14 +52,14 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         address _agent,
         address _vault,
         uint256 _agentId,
-        address _usdc,
+        address _asset,
         uint256 _repaymentRateBps,
         address _creditLine,
         uint256 _maxRevenuePerProcess
     ) {
         require(_agent != address(0), "RevenueLockbox: zero agent");
         require(_vault != address(0), "RevenueLockbox: zero vault");
-        require(_usdc != address(0), "RevenueLockbox: zero usdc");
+        require(_asset != address(0), "RevenueLockbox: zero asset");
         require(
             _repaymentRateBps == 0 || (_repaymentRateBps >= MIN_REPAYMENT_RATE_BPS && _repaymentRateBps <= MAX_REPAYMENT_RATE_BPS),
             "RevenueLockbox: rate out of bounds"
@@ -68,7 +68,7 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         agent = _agent;
         vault = _vault;
         agentId = _agentId;
-        usdc = IERC20(_usdc);
+        asset = IERC20(_asset);
         repaymentRateBps = _repaymentRateBps;
         maxRevenuePerProcess = _maxRevenuePerProcess;
 
@@ -128,13 +128,18 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         emit RepaymentRateUpdated(oldRate, newRate);
     }
 
-    /// @notice Process all USDC revenue sitting in this contract.
+    /// @notice Process all revenue sitting in this contract.
     ///         Splits between repayment and remainder to agent.
     ///         When creditLine is set, routes debt portion through AgentCreditLine
     ///         so both vault.totalBorrowed AND creditLine.principal stay in sync.
     ///         Any repayment amount exceeding outstanding debt goes directly to vault as yield.
+    ///         Restricted to agent, vault, or SmartWallet to prevent MEV/griefing.
     function processRevenue() external nonReentrant {
-        uint256 balance = usdc.balanceOf(address(this));
+        require(
+            msg.sender == agent || msg.sender == vault,
+            "RevenueLockbox: not authorized"
+        );
+        uint256 balance = asset.balanceOf(address(this));
         require(balance > 0, "RevenueLockbox: no revenue");
 
         // Cap revenue per process to prevent flash loan inflation
@@ -169,33 +174,33 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
 
                 if (toDebt > 0) {
                     // CreditLine.repay() pulls USDC from us, updates debt, forwards to vault
-                    usdc.forceApprove(creditLine, toDebt);
+                    asset.forceApprove(creditLine, toDebt);
                     IAgentCreditLine(creditLine).repay(agentId, toDebt);
                 }
 
                 if (toVaultDirect > 0) {
                     // Excess beyond debt goes directly to vault as yield for backers
                     // interestPortion=0: this is revenue, not interest — no protocol fee
-                    usdc.forceApprove(vault, toVaultDirect);
+                    asset.forceApprove(vault, toVaultDirect);
                     IAgentVault(vault).receiveRepayment(toVaultDirect, 0);
                 }
             } else {
                 // Fallback: no credit line set, send directly to vault
                 // interestPortion=0: this is revenue, not interest — no protocol fee
-                usdc.forceApprove(vault, repaymentAmount);
+                asset.forceApprove(vault, repaymentAmount);
                 IAgentVault(vault).receiveRepayment(repaymentAmount, 0);
             }
         }
 
         if (agentAmount > 0) {
-            usdc.safeTransfer(agent, agentAmount);
+            asset.safeTransfer(agent, agentAmount);
         }
 
         emit RevenueProcessed(repaymentAmount, agentAmount);
     }
 
     function pendingRepayment() external view returns (uint256) {
-        uint256 balance = usdc.balanceOf(address(this));
+        uint256 balance = asset.balanceOf(address(this));
         return (balance * repaymentRateBps) / 10000;
     }
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 interface IAgentRegistry {
     struct AgentProfile {
         address wallet;
+        address smartWallet;
         bytes32 codeHash;
         string metadata;
         uint256 reputationScore;
@@ -21,12 +22,14 @@ interface IAgentRegistry {
     event CodeVerified(uint256 indexed agentId, bytes32 newCodeHash);
     event LockboxSet(uint256 indexed agentId, address lockbox);
     event VaultSet(uint256 indexed agentId, address vault);
+    event SmartWalletSet(uint256 indexed agentId, address smartWallet);
     event ExternalIdentitySet(uint256 indexed agentId, address externalToken, uint256 externalProtocolId);
     event AgentCategorySet(uint256 indexed agentId, bytes32 category);
 
-    function registerAgent(address agentWallet, bytes32 codeHash, string calldata metadata, address externalToken, uint256 externalProtocolId, bytes32 agentCategory) external returns (uint256);
+    function registerAgent(address agentWallet, bytes32 codeHash, string calldata metadata, address externalToken, uint256 externalProtocolId, bytes32 agentCategory, address asset) external returns (uint256);
     function setExternalIdentity(uint256 agentId, address externalToken, uint256 externalProtocolId) external;
     function setAgentCategory(uint256 agentId, bytes32 category) external;
+    function setSmartWallet(uint256 agentId, address smartWallet) external;
     function updateReputation(uint256 agentId, uint256 score) external;
     function verifyCode(uint256 agentId, bytes32 newCodeHash, bytes calldata attestation) external;
     function getAgent(uint256 agentId) external view returns (AgentProfile memory);

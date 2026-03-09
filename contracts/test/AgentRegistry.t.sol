@@ -22,7 +22,7 @@ contract AgentRegistryTest is Test {
     // ── registerAgent ───────────────────────────────────────────
 
     function test_registerAgent_success() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0), address(0));
 
         assertEq(agentId, 1);
         assertEq(registry.ownerOf(agentId), agent1);
@@ -30,7 +30,7 @@ contract AgentRegistryTest is Test {
     }
 
     function test_registerAgent_setsCorrectProfile() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0), address(0));
 
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
         assertEq(profile.wallet, agent1);
@@ -43,8 +43,8 @@ contract AgentRegistryTest is Test {
     }
 
     function test_registerAgent_incrementsIds() public {
-        uint256 id1 = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
-        uint256 id2 = registry.registerAgent(agent2, codeHash2, "Agent 2", address(0), 0, bytes32(0));
+        uint256 id1 = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
+        uint256 id2 = registry.registerAgent(agent2, codeHash2, "Agent 2", address(0), 0, bytes32(0), address(0));
 
         assertEq(id1, 1);
         assertEq(id2, 2);
@@ -55,25 +55,25 @@ contract AgentRegistryTest is Test {
         vm.expectEmit(true, true, false, true);
         emit IAgentRegistry.AgentRegistered(1, agent1, codeHash1);
 
-        registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
     }
 
     function test_registerAgent_revertsOnZeroAddress() public {
         vm.expectRevert("AgentRegistry: zero address");
-        registry.registerAgent(address(0), codeHash1, "", address(0), 0, bytes32(0));
+        registry.registerAgent(address(0), codeHash1, "", address(0), 0, bytes32(0), address(0));
     }
 
     function test_registerAgent_revertsOnDuplicateWallet() public {
-        registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("AgentRegistry: already registered");
-        registry.registerAgent(agent1, codeHash2, "Agent 1 again", address(0), 0, bytes32(0));
+        registry.registerAgent(agent1, codeHash2, "Agent 1 again", address(0), 0, bytes32(0), address(0));
     }
 
     // ── updateReputation ────────────────────────────────────────
 
     function test_updateReputation_success() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         registry.updateReputation(agentId, 800);
 
@@ -82,7 +82,7 @@ contract AgentRegistryTest is Test {
     }
 
     function test_updateReputation_emitsEvent() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         vm.expectEmit(true, false, false, true);
         emit IAgentRegistry.ReputationUpdated(agentId, 500, 800);
@@ -91,7 +91,7 @@ contract AgentRegistryTest is Test {
     }
 
     function test_updateReputation_revertsForNonProtocol() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         vm.prank(nonOwner);
         vm.expectRevert("AgentRegistry: not protocol");
@@ -104,21 +104,21 @@ contract AgentRegistryTest is Test {
     }
 
     function test_updateReputation_revertsForScoreAbove1000() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("AgentRegistry: score out of range");
         registry.updateReputation(agentId, 1001);
     }
 
     function test_updateReputation_allowsExactly1000() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         registry.updateReputation(agentId, 1000);
         assertEq(registry.getAgent(agentId).reputationScore, 1000);
     }
 
     function test_updateReputation_allowsZero() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         registry.updateReputation(agentId, 0);
         assertEq(registry.getAgent(agentId).reputationScore, 0);
@@ -127,7 +127,7 @@ contract AgentRegistryTest is Test {
     // ── verifyCode ──────────────────────────────────────────────
 
     function test_verifyCode_success() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
         bytes32 newHash = keccak256("agent1-code-v2");
         bytes memory attestation = "tee-attestation-data";
 
@@ -139,7 +139,7 @@ contract AgentRegistryTest is Test {
     }
 
     function test_verifyCode_emitsEvent() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
         bytes32 newHash = keccak256("agent1-code-v2");
 
         vm.expectEmit(true, false, false, true);
@@ -149,14 +149,14 @@ contract AgentRegistryTest is Test {
     }
 
     function test_verifyCode_revertsOnEmptyAttestation() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("AgentRegistry: empty attestation");
         registry.verifyCode(agentId, codeHash1, "");
     }
 
     function test_verifyCode_revertsForNonProtocol() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         vm.prank(nonOwner);
         vm.expectRevert("AgentRegistry: not protocol");
@@ -166,7 +166,7 @@ contract AgentRegistryTest is Test {
     // ── setLockbox ──────────────────────────────────────────────
 
     function test_setLockbox_success() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
         address lockbox = makeAddr("lockbox");
 
         registry.setLockbox(agentId, lockbox);
@@ -175,7 +175,7 @@ contract AgentRegistryTest is Test {
     }
 
     function test_setLockbox_revertsOnZeroAddress() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("AgentRegistry: zero lockbox");
         registry.setLockbox(agentId, address(0));
@@ -184,7 +184,7 @@ contract AgentRegistryTest is Test {
     // ── getAgentIdByWallet ──────────────────────────────────────
 
     function test_getAgentIdByWallet_success() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         assertEq(registry.getAgentIdByWallet(agent1), agentId);
     }
@@ -197,7 +197,7 @@ contract AgentRegistryTest is Test {
     // ── isRegistered ────────────────────────────────────────────
 
     function test_isRegistered_returnsTrueForExisting() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
         assertTrue(registry.isRegistered(agentId));
     }
 
@@ -216,7 +216,7 @@ contract AgentRegistryTest is Test {
     }
 
     function test_setProtocol_allowsNewProtocolToUpdateReputation() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
         address newProtocol = makeAddr("newProtocol");
 
         registry.setProtocol(newProtocol);
@@ -229,7 +229,7 @@ contract AgentRegistryTest is Test {
     // ── ERC-721 ─────────────────────────────────────────────────
 
     function test_mintsNFTToAgent() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1", address(0), 0, bytes32(0), address(0));
 
         assertEq(registry.ownerOf(agentId), agent1);
         assertEq(registry.balanceOf(agent1), 1);

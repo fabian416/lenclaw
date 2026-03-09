@@ -52,14 +52,9 @@ contract SmartWalletFactory is Ownable {
         wallets[agentId] = wallet;
         isSmartWallet[wallet] = true;
 
-        // Set default allowed targets
+        // Set default allowed targets (lockbox/vault/asset/self are blocked by SmartWallet)
         for (uint256 i = 0; i < defaultAllowedTargets.length; i++) {
             sw.setAllowedTarget(defaultAllowedTargets[i], true);
-        }
-        // Always allow lockbox and vault
-        sw.setAllowedTarget(profile.lockbox, true);
-        if (profile.vault != address(0)) {
-            sw.setAllowedTarget(profile.vault, true);
         }
 
         emit SmartWalletCreated(agentId, wallet, profile.wallet);

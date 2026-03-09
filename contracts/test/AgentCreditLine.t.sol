@@ -10,7 +10,6 @@ import {AgentCreditLine} from "../src/AgentCreditLine.sol";
 import {AgentVault} from "../src/AgentVault.sol";
 import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SmartWalletFactory} from "../src/SmartWalletFactory.sol";
 
 contract AgentCreditLineTest is Test {
     ERC20Mock public usdc;
@@ -30,9 +29,10 @@ contract AgentCreditLineTest is Test {
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
-        factory = new AgentVaultFactory(address(usdc), address(registry), owner);
+        factory = new AgentVaultFactory(address(registry), owner);
+        factory.setAllowedAsset(address(usdc), true);
         creditLine = new AgentCreditLine(
-            address(usdc), address(registry), address(scorer), address(factory), owner
+            address(registry), address(scorer), address(factory), owner
         );
 
         // Link registry to factory for auto vault deployment
@@ -40,7 +40,7 @@ contract AgentCreditLineTest is Test {
 
         // Register agent (auto-deploys vault via factory)
         bytes32 codeHash = keccak256("agent-code");
-        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
+        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdc));
         agentVaultAddr = factory.getVault(agentId);
 
         // Set credit line on the vault
@@ -61,6 +61,9 @@ contract AgentCreditLineTest is Test {
         usdc.approve(agentVaultAddr, 400_000e6);
         AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
         vm.stopPrank();
+
+        // Disable SmartWallet enforcement for most tests (agent has no SmartWallet)
+        creditLine.setRequireSmartWallet(false);
     }
 
     // ── Drawdown ────────────────────────────────────────────────
@@ -292,18 +295,16 @@ contract AgentCreditLineTest is Test {
 
     // ── SmartWallet enforcement ─────────────────────────────────
 
-    function test_drawdown_revertsWhenRequireSmartWalletAndNotSmartWallet() public {
-        // Deploy a SmartWalletFactory (agent's wallet is a plain EOA, not a SmartWallet)
-        SmartWalletFactory swFactory = new SmartWalletFactory(address(usdc), address(registry), owner);
-
-        // Enable SmartWallet enforcement
-        creditLine.setSmartWalletFactory(address(swFactory));
+    function test_drawdown_succeedsWithSmartWalletEnforcement() public {
+        // Agent was registered with asset, so SmartWallet was auto-deployed
+        // Re-enable SmartWallet enforcement - should succeed because agent has a SmartWallet
         creditLine.setRequireSmartWallet(true);
-
         creditLine.refreshCreditLine(agentId);
 
         vm.prank(agentWallet);
-        vm.expectRevert("AgentCreditLine: must use SmartWallet");
         creditLine.drawdown(agentId, 1000e6);
+
+        uint256 outstanding = creditLine.getOutstanding(agentId);
+        assertGe(outstanding, 1000e6, "Should have outstanding debt");
     }
 }

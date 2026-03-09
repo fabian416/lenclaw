@@ -54,17 +54,17 @@ contract VerifyContracts is Script {
         // AgentRegistry: constructor(address _owner)
         _logVerifyCommand("AgentRegistry", agentRegistry, abi.encode(owner));
 
-        // AgentVaultFactory: constructor(address _usdc, address _registry, address _owner)
-        _logVerifyCommand("AgentVaultFactory", agentVaultFactory, abi.encode(usdc, agentRegistry, owner));
+        // AgentVaultFactory: constructor(address _registry, address _owner)
+        _logVerifyCommand("AgentVaultFactory", agentVaultFactory, abi.encode(agentRegistry, owner));
 
         // CreditScorer: constructor(address _registry, address _owner)
         _logVerifyCommand("CreditScorer", creditScorer, abi.encode(agentRegistry, owner));
 
-        // AgentCreditLine: constructor(address, address, address, address, address)
+        // AgentCreditLine: constructor(address _registry, address _scorer, address _vaultFactory, address _owner)
         _logVerifyCommand(
             "AgentCreditLine",
             agentCreditLine,
-            abi.encode(usdc, agentRegistry, creditScorer, agentVaultFactory, owner)
+            abi.encode(agentRegistry, creditScorer, agentVaultFactory, owner)
         );
 
         // DutchAuction: constructor(address _usdc, address _recoveryManager, address _owner)

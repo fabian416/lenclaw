@@ -39,13 +39,17 @@ contract LiquidationTest is Test {
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
-        factory = new AgentVaultFactory(address(usdc), address(registry), owner);
+        factory = new AgentVaultFactory(address(registry), owner);
+        factory.setAllowedAsset(address(usdc), true);
         creditLine = new AgentCreditLine(
-            address(usdc), address(registry), address(scorer), address(factory), owner
+            address(registry), address(scorer), address(factory), owner
         );
 
         // Link registry to factory
         registry.setVaultFactory(address(factory));
+
+        // Disable SmartWallet enforcement for tests
+        creditLine.setRequireSmartWallet(false);
 
         // Deploy liquidation system
         // RecoveryManager still forwards proceeds to the agent's vault.
@@ -55,7 +59,7 @@ contract LiquidationTest is Test {
 
         // Register agent (auto-deploys vault)
         bytes32 codeHash = keccak256("agent-code");
-        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
+        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdc));
         agentVaultAddr = factory.getVault(agentId);
 
         // Set credit line on vault

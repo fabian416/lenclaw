@@ -33,8 +33,11 @@ contract DeployOptimism is Script {
         console.log("AgentRegistry:", address(registry));
 
         // 2. Deploy AgentVaultFactory
-        AgentVaultFactory factory = new AgentVaultFactory(USDC, address(registry), owner);
+        AgentVaultFactory factory = new AgentVaultFactory(address(registry), owner);
         console.log("AgentVaultFactory:", address(factory));
+
+        // 2b. Whitelist USDC as allowed asset
+        factory.setAllowedAsset(USDC, true);
 
         // 3. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), owner);
@@ -42,7 +45,7 @@ contract DeployOptimism is Script {
 
         // 4. Deploy AgentCreditLine
         AgentCreditLine creditLine =
-            new AgentCreditLine(USDC, address(registry), address(scorer), address(factory), owner);
+            new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
         console.log("AgentCreditLine:", address(creditLine));
 
         // 5. Deploy DutchAuction (owner as placeholder recoveryManager, updated below)

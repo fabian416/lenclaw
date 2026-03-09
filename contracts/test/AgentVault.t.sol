@@ -59,13 +59,15 @@ contract AgentVaultTest is Test {
     function setUp() public {
         usdc = new MockUSDC6();
         registry = new AgentRegistry(owner);
-        factory = new AgentVaultFactory(address(usdc), address(registry), owner);
+        factory = new AgentVaultFactory(address(registry), owner);
+        factory.setAllowedAsset(address(usdc), true);
+        registry.setVaultFactory(address(factory));
 
         // Register an agent
-        agentId = registry.registerAgent(agentWallet, keccak256("code_v1"), "TestAgent", address(0), 0, bytes32(0));
+        agentId = registry.registerAgent(agentWallet, keccak256("code_v1"), "TestAgent", address(0), 0, bytes32(0), address(0));
 
         // Create vault via factory
-        address vaultAddr = factory.createVault(agentId);
+        address vaultAddr = factory.createVault(agentId, address(usdc));
         vault = AgentVault(vaultAddr);
 
         // Fund backers
@@ -82,8 +84,8 @@ contract AgentVaultTest is Test {
     }
 
     function test_vaultNameAndSymbol() public view {
-        assertEq(vault.name(), "Lenclaw Agent 1 USDC");
-        assertEq(vault.symbol(), "lcA1USDC");
+        assertEq(vault.name(), "Lenclaw Agent 1 Vault");
+        assertEq(vault.symbol(), "lcA1");
     }
 
     function test_deposit() public {

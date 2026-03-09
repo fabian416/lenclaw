@@ -480,8 +480,8 @@ export default function AgentOnboarding() {
                         <Button variant="outline" onClick={() => navigate("/agents")} className="font-medium min-h-[44px] md:min-h-0">
                           <span className="flex items-center gap-2">View Agents <ArrowRight className="w-4 h-4" /></span>
                         </Button>
-                        <Button onClick={() => navigate("/borrow")} className="font-medium min-h-[44px] md:min-h-0">
-                          <span className="flex items-center gap-2">Request Credit Line <ArrowRight className="w-4 h-4" /></span>
+                        <Button onClick={() => navigate("/agents")} className="font-medium min-h-[44px] md:min-h-0">
+                          <span className="flex items-center gap-2">View Agent Dashboard <ArrowRight className="w-4 h-4" /></span>
                         </Button>
                       </div>
                     </div>

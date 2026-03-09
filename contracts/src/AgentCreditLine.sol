@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -13,6 +14,7 @@ import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 /// @title AgentCreditLine - Per-agent credit facility (vault-per-agent model)
 /// @notice Manages borrowing, repayment, and status tracking for each AI agent.
 ///         Each agent borrows from and repays to their individual AgentVault.
+///         Supports multiple assets (USDC, WETH, USDT) — reads the token from each agent's vault.
 contract AgentCreditLine is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -31,7 +33,6 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         Status status;
     }
 
-    IERC20 public immutable usdc;
     IAgentRegistry public immutable registry;
     ICreditScorer public immutable scorer;
     IAgentVaultFactory public vaultFactory;
@@ -43,16 +44,15 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     /// @notice RecoveryManager address authorized to write down debt
     address public recoveryManager;
 
-    /// @notice SmartWallet enforcement: require agents to use a SmartWallet for drawdowns
-    address public smartWalletFactory;
-    bool public requireSmartWallet;
+    /// @notice SmartWallet enforcement: require agents to have a SmartWallet for drawdowns
+    bool public requireSmartWallet = true;
 
     mapping(uint256 => CreditFacility) public facilities;
     mapping(uint256 => uint256) public lastPaymentTimestamp;
 
     // Credit history for scoring: tracks actual borrowing behavior
     mapping(uint256 => uint256) public loansRepaid;         // fully repaid loan cycles
-    mapping(uint256 => uint256) public totalAmountBorrowed; // lifetime USDC borrowed
+    mapping(uint256 => uint256) public totalAmountBorrowed; // lifetime amount borrowed
 
     event Drawdown(uint256 indexed agentId, uint256 amount);
     event Repayment(uint256 indexed agentId, uint256 amount, uint256 interestPaid, uint256 principalPaid);
@@ -61,16 +61,15 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     event DebtWrittenDown(uint256 indexed agentId, uint256 amount);
     event RecoveryManagerUpdated(address indexed recoveryManager);
 
-    uint256 public constant MIN_DRAWDOWN = 10e6; // 10 USDC minimum
+    uint256 public constant MIN_DRAWDOWN_6DEC = 10e6; // 10 USDC/USDT
+    uint256 public constant MIN_DRAWDOWN_18DEC = 1e16; // 0.01 ETH
 
-    constructor(address _usdc, address _registry, address _scorer, address _vaultFactory, address _owner)
+    constructor(address _registry, address _scorer, address _vaultFactory, address _owner)
         Ownable(_owner)
     {
-        require(_usdc != address(0), "AgentCreditLine: zero usdc");
         require(_registry != address(0), "AgentCreditLine: zero registry");
         require(_scorer != address(0), "AgentCreditLine: zero scorer");
         require(_vaultFactory != address(0), "AgentCreditLine: zero vaultFactory");
-        usdc = IERC20(_usdc);
         registry = IAgentRegistry(_registry);
         scorer = ICreditScorer(_scorer);
         vaultFactory = IAgentVaultFactory(_vaultFactory);
@@ -104,10 +103,6 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         defaultPeriod = _period;
     }
 
-    function setSmartWalletFactory(address _factory) external onlyOwner {
-        smartWalletFactory = _factory;
-    }
-
     function setRequireSmartWallet(bool _require) external onlyOwner {
         requireSmartWallet = _require;
     }
@@ -117,6 +112,12 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         address vault = vaultFactory.getVault(agentId);
         require(vault != address(0), "AgentCreditLine: no vault for agent");
         return vault;
+    }
+
+    /// @notice Get the ERC-20 token used by an agent's vault
+    function _getAgentAsset(uint256 agentId) internal view returns (IERC20) {
+        address vault = _getAgentVault(agentId);
+        return IERC20(IAgentVault(vault).asset());
     }
 
     /// @notice Refresh an agent's credit limit and rate from the scorer
@@ -132,10 +133,23 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     }
 
     /// @notice Borrow from the agent's individual vault up to credit limit
+    /// @dev Caller must be the agent's operator wallet or SmartWallet.
+    ///      Borrowed funds are sent to operator wallet (NOT SmartWallet) to avoid circular routing.
     function drawdown(uint256 agentId, uint256 amount) external nonReentrant {
-        require(amount >= MIN_DRAWDOWN, "AgentCreditLine: amount too small");
+        uint256 minDrawdown = _getMinDrawdown(agentId);
+        require(amount >= minDrawdown, "AgentCreditLine: amount too small");
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
-        require(msg.sender == profile.wallet, "AgentCreditLine: not agent owner");
+
+        // Allow drawdown from operator wallet or SmartWallet
+        require(
+            msg.sender == profile.wallet || msg.sender == profile.smartWallet,
+            "AgentCreditLine: not agent owner"
+        );
+
+        // SmartWallet enforcement: agent must have a SmartWallet deployed
+        if (requireSmartWallet) {
+            require(profile.smartWallet != address(0), "AgentCreditLine: must have SmartWallet");
+        }
 
         // Lazy status check - detect delinquency/default before allowing new borrows
         _updateStatusInternal(agentId);
@@ -157,19 +171,15 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
             "AgentCreditLine: exceeds credit limit"
         );
 
-        // Require SmartWallet for revenue enforcement
-        if (requireSmartWallet) {
-            (bool ok, bytes memory result) = smartWalletFactory.staticcall(
-                abi.encodeWithSignature("isSmartWallet(address)", profile.wallet)
-            );
-            require(ok && abi.decode(result, (bool)), "AgentCreditLine: must use SmartWallet");
-        }
-
         facility.principal += amount;
         totalAmountBorrowed[agentId] += amount;
-        lastPaymentTimestamp[agentId] = block.timestamp;
+        // Do NOT reset lastPaymentTimestamp on drawdown — only repayment should reset the clock
+        if (lastPaymentTimestamp[agentId] == 0) {
+            lastPaymentTimestamp[agentId] = block.timestamp;
+        }
 
         // Borrow from the agent's individual vault
+        // Send to operator wallet (profile.wallet), NOT SmartWallet, to avoid circular routing
         address vault = _getAgentVault(agentId);
         IAgentVault(vault).borrow(profile.wallet, amount);
 
@@ -211,7 +221,11 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
 
         // Only reset timer if authorized caller makes meaningful payment (>= 5% of outstanding or fully paid off)
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
-        bool isAuthorizedRepayer = (msg.sender == profile.wallet || msg.sender == profile.lockbox);
+        bool isAuthorizedRepayer = (
+            msg.sender == profile.wallet ||
+            msg.sender == profile.smartWallet ||
+            msg.sender == profile.lockbox
+        );
         if (totalAfterRepay == 0 || (isAuthorizedRepayer && amount >= totalOutstanding / 20)) {
             lastPaymentTimestamp[agentId] = block.timestamp;
             // If was delinquent and meaningful payment made, revert to active
@@ -222,19 +236,18 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         }
 
         // Transfer repayment to the agent's individual vault
-        // Pass interestPaid so vault only charges protocol fee on interest, not principal
+        // Read the token from the vault (supports USDC, WETH, USDT, etc.)
+        IERC20 token = _getAgentAsset(agentId);
         address vault = _getAgentVault(agentId);
-        usdc.safeTransferFrom(msg.sender, address(this), amount);
-        usdc.forceApprove(vault, amount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        token.forceApprove(vault, amount);
         IAgentVault(vault).receiveRepayment(amount, interestPaid);
 
         emit Repayment(agentId, amount, interestPaid, principalPaid);
     }
 
-    /// @notice Write down debt after recovery/liquidation without requiring USDC transfer.
+    /// @notice Write down debt after recovery/liquidation without requiring token transfer.
     ///         Called by RecoveryManager after distributing auction proceeds.
-    /// @param agentId The agent whose debt to write down
-    /// @param amount Amount of debt to forgive
     function writeDown(uint256 agentId, uint256 amount) external {
         require(
             msg.sender == recoveryManager || msg.sender == owner(),
@@ -313,6 +326,18 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         uint256 pending = _pendingInterest(agentId);
         facility.accruedInterest += pending;
         facility.lastAccrualTimestamp = block.timestamp;
+    }
+
+    /// @notice Get minimum drawdown based on the asset's decimals
+    function _getMinDrawdown(uint256 agentId) internal view returns (uint256) {
+        address asset = vaultFactory.agentAssets(agentId);
+        // Try to read decimals; default to 6 (USDC/USDT) if call fails
+        try IERC20Metadata(asset).decimals() returns (uint8 d) {
+            if (d >= 18) return MIN_DRAWDOWN_18DEC;
+            return MIN_DRAWDOWN_6DEC;
+        } catch {
+            return MIN_DRAWDOWN_6DEC;
+        }
     }
 
     function _pendingInterest(uint256 agentId) internal view returns (uint256) {

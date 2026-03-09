@@ -38,7 +38,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         RecoveryStatus status;
     }
 
-    IERC20 public immutable usdc;
+    IERC20 public immutable asset;
     DutchAuction public immutable dutchAuction;
     IAgentRegistry public immutable registry;
 
@@ -92,18 +92,18 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     // -- Constructor --
 
     constructor(
-        address _usdc,
+        address _asset,
         address _dutchAuction,
         address _registry,
         address _vaultFactory,
         address _owner
     ) Ownable(_owner) {
-        require(_usdc != address(0), "RecoveryManager: zero usdc");
+        require(_asset != address(0), "RecoveryManager: zero asset");
         require(_dutchAuction != address(0), "RecoveryManager: zero auction");
         require(_registry != address(0), "RecoveryManager: zero registry");
         require(_vaultFactory != address(0), "RecoveryManager: zero vaultFactory");
 
-        usdc = IERC20(_usdc);
+        asset = IERC20(_asset);
         dutchAuction = DutchAuction(_dutchAuction);
         registry = IAgentRegistry(_registry);
         vaultFactory = IAgentVaultFactory(_vaultFactory);
@@ -238,17 +238,17 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
                 uint256 minDeposit = IAgentVault(agentVault).MIN_DEPOSIT();
                 if (recoveredAmount >= minDeposit) {
                     // Approve vault to pull USDC from RecoveryManager
-                    usdc.approve(agentVault, recoveredAmount);
+                    asset.approve(agentVault, recoveredAmount);
                     // Deposit on behalf of buyer — mints vault shares to buyer
                     uint256 sharesMinted = IAgentVault(agentVault).deposit(recoveredAmount, buyer);
                     emit BuyerSharesMinted(recoveryId, buyer, recoveredAmount, sharesMinted);
                 } else {
                     // Amount below MIN_DEPOSIT — fallback to direct transfer (no shares minted)
-                    usdc.safeTransfer(agentVault, recoveredAmount);
+                    asset.safeTransfer(agentVault, recoveredAmount);
                 }
             } else {
                 // No buyer (shouldn't happen for SETTLED, but defensive)
-                usdc.safeTransfer(agentVault, recoveredAmount);
+                asset.safeTransfer(agentVault, recoveredAmount);
             }
 
             emit ProceedsDistributed(recoveryId, recoveredAmount);

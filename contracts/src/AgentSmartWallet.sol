@@ -14,7 +14,7 @@ contract AgentSmartWallet is ReentrancyGuard {
     address public immutable owner; // Agent operator
     address public immutable protocol; // Factory that deployed this
     address public immutable lockbox; // Revenue lockbox
-    IERC20 public immutable usdc;
+    IERC20 public immutable asset;
     uint256 public immutable agentId;
     uint256 public repaymentRateBps; // e.g., 5000 = 50%
 
@@ -45,16 +45,16 @@ contract AgentSmartWallet is ReentrancyGuard {
         address _owner,
         address _protocol,
         address _lockbox,
-        address _usdc,
+        address _asset,
         uint256 _agentId,
         uint256 _repaymentRateBps
     ) {
-        require(_owner != address(0) && _lockbox != address(0) && _usdc != address(0), "zero address");
+        require(_owner != address(0) && _lockbox != address(0) && _asset != address(0), "zero address");
         require(_repaymentRateBps <= 10000, "rate too high");
         owner = _owner;
         protocol = _protocol;
         lockbox = _lockbox;
-        usdc = IERC20(_usdc);
+        asset = IERC20(_asset);
         agentId = _agentId;
         repaymentRateBps = _repaymentRateBps;
     }
@@ -100,12 +100,12 @@ contract AgentSmartWallet is ReentrancyGuard {
 
     /// @notice Internal: split USDC balance between lockbox and wallet
     function _routePendingRevenue() internal {
-        uint256 balance = usdc.balanceOf(address(this));
+        uint256 balance = asset.balanceOf(address(this));
         if (balance == 0) return;
         uint256 toLockbox = (balance * repaymentRateBps) / 10000;
         if (toLockbox > 0) {
             totalRouted += toLockbox;
-            usdc.safeTransfer(lockbox, toLockbox);
+            asset.safeTransfer(lockbox, toLockbox);
         }
         emit RevenueRouted(toLockbox, balance - toLockbox);
     }
@@ -113,6 +113,11 @@ contract AgentSmartWallet is ReentrancyGuard {
     // --- Protocol admin ---
 
     function setAllowedTarget(address target, bool allowed) external onlyProtocol {
+        // Prevent adding the asset token as an allowed target — operator could drain funds
+        // bypassing revenue split via execute(asset, 0, transfer(operator, balance))
+        require(target != address(asset), "SmartWallet: cannot allow asset token");
+        require(target != address(this), "SmartWallet: cannot allow self");
+        require(target != lockbox, "SmartWallet: cannot allow lockbox");
         allowedTargets[target] = allowed;
         emit AllowedTargetSet(target, allowed);
     }
@@ -126,7 +131,7 @@ contract AgentSmartWallet is ReentrancyGuard {
 
     /// @notice View: pending revenue that would be routed
     function pendingRevenue() external view returns (uint256 toLockbox, uint256 toAgent) {
-        uint256 balance = usdc.balanceOf(address(this));
+        uint256 balance = asset.balanceOf(address(this));
         toLockbox = (balance * repaymentRateBps) / 10000;
         toAgent = balance - toLockbox;
     }

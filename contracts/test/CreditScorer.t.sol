@@ -25,12 +25,16 @@ contract CreditScorerTest is Test {
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
-        factory = new AgentVaultFactory(address(usdc), address(registry), owner);
+        factory = new AgentVaultFactory(address(registry), owner);
+        factory.setAllowedAsset(address(usdc), true);
         creditLine = new AgentCreditLine(
-            address(usdc), address(registry), address(scorer), address(factory), owner
+            address(registry), address(scorer), address(factory), owner
         );
         registry.setVaultFactory(address(factory));
         scorer.setCreditLine(address(creditLine));
+
+        // Disable SmartWallet enforcement for tests
+        creditLine.setRequireSmartWallet(false);
     }
 
     function _registerAgent(address wallet, uint256 revenue)
@@ -38,7 +42,7 @@ contract CreditScorerTest is Test {
         returns (uint256 agentId)
     {
         bytes32 codeHash = keccak256(abi.encodePacked("code", wallet));
-        agentId = registry.registerAgent(wallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
+        agentId = registry.registerAgent(wallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdc));
 
         // Use the factory-deployed lockbox
         address lockboxAddr = factory.getLockbox(agentId);
@@ -68,7 +72,7 @@ contract CreditScorerTest is Test {
         // Register agent on a fresh registry WITHOUT factory linked, so no auto-deploy
         AgentRegistry reg2 = new AgentRegistry(owner);
         CreditScorer scorer2 = new CreditScorer(address(reg2), owner);
-        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0));
+        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("CreditScorer: no lockbox");
         scorer2.calculateCreditLine(agentId);
@@ -271,7 +275,7 @@ contract CreditScorerTest is Test {
     function test_getCompositeScore_revertsWithoutLockbox() public {
         AgentRegistry reg2 = new AgentRegistry(owner);
         CreditScorer scorer2 = new CreditScorer(address(reg2), owner);
-        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0));
+        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("CreditScorer: no lockbox");
         scorer2.getCompositeScore(agentId);

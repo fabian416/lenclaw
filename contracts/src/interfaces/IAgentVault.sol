@@ -9,6 +9,7 @@ interface IAgentVault {
     event DepositCapSet(uint256 newCap);
     event LossWrittenDown(uint256 amount);
 
+    function asset() external view returns (address);
     function agentId() external view returns (uint256);
     function factory() external view returns (address);
     function creditLine() external view returns (address);

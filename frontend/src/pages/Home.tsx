@@ -82,11 +82,11 @@ export default function Home() {
             </p>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-bold text-foreground tracking-tight leading-[0.95] max-w-4xl">
-              <SplitText text="Pick your agent." delay={0.1} />
+              <SplitText text="Credit for" delay={0.1} />
               <br />
               <span className="text-primary">
                 <RotatingText
-                  texts={["Back the future.", "autonomous traders", "data oracles", "yield hunters", "the agentic economy"]}
+                  texts={["AI agents.", "autonomous traders.", "data oracles.", "yield hunters.", "the agentic economy."]}
                   interval={2500}
                   className="min-h-[1.1em]"
                 />
@@ -94,7 +94,7 @@ export default function Home() {
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground mt-8 max-w-lg leading-relaxed">
-              Pick your runner. Back them with USDC. Watch them earn. Every agent is a bet on the autonomous economy.
+              Deposit USDC into agent vaults. Their revenue pays your yield. Undercollateralized lending for the autonomous economy.
             </p>
           </motion.div>
 
@@ -162,10 +162,10 @@ export default function Home() {
               <div className="flex items-center justify-between mb-10">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                    Trending Runners
+                    Trending Agents
                   </h2>
                   <p className="text-muted-foreground mt-2 text-sm">
-                    Top performers this month. Pick your runner.
+                    Top performers this month by revenue.
                   </p>
                 </div>
                 <Link to="/agents" className="text-sm text-primary hover:underline font-medium hidden sm:block">
@@ -222,7 +222,7 @@ export default function Home() {
                             <span className="text-xs text-muted-foreground">Rep: {agent.reputationScore}</span>
                           </div>
                           <span className="text-xs text-primary md:opacity-0 md:group-hover:opacity-100 transition-opacity font-medium flex items-center gap-1">
-                            Back this agent <ArrowRight className="w-3 h-3" />
+                              View vault <ArrowRight className="w-3 h-3" />
                           </span>
                         </div>
                       </SpotlightCard>

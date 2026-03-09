@@ -30,13 +30,17 @@ contract IntegrationTest is Test {
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
-        factory = new AgentVaultFactory(address(usdc), address(registry), owner);
+        factory = new AgentVaultFactory(address(registry), owner);
+        factory.setAllowedAsset(address(usdc), true);
         creditLine = new AgentCreditLine(
-            address(usdc), address(registry), address(scorer), address(factory), owner
+            address(registry), address(scorer), address(factory), owner
         );
 
         // Link registry to factory
         registry.setVaultFactory(address(factory));
+
+        // Disable SmartWallet enforcement for tests
+        creditLine.setRequireSmartWallet(false);
 
         // Fund depositors
         usdc.mint(depositorA, 500_000e6);
@@ -47,7 +51,7 @@ contract IntegrationTest is Test {
     function test_fullLifecycle() public {
         // 1. Register agent (auto-deploys vault)
         bytes32 codeHash = keccak256("autonomous-trading-agent-v1");
-        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "AutoTrader-v3", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agentWallet, codeHash, "AutoTrader-v3", address(0), 0, bytes32(0), address(usdc));
         assertTrue(registry.isRegistered(agentId), "Agent should be registered");
 
         address agentVaultAddr = factory.getVault(agentId);
@@ -118,7 +122,7 @@ contract IntegrationTest is Test {
     /// @notice Test delinquency to default flow
     function test_delinquencyToDefaultFlow() public {
         // Register and setup agent
-        uint256 agentId = registry.registerAgent(agentWallet, keccak256("code"), "BadAgent", address(0), 0, bytes32(0));
+        uint256 agentId = registry.registerAgent(agentWallet, keccak256("code"), "BadAgent", address(0), 0, bytes32(0), address(usdc));
         address agentVaultAddr = factory.getVault(agentId);
 
         // Set credit line on the vault
@@ -166,7 +170,7 @@ contract IntegrationTest is Test {
 
     /// @notice Test revenue lockbox immutability - multiple processings
     function test_lockboxRevenueAccumulation() public {
-        uint256 agentId_ = registry.registerAgent(agentWallet, keccak256("code"), "Agent", address(0), 0, bytes32(0));
+        uint256 agentId_ = registry.registerAgent(agentWallet, keccak256("code"), "Agent", address(0), 0, bytes32(0), address(usdc));
 
         // Use the factory-deployed lockbox
         address lockboxAddr = factory.getLockbox(agentId_);

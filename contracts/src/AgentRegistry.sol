@@ -8,7 +8,8 @@ import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 
 /// @title AgentRegistry - ERC-8004 inspired AI Agent identity registry
 /// @notice Assigns ERC-721 identities to AI agents with reputation tracking and code verification.
-///         On registration, automatically deploys an individual AgentVault via the factory.
+///         On registration, automatically deploys an individual AgentVault + RevenueLockbox + SmartWallet
+///         via the factory if an asset is specified.
 contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
     // Agent category constants
     bytes32 public constant CATEGORY_TRADING = keccak256("TRADING");
@@ -30,7 +31,7 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         _;
     }
 
-    /// @dev Only the owner, protocol, or vault factory can register agents
+    /// @dev Only the owner, protocol, or vault factory can call
     modifier onlyAuthorized() {
         require(
             msg.sender == owner() || msg.sender == protocol || msg.sender == address(vaultFactory),
@@ -58,7 +59,8 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         string calldata metadata,
         address externalToken,
         uint256 externalProtocolId,
-        bytes32 agentCategory
+        bytes32 agentCategory,
+        address asset
     ) external onlyAuthorized returns (uint256) {
         require(agentWallet != address(0), "AgentRegistry: zero address");
         require(_walletToAgent[agentWallet] == 0, "AgentRegistry: already registered");
@@ -67,6 +69,7 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
 
         _agents[agentId] = AgentProfile({
             wallet: agentWallet,
+            smartWallet: address(0),
             codeHash: codeHash,
             metadata: metadata,
             reputationScore: 500, // Start at 500/1000
@@ -84,9 +87,9 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
 
         emit AgentRegistered(agentId, agentWallet, codeHash);
 
-        // Auto-deploy vault + lockbox if factory is set
-        if (address(vaultFactory) != address(0)) {
-            address vault = vaultFactory.createVault(agentId);
+        // Auto-deploy vault + lockbox + smartWallet if factory is set and asset specified
+        if (address(vaultFactory) != address(0) && asset != address(0)) {
+            address vault = vaultFactory.createVault(agentId, asset);
             require(vault != address(0), "AgentRegistry: vault creation failed");
             _agents[agentId].vault = vault;
             emit VaultSet(agentId, vault);
@@ -96,6 +99,8 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
             require(lockbox != address(0), "AgentRegistry: lockbox creation failed");
             _agents[agentId].lockbox = lockbox;
             emit LockboxSet(agentId, lockbox);
+
+            // SmartWallet is set by factory callback to setSmartWallet()
         }
 
         return agentId;
@@ -119,6 +124,18 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         _agents[agentId].codeVerified = true;
 
         emit CodeVerified(agentId, newCodeHash);
+    }
+
+    /// @notice Set the SmartWallet for an agent (called by factory during vault creation)
+    /// @notice Set SmartWallet (only once, by factory during vault creation)
+    function setSmartWallet(uint256 agentId, address _smartWallet) external onlyAuthorized {
+        require(_ownerOf(agentId) != address(0), "AgentRegistry: agent not found");
+        require(_smartWallet != address(0), "AgentRegistry: zero smartWallet");
+        require(_agents[agentId].smartWallet == address(0), "AgentRegistry: smartWallet already set");
+
+        _agents[agentId].smartWallet = _smartWallet;
+
+        emit SmartWalletSet(agentId, _smartWallet);
     }
 
     function setLockbox(uint256 agentId, address lockbox) external onlyProtocol {
