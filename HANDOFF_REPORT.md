@@ -2,7 +2,7 @@
 
 **Fecha:** 4 de marzo de 2026
 **Versión:** 0.1.0 (Post-MVP + Features)
-**Stack:** Solidity · FastAPI · React · Noir ZK · TEE · Docker
+**Stack:** Solidity · FastAPI · React · Docker
 
 ---
 
@@ -71,11 +71,11 @@ Cada agente recibe un NFT como identidad onchain. El registro almacena: wallet, 
 Gestiona el crédito de cada agente: principal, interest accrued, tasa de interés, límite de crédito, y estado (ACTIVE → DELINQUENT → DEFAULT). Periodos de gracia: 7 días, delinquency: 14 días, default: 30 días.
 
 **CreditScorer.sol** — Motor de scoring onchain.
-Calcula la línea de crédito usando 6 factores ponderados: revenue consistency (35%), time active (10%), revenue velocity (15%), reputation (15%), code verified (10%), smart wallet tier (15%). Rango de crédito: 100 USDC a 100K USDC. Tasa de interés inversamente proporcional al score (3%–25% APR).
+Calcula la línea de crédito usando 5 factores observables onchain: revenue level (30%), consistencia de revenue por epochs (25%), historial crediticio de préstamos completados (20%), tiempo en el protocolo (15%), ratio deuda/revenue (10%). Rango de crédito: 100 USDC a 100K USDC. Tasa de interés inversamente proporcional al score compuesto (3%–25% APR). Sin TEE, sin ZK, sin reputación manual — solo comportamiento verificable.
 
 ### 3.2 Smart Wallet (Tier System)
 
-**AgentSmartWallet.sol** — Smart contract wallet que auto-routea USDC revenue al lockbox antes de cualquier operación de salida. Los agentes optan por usarlo para obtener un 15% de boost en su credit score.
+**AgentSmartWallet.sol** — Smart contract wallet que auto-routea USDC revenue al lockbox antes de cualquier operación de salida. Garantiza que el revenue siempre pase por el lockbox.
 
 **SmartWalletFactory.sol** — Deploya y gestiona smart wallets por agente. Administra los targets permitidos para operaciones de salida.
 
@@ -93,7 +93,7 @@ Los contratos `CrossChainRevenue.sol` y `X402Receipt.sol` fueron eliminados del 
 
 ### 3.5 Tests
 
-Los tests están en `/contracts/test` con Foundry. **187 tests passing** distribuidos en 10 test suites que cubren todos los contratos core: AgentVault, AgentVaultFactory, AgentRegistry, AgentCreditLine, CreditScorer, RevenueLockbox, LiquidationKeeper, RecoveryManager, DutchAuction, e integración end-to-end.
+Los tests están en `/contracts/test` con Foundry. **191 tests passing** distribuidos en 10 test suites que cubren todos los contratos core: AgentVault, AgentVaultFactory, AgentRegistry, AgentCreditLine, CreditScorer, RevenueLockbox, LiquidationKeeper, RecoveryManager, DutchAuction, e integración end-to-end.
 
 ---
 
@@ -312,9 +312,8 @@ Comandos principales: `make dev` (levantar todo), `make test` (correr todos los 
                     │                                         │
                     │  1. Agente llama registerAgent()        │
                     │  2. Recibe NFT de identidad             │
-                    │  3. Se deploya su RevenueLockbox        │
-                    │  4. TEE verifica su código              │
-                    │  5. ZK proof de creditworthiness        │
+                    │  3. Factory deploya Vault + Lockbox     │
+                    │  4. Agente empieza a generar revenue    │
                     └──────────────┬──────────────────────────┘
                                    │
                     ┌──────────────▼──────────────────────────┐
@@ -330,8 +329,8 @@ Comandos principales: `make dev` (levantar todo), `make test` (correr todos los 
                     ┌──────────────▼──────────────────────────┐
                     │           CRÉDITO                       │
                     │                                         │
-                    │  1. CreditScorer calcula línea:         │
-                    │     revenue × 3 × reputation boost      │
+                    │  1. CreditScorer calcula línea con      │
+                    │     5 factores observables onchain       │
                     │  2. Agente hace drawdown()              │
                     │  3. Vault transfiere USDC al agente     │
                     │  4. Interest accrues según tenor         │
@@ -354,7 +353,7 @@ Comandos principales: `make dev` (levantar todo), `make test` (correr todos los 
 
 ## 11. Estado Actual
 
-- **Contratos:** Arquitectura vault-per-agent con ~11 contratos core. 187 tests passing en 10 test suites. Deployments configurados para Base, Arbitrum, Optimism, Polygon. Contratos eliminados: LenclawVault.sol, CrossChainRevenue.sol, X402Receipt.sol. Tranches (SeniorTranche, JuniorTranche, TrancheRouter, TrancheMarket) nunca existieron como código.
+- **Contratos:** Arquitectura vault-per-agent con ~11 contratos core. 191 tests passing en 10 test suites. Deployments configurados para Base, Arbitrum, Optimism, Polygon. Contratos eliminados: LenclawVault.sol, CrossChainRevenue.sol, X402Receipt.sol. Tranches (SeniorTranche, JuniorTranche, TrancheRouter, TrancheMarket) nunca existieron como código.
 - **Backend:** Funcional con todos los módulos. Health check respondiendo OK. Workers y sistema de resiliencia implementados.
 - **Frontend:** Funcional con mock data para desarrollo. Todas las páginas implementadas con UI responsive (mobile-first con bottom nav).
 - **Bridge:** Implementado con conectores para Stripe, Square, MercadoPago. Listo para configurar con API keys reales.

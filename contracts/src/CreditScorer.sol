@@ -4,12 +4,14 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 import {IRevenueLockbox} from "./interfaces/IRevenueLockbox.sol";
+import {IAgentCreditLine} from "./interfaces/IAgentCreditLine.sol";
 import {ICreditScorer} from "./interfaces/ICreditScorer.sol";
 
-/// @title CreditScorer - Multi-source on-chain credit calculation for AI agents
-/// @notice Calculates credit lines and interest rates based on weighted scoring:
-///         35% revenue, 10% time-in-protocol, 15% revenue velocity, 15% reputation,
-///         10% code verification, 15% smart wallet usage
+/// @title CreditScorer - On-chain credit scoring based on observable agent behavior
+/// @notice All scoring factors are derived from real on-chain data:
+///         30% revenue level, 25% revenue consistency, 20% credit history,
+///         15% time in protocol, 10% debt-to-revenue ratio.
+///         No TEE, no ZK, no manual reputation — only verifiable behavior.
 contract CreditScorer is Ownable, ICreditScorer {
     IAgentRegistry public immutable registry;
 
@@ -21,16 +23,15 @@ contract CreditScorer is Ownable, ICreditScorer {
     // Revenue multiplier: credit line = revenue * multiplier / 100
     uint256 public revenueMultiplier = 300; // 3x revenue
 
-    // Smart wallet factory for tier check
-    address public smartWalletFactory;
+    // Credit line contract for reading borrowing history
+    address public creditLine;
 
-    // Scoring weights (out of 100)
-    uint256 public constant WEIGHT_REVENUE = 35;
-    uint256 public constant WEIGHT_TIME = 10;
-    uint256 public constant WEIGHT_VELOCITY = 15;
-    uint256 public constant WEIGHT_REPUTATION = 15;
-    uint256 public constant WEIGHT_CODE_VERIFIED = 10;
-    uint256 public constant WEIGHT_SMART_WALLET = 15;
+    // Scoring weights (out of 100) — all based on observable on-chain data
+    uint256 public constant WEIGHT_REVENUE = 30;       // How much they generate
+    uint256 public constant WEIGHT_CONSISTENCY = 25;    // How steadily they generate it
+    uint256 public constant WEIGHT_CREDIT_HISTORY = 20; // Past borrowing behavior
+    uint256 public constant WEIGHT_TIME = 15;           // Time in protocol (more data = more confidence)
+    uint256 public constant WEIGHT_DEBT_RATIO = 10;     // Not overextended
 
     // Time thresholds for maturity scoring
     uint256 public constant MAX_MATURITY_DAYS = 180; // 6 months for full maturity score
@@ -39,8 +40,8 @@ contract CreditScorer is Ownable, ICreditScorer {
         registry = IAgentRegistry(_registry);
     }
 
-    function setSmartWalletFactory(address _factory) external onlyOwner {
-        smartWalletFactory = _factory;
+    function setCreditLine(address _creditLine) external onlyOwner {
+        creditLine = _creditLine;
     }
 
     function setParameters(
@@ -63,7 +64,7 @@ contract CreditScorer is Ownable, ICreditScorer {
         emit ParametersUpdated(_minCreditLine, _maxCreditLine, _minRateBps, _maxRateBps);
     }
 
-    /// @notice Calculate credit line for an agent using weighted multi-source scoring
+    /// @notice Calculate credit line based on observable on-chain behavior
     /// @param agentId The agent's NFT ID
     /// @return creditLimit Maximum borrow amount in USDC (6 decimals)
     /// @return interestRateBps Annual interest rate in basis points
@@ -75,13 +76,10 @@ contract CreditScorer is Ownable, ICreditScorer {
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
         require(profile.lockbox != address(0), "CreditScorer: no lockbox");
 
-        // Get revenue data from lockbox
         IRevenueLockbox lockbox = IRevenueLockbox(profile.lockbox);
         uint256 totalRevenue = lockbox.totalRevenueCapture();
 
-        // --- Weighted composite score (0-100) ---
-
-        // 1. Revenue score (40%): based on revenue * multiplier
+        // --- 1. Revenue Level (30%): how much total revenue ---
         uint256 baseCreditLine = (totalRevenue * revenueMultiplier) / 100;
         uint256 revenueScore;
         if (baseCreditLine >= maxCreditLine) {
@@ -92,7 +90,49 @@ contract CreditScorer is Ownable, ICreditScorer {
             revenueScore = ((baseCreditLine - minCreditLine) * 100) / (maxCreditLine - minCreditLine);
         }
 
-        // 2. Time-in-protocol score (15%): days since registration, max 180 days
+        // --- 2. Revenue Consistency (25%): epochs with revenue / total epochs ---
+        // An agent with 6/6 months of revenue is far more creditworthy than 1/6
+        uint256 consistencyScore;
+        uint256 currentEp = lockbox.currentEpoch();
+        if (currentEp > 0) {
+            uint256 epochsActive = lockbox.epochsWithRevenue();
+            // +1 because epoch 0 counts
+            uint256 totalEpochs = currentEp + 1;
+            consistencyScore = (epochsActive * 100) / totalEpochs;
+            if (consistencyScore > 100) consistencyScore = 100;
+        } else if (totalRevenue > 0) {
+            // Still in first epoch but has revenue
+            consistencyScore = 50; // Partial credit — too early to judge consistency
+        }
+
+        // --- 3. Credit History (20%): past borrowing behavior ---
+        // Completed loan cycles are the strongest predictor of future repayment
+        uint256 creditHistoryScore;
+        if (creditLine != address(0)) {
+            (bool ok, bytes memory data) = creditLine.staticcall(
+                abi.encodeWithSignature("loansRepaid(uint256)", agentId)
+            );
+            if (ok && data.length >= 32) {
+                uint256 completedLoans = abi.decode(data, (uint256));
+                // Scale: 3+ completed loans = full score
+                if (completedLoans >= 3) {
+                    creditHistoryScore = 100;
+                } else {
+                    creditHistoryScore = (completedLoans * 100) / 3;
+                }
+            }
+            // Check if currently delinquent — penalize heavily
+            (bool ok2, bytes memory data2) = creditLine.staticcall(
+                abi.encodeWithSignature("getStatus(uint256)", agentId)
+            );
+            if (ok2 && data2.length >= 32) {
+                uint8 status = abi.decode(data2, (uint8));
+                if (status == 1) creditHistoryScore = creditHistoryScore / 2; // DELINQUENT: halve
+                if (status == 2) creditHistoryScore = 0;                      // DEFAULT: zero
+            }
+        }
+
+        // --- 4. Time in Protocol (15%): days since registration, max 180 days ---
         uint256 timeScore;
         if (profile.registeredAt > 0 && block.timestamp > profile.registeredAt) {
             uint256 daysActive = (block.timestamp - profile.registeredAt) / 1 days;
@@ -103,45 +143,31 @@ contract CreditScorer is Ownable, ICreditScorer {
             }
         }
 
-        // 3. Revenue velocity score (20%): revenue per day of activity
-        uint256 velocityScore;
-        if (profile.registeredAt > 0 && block.timestamp > profile.registeredAt) {
-            uint256 daysActive = (block.timestamp - profile.registeredAt) / 1 days;
-            if (daysActive > 0) {
-                uint256 dailyRevenue = totalRevenue / daysActive;
-                // Scale: $100/day = score 100 (in 6 decimal USDC)
-                if (dailyRevenue >= 100e6) {
-                    velocityScore = 100;
-                } else {
-                    velocityScore = (dailyRevenue * 100) / 100e6;
-                }
-            }
-        }
-
-        // 4. Reputation score (15%): 0-1000 mapped to 0-100
-        uint256 reputationScore = (profile.reputationScore * 100) / 1000;
-
-        // 5. Code verification score (10%): binary 0 or 100
-        uint256 codeScore = profile.codeVerified ? 100 : 0;
-
-        // 6. Smart wallet score (15%): binary 0 or 100
-        uint256 smartWalletScore;
-        if (smartWalletFactory != address(0)) {
-            (bool ok, bytes memory data) = smartWalletFactory.staticcall(
-                abi.encodeWithSignature("wallets(uint256)", agentId)
+        // --- 5. Debt-to-Revenue Ratio (10%): not overextended ---
+        // Lower current debt relative to revenue = better score
+        uint256 debtRatioScore = 100; // Default: no debt = perfect
+        if (creditLine != address(0) && totalRevenue > 0) {
+            (bool ok3, bytes memory data3) = creditLine.staticcall(
+                abi.encodeWithSignature("getOutstanding(uint256)", agentId)
             );
-            if (ok && data.length >= 32) {
-                address wallet = abi.decode(data, (address));
-                if (wallet != address(0)) {
-                    smartWalletScore = 100;
+            if (ok3 && data3.length >= 32) {
+                uint256 outstanding = abi.decode(data3, (uint256));
+                if (outstanding > 0) {
+                    // Debt as % of total revenue: 0% = 100 score, 100%+ = 0 score
+                    uint256 debtPct = (outstanding * 100) / totalRevenue;
+                    debtRatioScore = debtPct >= 100 ? 0 : 100 - debtPct;
                 }
             }
         }
 
         // --- Composite weighted score ---
-        uint256 compositeScore = (revenueScore * WEIGHT_REVENUE + timeScore * WEIGHT_TIME
-            + velocityScore * WEIGHT_VELOCITY + reputationScore * WEIGHT_REPUTATION
-            + codeScore * WEIGHT_CODE_VERIFIED + smartWalletScore * WEIGHT_SMART_WALLET) / 100;
+        uint256 compositeScore = (
+            revenueScore * WEIGHT_REVENUE
+            + consistencyScore * WEIGHT_CONSISTENCY
+            + creditHistoryScore * WEIGHT_CREDIT_HISTORY
+            + timeScore * WEIGHT_TIME
+            + debtRatioScore * WEIGHT_DEBT_RATIO
+        ) / 100;
 
         // --- Credit limit from composite score ---
         creditLimit = minCreditLine + (compositeScore * (maxCreditLine - minCreditLine)) / 100;
@@ -151,7 +177,7 @@ contract CreditScorer is Ownable, ICreditScorer {
         if (creditLimit > maxCreditLine) creditLimit = maxCreditLine;
 
         // --- Interest rate: inversely proportional to composite score ---
-        // Higher score = lower rate
+        // Higher score = lower rate (reward good behavior)
         uint256 rateSpread = maxRateBps - minRateBps;
         uint256 rateDiscount = (compositeScore * rateSpread) / 100;
         interestRateBps = maxRateBps - rateDiscount;

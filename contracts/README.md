@@ -11,7 +11,7 @@ Solidity smart contracts for the Lenclaw protocol. Built with Foundry.
 | `AgentRegistry` | ERC-721 agent identity with wallet, codeHash, reputation (0-1000), and vault references |
 | `RevenueLockbox` | Immutable per-agent revenue capture; splits between repayment and agent wallet |
 | `AgentCreditLine` | Per-agent borrow/repay facility with ACTIVE/DELINQUENT/DEFAULT status tracking |
-| `CreditScorer` | Weighted scoring (revenue, time, velocity, reputation, code, wallet) for credit lines and rates |
+| `CreditScorer` | On-chain behavioral scoring (30% revenue, 25% consistency, 20% credit history, 15% time, 10% debt ratio) for credit lines and rates |
 | `AgentSmartWallet` | Revenue-routing wallet that auto-splits USDC to lockbox before any execution |
 | `SmartWalletFactory` | Deploys AgentSmartWallet instances per agent |
 | `DutchAuction` | Linear price-decay auction for defaulted positions |
@@ -56,7 +56,7 @@ forge build
 forge test
 ```
 
-187 tests across 10 test files.
+191 tests across 10 test files.
 
 ## Deploy
 

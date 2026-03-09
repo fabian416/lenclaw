@@ -28,6 +28,12 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     uint256 public totalRevenueCapture;
     uint256 public totalRepaid;
 
+    // Epoch-based revenue tracking for credit scoring consistency analysis
+    uint256 public constant EPOCH_LENGTH = 30 days;
+    uint256 public immutable deployedAt;
+    mapping(uint256 => uint256) public revenueByEpoch; // epoch index => USDC captured
+    uint256 public epochsWithRevenue; // count of epochs that had any revenue
+
     address public creditLine; // AgentCreditLine contract address
 
     modifier onlyVaultOrOwner() {
@@ -62,9 +68,16 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         usdc = IERC20(_usdc);
         repaymentRateBps = _repaymentRateBps;
 
+        deployedAt = block.timestamp;
+
         if (_creditLine != address(0)) {
             creditLine = _creditLine;
         }
+    }
+
+    /// @notice Current epoch index (0-based, each epoch = 30 days)
+    function currentEpoch() public view returns (uint256) {
+        return (block.timestamp - deployedAt) / EPOCH_LENGTH;
     }
 
     function setCreditLine(address _creditLine) external onlyVaultOrOwner {
@@ -122,6 +135,13 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         if (repaymentAmount > 0) {
             totalRepaid += repaymentAmount;
         }
+
+        // Track revenue per epoch for consistency scoring
+        uint256 epoch = currentEpoch();
+        if (revenueByEpoch[epoch] == 0) {
+            epochsWithRevenue++;
+        }
+        revenueByEpoch[epoch] += balance;
 
         // Interactions: external calls after all state updates
         if (repaymentAmount > 0) {

@@ -18,4 +18,8 @@ interface IRevenueLockbox {
     function vault() external view returns (address);
     function creditLine() external view returns (address);
     function repaymentRateBps() external view returns (uint256);
+    function deployedAt() external view returns (uint256);
+    function currentEpoch() external view returns (uint256);
+    function revenueByEpoch(uint256 epoch) external view returns (uint256);
+    function epochsWithRevenue() external view returns (uint256);
 }

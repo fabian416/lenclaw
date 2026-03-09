@@ -46,6 +46,10 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     mapping(uint256 => CreditFacility) public facilities;
     mapping(uint256 => uint256) public lastPaymentTimestamp;
 
+    // Credit history for scoring: tracks actual borrowing behavior
+    mapping(uint256 => uint256) public loansRepaid;         // fully repaid loan cycles
+    mapping(uint256 => uint256) public totalAmountBorrowed; // lifetime USDC borrowed
+
     event Drawdown(uint256 indexed agentId, uint256 amount);
     event Repayment(uint256 indexed agentId, uint256 amount, uint256 interestPaid, uint256 principalPaid);
     event StatusChanged(uint256 indexed agentId, Status oldStatus, Status newStatus);
@@ -139,6 +143,7 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         );
 
         facility.principal += amount;
+        totalAmountBorrowed[agentId] += amount;
         lastPaymentTimestamp[agentId] = block.timestamp;
 
         // Borrow from the agent's individual vault
@@ -175,8 +180,13 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
             facility.principal -= principalPaid;
         }
 
-        // Only reset timer if meaningful payment (>= 5% of outstanding or fully paid off)
+        // Track completed loan cycles for credit scoring
         uint256 totalAfterRepay = facility.principal + facility.accruedInterest;
+        if (totalAfterRepay == 0) {
+            loansRepaid[agentId]++;
+        }
+
+        // Only reset timer if meaningful payment (>= 5% of outstanding or fully paid off)
         if (totalAfterRepay == 0 || amount >= totalOutstanding / 20) {
             lastPaymentTimestamp[agentId] = block.timestamp;
             // If was delinquent and meaningful payment made, revert to active

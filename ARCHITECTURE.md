@@ -37,8 +37,9 @@ Lenclaw uses a **vault-per-agent** model. Each AI agent gets its own ERC-4626 va
                  |
         +--------+---------+       +------------------+
         | AgentCreditLine   |       |   CreditScorer   |
-        | (draws from       |<------|  (6 weighted     |
-        |  agent's vault)   |       |   factors)       |
+        | (draws from       |<------|  (5 observable   |
+        |  agent's vault)   |       |   on-chain       |
+        |                   |       |   factors)       |
         +--------+----------+       +------------------+
                  |
         +--------+---------+
@@ -73,8 +74,8 @@ All contracts are in `contracts/src/`. Interfaces in `contracts/src/interfaces/`
 | `AgentRegistry.sol` | ERC-721 identity (ERC-8004). Stores: wallet, codeHash, metadata, reputation (0-1000, starts at 500), codeVerified, lockbox, vault, registeredAt, externalToken, agentCategory. Auto-deploys vault+lockbox on registration |
 | `RevenueLockbox.sol` | Immutable per agent. Captures USDC revenue, splits between repayment and agent wallet. Routes through AgentCreditLine when debt exists to keep both accounting systems in sync. MIN_REPAYMENT_RATE = 10% |
 | `AgentCreditLine.sol` | Per-agent credit facility. Status: ACTIVE→DELINQUENT→DEFAULT. Lazy status check on drawdown. Auto-freezes vault on DEFAULT. MIN_DRAWDOWN = 10 USDC. Grace 7d, delinquency 14d, default 30d (all bounded) |
-| `CreditScorer.sol` | Weighted scoring: 35% revenue, 10% time-in-protocol, 15% velocity, 15% reputation, 10% code verified, 15% smart wallet. Credit lines: 100–100K USDC. Rates: 3–25% APR (inversely proportional to score) |
-| `AgentSmartWallet.sol` | Opt-in smart wallet. Auto-routes USDC to lockbox before any `execute()` call. Gives 15% credit score boost |
+| `CreditScorer.sol` | On-chain behavioral scoring: 30% revenue level, 25% revenue consistency (epoch-based), 20% credit history (completed loan cycles), 15% time in protocol, 10% debt-to-revenue ratio. Credit lines: 100–100K USDC. Rates: 3–25% APR (inversely proportional to composite score) |
+| `AgentSmartWallet.sol` | Opt-in smart wallet. Auto-routes USDC to lockbox before any `execute()` call. Ensures revenue always flows through the lockbox |
 | `SmartWalletFactory.sol` | Deploys smart wallets per agent. Manages allowed targets and default repayment rates |
 | `DutchAuction.sol` | Dutch auction for defaulted positions. Price decays linearly from 150% to 30% of debt over 6 hours |
 | `RecoveryManager.sol` | Coordinates post-default recovery. Distributes auction proceeds to agent's vault, writes down unrecoverable losses, always unfreezes vault after finalization |
@@ -184,4 +185,4 @@ Risk levels: `low | medium | high | degen`. Agent statuses: `active | delinquent
 6. **Liquidation scoped**: RecoveryManager looks up agent's vault when distributing proceeds.
 7. **APY is per-agent**: Calculated as `(annualized revenue * repayment rate) / totalBacked`. Varies per agent.
 8. **Risk isolation**: If YieldBot-Alpha defaults, only its 8 backers lose. StableYield-Pro's 58 backers are unaffected.
-9. **Smart wallet opt-in**: Agents can deploy an AgentSmartWallet for 15% credit score boost. Revenue auto-routes to lockbox before any execute() call.
+9. **Smart wallet opt-in**: Agents can deploy an AgentSmartWallet to ensure revenue always routes through the lockbox before any execute() call.

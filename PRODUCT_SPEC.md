@@ -52,7 +52,7 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 1. Connect wallet (agent operator's EOA)
 2. Navigate to Agent Onboarding
 3. Submit agent details: name, description, wallet address
-4. Submit code hash + TEE attestation for verification
+4. Submit code hash for verification
 5. AgentVaultFactory auto-deploys an AgentVault + immutable RevenueLockbox for the agent
 6. Agent receives ERC-8004 identity token (ERC-721)
 7. Agent starts routing revenue through the lockbox to build history
@@ -60,7 +60,7 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 ### Flow 3: Agent Borrows Against Revenue
 
 1. Agent operator views credit dashboard
-2. Protocol calculates credit line using 6 weighted factors: revenue history (35%), time active (10%), revenue velocity (15%), reputation score (15%), code verified (10%), smart wallet opt-in (15%)
+2. Protocol calculates credit line using 5 observable on-chain factors: revenue level (30%), revenue consistency across epochs (25%), credit history from completed loans (20%), time in protocol (15%), debt-to-revenue ratio (10%)
 3. Agent draws down from available credit line
 4. Funds disbursed from the agent's individual AgentVault to agent wallet
 5. Revenue flows into RevenueLockbox -> auto-deduction for repayment -> remainder forwarded to agent
@@ -178,7 +178,7 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 4. **ERC-4626 Agent Vaults:** Standard vault interface for deposits into each agent's vault. Composable with other DeFi protocols. Each vault mints agent-specific shares (lcA{id}USDC).
 
-5. **Weighted On-chain Credit Scoring:** CreditScorer uses 6 weighted factors: revenue history (35%), time active (10%), revenue velocity (15%), reputation score (15%), code verified (10%), smart wallet opt-in (15%). The backend may augment with additional off-chain signals.
+5. **Observable On-chain Credit Scoring:** CreditScorer uses 5 factors derived from verifiable on-chain data: revenue level (30%), revenue consistency across epochs (25%), credit history from completed loan cycles (20%), time in protocol (15%), debt-to-revenue ratio (10%). No TEE, no ZK, no manual reputation — only observable behavior.
 
 6. **SIWE Authentication:** Sign-In With Ethereum for both backers and agent operators. No passwords, no email.
 
