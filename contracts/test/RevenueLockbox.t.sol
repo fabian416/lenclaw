@@ -23,6 +23,8 @@ contract RevenueLockboxTest is Test {
             IERC20(address(usdc)), agentId, "Lenclaw Agent 1 USDC", "lcA1USDC", 1000, 500_000e6
         );
         lockbox = new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), repaymentRate, address(0));
+        // Wire lockbox on vault (this test contract is the factory)
+        agentVault.setLockbox(address(lockbox));
     }
 
     // ── Constructor ─────────────────────────────────────────────
@@ -81,6 +83,7 @@ contract RevenueLockboxTest is Test {
         RevenueLockbox fullRepay = new RevenueLockbox(
             agentWallet, address(v2), agentId, address(usdc), 10000, address(0) // 100%
         );
+        v2.setLockbox(address(fullRepay)); // Wire lockbox on vault
         usdc.mint(address(fullRepay), 1000e6);
 
         vm.prank(agentWallet);
@@ -97,6 +100,7 @@ contract RevenueLockboxTest is Test {
         RevenueLockbox zeroRepay = new RevenueLockbox(
             agentWallet, address(v3), agentId, address(usdc), 0, address(0) // 0%
         );
+        v3.setLockbox(address(zeroRepay)); // Wire lockbox on vault
         usdc.mint(address(zeroRepay), 1000e6);
 
         vm.prank(agentWallet);
@@ -197,6 +201,7 @@ contract RevenueLockboxTest is Test {
         RevenueLockbox lb = new RevenueLockbox(
             agentWallet, address(fuzzVault), agentId, address(usdc), rateBps, address(0)
         );
+        fuzzVault.setLockbox(address(lb)); // Wire lockbox on vault
         usdc.mint(address(lb), amount);
 
         vm.prank(agentWallet);

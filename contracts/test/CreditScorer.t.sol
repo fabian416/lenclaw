@@ -34,14 +34,13 @@ contract CreditScorerTest is Test {
         bytes32 codeHash = keccak256(abi.encodePacked("code", wallet));
         agentId = registry.registerAgent(wallet, codeHash, "Test Agent", address(0), 0, bytes32(0));
 
-        address vaultAddr = factory.getVault(agentId);
-
-        lockbox = new RevenueLockbox(wallet, vaultAddr, agentId, address(usdc), 5000, address(0));
-        registry.setLockbox(agentId, address(lockbox));
+        // Use the factory-deployed lockbox (auto-created during registerAgent)
+        address lockboxAddr = factory.getLockbox(agentId);
+        lockbox = RevenueLockbox(payable(lockboxAddr));
 
         // Simulate revenue
         if (revenue > 0) {
-            usdc.mint(address(lockbox), revenue);
+            usdc.mint(lockboxAddr, revenue);
             vm.prank(wallet);
             lockbox.processRevenue();
         }

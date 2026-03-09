@@ -17,13 +17,15 @@ interface IAgentVault {
     function depositCap() external view returns (uint256);
 
     function borrow(address to, uint256 amount) external;
-    function receiveRepayment(uint256 amount) external;
+    function receiveRepayment(uint256 amount, uint256 interestPortion) external;
     function requestWithdrawal() external;
     function setFrozen(bool frozen) external;
     function setWithdrawalDelay(uint256 delay) external;
+    function setLockbox(address lockbox) external;
     function availableLiquidity() external view returns (uint256);
     function utilizationRate() external view returns (uint256);
     function totalBacked() external view returns (uint256);
     function frozen() external view returns (bool);
+    function lockbox() external view returns (address);
     function writeDownLoss(uint256 lossAmount) external;
 }

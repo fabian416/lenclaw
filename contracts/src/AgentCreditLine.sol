@@ -187,10 +187,11 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         }
 
         // Transfer repayment to the agent's individual vault
+        // Pass interestPaid so vault only charges protocol fee on interest, not principal
         address vault = _getAgentVault(agentId);
         usdc.safeTransferFrom(msg.sender, address(this), amount);
         usdc.forceApprove(vault, amount);
-        IAgentVault(vault).receiveRepayment(amount);
+        IAgentVault(vault).receiveRepayment(amount, interestPaid);
 
         emit Repayment(agentId, amount, interestPaid, principalPaid);
     }

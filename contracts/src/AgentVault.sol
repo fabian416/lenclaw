@@ -28,6 +28,9 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
     // Authorized credit line contract
     address public creditLine;
 
+    // Authorized lockbox contract
+    address public lockbox;
+
     // Timestamps for APY calculation
     uint256 public createdAt;
     uint256 public totalRevenueReceived;
@@ -39,9 +42,10 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
     uint256 public lastUnfreezeTimestamp;
 
     event Borrowed(address indexed borrower, uint256 amount);
-    event RepaymentReceived(address indexed from, uint256 amount);
+    event RepaymentReceived(address indexed from, uint256 amount, uint256 interestPortion);
     event FeesCollected(address indexed to, uint256 amount);
     event CreditLineSet(address indexed creditLine);
+    event LockboxSet(address indexed lockbox);
     event DepositCapSet(uint256 newCap);
     event ProtocolFeeUpdated(uint256 oldFee, uint256 newFee);
     event WithdrawalRequested(address indexed owner, uint256 timestamp);
@@ -51,8 +55,10 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
 
     error NotFactory();
     error NotCreditLine();
+    error NotCreditLineOrLockbox();
     error InsufficientLiquidity();
     error CreditLineAlreadySet();
+    error LockboxAlreadySet();
     error DepositCapExceeded();
     error WithdrawalNotReady();
     error VaultIsFrozen();
@@ -67,6 +73,11 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
 
     modifier onlyCreditLine() {
         if (msg.sender != creditLine) revert NotCreditLine();
+        _;
+    }
+
+    modifier onlyCreditLineOrLockbox() {
+        if (msg.sender != creditLine && msg.sender != lockbox) revert NotCreditLineOrLockbox();
         _;
     }
 
@@ -90,6 +101,13 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
         if (creditLine != address(0)) revert CreditLineAlreadySet();
         creditLine = _creditLine;
         emit CreditLineSet(_creditLine);
+    }
+
+    /// @notice Set the lockbox contract (can only be set once, by factory)
+    function setLockbox(address _lockbox) external onlyFactory {
+        if (lockbox != address(0)) revert LockboxAlreadySet();
+        lockbox = _lockbox;
+        emit LockboxSet(_lockbox);
     }
 
     /// @notice Update the deposit cap (only factory/protocol owner)
@@ -141,16 +159,16 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
         emit Borrowed(to, amount);
     }
 
-    /// @notice Receive repayment into the vault (anyone can repay)
-    /// @dev M7: The full repayment amount reduces totalBorrowed (capped at totalBorrowed).
-    ///      The protocol fee is accumulated separately from the repayment accounting.
-    ///      This means the fee is effectively taken from the vault's assets (reducing backer yield),
-    ///      not deducted from the principal reduction. This is intentional: the fee is a protocol
-    ///      revenue share on all incoming repayments, and the principal tracking reflects the
-    ///      actual debt reduction. Interest is tracked off-chain by AgentCreditLine, not here.
-    function receiveRepayment(uint256 amount) external nonReentrant {
+    /// @notice Receive repayment into the vault (only credit line or lockbox)
+    /// @dev Protocol fee is charged ONLY on the interest portion, not on principal repayments.
+    ///      This matches the protocol's business model: "10% of interest paid by agents".
+    /// @param amount Total repayment amount (principal + interest)
+    /// @param interestPortion How much of the amount is interest (fee calculated on this)
+    function receiveRepayment(uint256 amount, uint256 interestPortion) external onlyCreditLineOrLockbox nonReentrant {
+        require(interestPortion <= amount, "AgentVault: interest > amount");
+
         // Checks-Effects: update state before external call
-        uint256 fee = (amount * protocolFeeBps) / 10000;
+        uint256 fee = (interestPortion * protocolFeeBps) / 10000;
         accumulatedFees += fee;
         totalRevenueReceived += amount;
 
@@ -163,7 +181,7 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
         // Interactions: external call (safeTransferFrom) after state updates
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), amount);
 
-        emit RepaymentReceived(msg.sender, amount);
+        emit RepaymentReceived(msg.sender, amount, interestPortion);
     }
 
     /// @notice Collect accumulated protocol fees (only factory owner)

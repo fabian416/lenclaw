@@ -216,11 +216,10 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         address agentVault = vaultFactory.getVault(recovery.agentId);
         require(agentVault != address(0), "RecoveryManager: no vault for agent");
 
-        // Distribute recovered proceeds to the agent's vault via receiveRepayment
-        // (not raw transfer) so vault.totalBorrowed is properly reduced
+        // Send recovered USDC directly to vault (no receiveRepayment — recovery proceeds
+        // should NOT be subject to protocol fee, and totalBorrowed is handled by writeDown)
         if (recoveredAmount > 0) {
-            usdc.forceApprove(agentVault, recoveredAmount);
-            IAgentVault(agentVault).receiveRepayment(recoveredAmount);
+            usdc.safeTransfer(agentVault, recoveredAmount);
             totalAmountRecovered += recoveredAmount;
             emit ProceedsDistributed(recoveryId, recoveredAmount);
         }
@@ -252,10 +251,12 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             IAgentCreditLine(creditLine).writeDown(recovery.agentId, recovery.debtAmount);
         }
 
-        // Write down unrecovered loss on vault
-        if (recovery.lossAmount > 0) {
+        // Write down full debt on vault's totalBorrowed (covers both recovered and lost portions)
+        // The vault balance already has the recovered USDC, so totalAssets adjusts correctly:
+        // totalAssets = (balance + recoveredAmount) + (totalBorrowed - debtAmount) - fees
+        {
             (bool wdSuccess, ) = address(vaultFactory).call(
-                abi.encodeWithSignature("writeDownVaultLoss(uint256,uint256)", recovery.agentId, recovery.lossAmount)
+                abi.encodeWithSignature("writeDownVaultLoss(uint256,uint256)", recovery.agentId, recovery.debtAmount)
             );
             // Continue even if write-down fails
             if (!wdSuccess) emit VaultOperationFailed("writeDownVaultLoss", recovery.agentId);

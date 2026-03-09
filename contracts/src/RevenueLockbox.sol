@@ -139,13 +139,15 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
 
                 if (toVaultDirect > 0) {
                     // Excess beyond debt goes directly to vault as yield for backers
+                    // interestPortion=0: this is revenue, not interest — no protocol fee
                     usdc.forceApprove(vault, toVaultDirect);
-                    IAgentVault(vault).receiveRepayment(toVaultDirect);
+                    IAgentVault(vault).receiveRepayment(toVaultDirect, 0);
                 }
             } else {
                 // Fallback: no credit line set, send directly to vault
+                // interestPortion=0: this is revenue, not interest — no protocol fee
                 usdc.forceApprove(vault, repaymentAmount);
-                IAgentVault(vault).receiveRepayment(repaymentAmount);
+                IAgentVault(vault).receiveRepayment(repaymentAmount, 0);
             }
         }
 

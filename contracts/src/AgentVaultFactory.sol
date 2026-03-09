@@ -107,6 +107,10 @@ contract AgentVaultFactory is Ownable {
         );
 
         lockboxes[agentId] = address(newLockbox);
+
+        // Wire the lockbox on the vault so only lockbox + creditLine can call receiveRepayment
+        newVault.setLockbox(address(newLockbox));
+
         emit LockboxCreated(agentId, address(newLockbox), vault);
     }
 

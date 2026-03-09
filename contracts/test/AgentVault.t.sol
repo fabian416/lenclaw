@@ -190,16 +190,34 @@ contract AgentVaultTest is Test {
         vm.prank(creditLine);
         vault.borrow(agentWallet, 5_000e6);
 
-        // Repay
-        address repayer = makeAddr("repayer");
-        usdc.mint(repayer, 5_000e6);
-        vm.startPrank(repayer);
+        // Repay from credit line (authorized caller)
+        usdc.mint(creditLine, 5_000e6);
+        vm.startPrank(creditLine);
         usdc.approve(address(vault), 5_000e6);
-        vault.receiveRepayment(5_000e6);
+        vault.receiveRepayment(5_000e6, 0);
         vm.stopPrank();
 
         assertEq(vault.totalBorrowed(), 0);
         assertEq(vault.totalRevenueReceived(), 5_000e6);
+    }
+
+    function test_receiveRepayment_revertsForUnauthorized() public {
+        address creditLine = makeAddr("creditLine");
+        factory.setVaultCreditLine(agentId, creditLine);
+
+        vm.startPrank(backer1);
+        usdc.approve(address(vault), 10_000e6);
+        vault.deposit(10_000e6, backer1);
+        vm.stopPrank();
+
+        // Random address cannot call receiveRepayment
+        address random = makeAddr("random");
+        usdc.mint(random, 1_000e6);
+        vm.startPrank(random);
+        usdc.approve(address(vault), 1_000e6);
+        vm.expectRevert(AgentVault.NotCreditLineOrLockbox.selector);
+        vault.receiveRepayment(1_000e6, 0);
+        vm.stopPrank();
     }
 
     function test_protocolFees() public {
@@ -214,22 +232,44 @@ contract AgentVaultTest is Test {
         vm.prank(creditLine);
         vault.borrow(agentWallet, 5_000e6);
 
-        // Repay 1000 USDC
-        address repayer = makeAddr("repayer");
-        usdc.mint(repayer, 1_000e6);
-        vm.startPrank(repayer);
+        // Repay 1000 USDC where 200 is interest
+        // Fee should be 10% of interest only = 20 USDC (not 10% of 1000)
+        usdc.mint(creditLine, 1_000e6);
+        vm.startPrank(creditLine);
         usdc.approve(address(vault), 1_000e6);
-        vault.receiveRepayment(1_000e6);
+        vault.receiveRepayment(1_000e6, 200e6);
         vm.stopPrank();
 
-        // 10% fee = 100 USDC
-        assertEq(vault.accumulatedFees(), 100e6);
+        // 10% fee on 200 interest = 20 USDC
+        assertEq(vault.accumulatedFees(), 20e6);
 
         // Collect fees
         address treasury = makeAddr("treasury");
         factory.collectVaultFees(agentId, treasury);
-        assertEq(usdc.balanceOf(treasury), 100e6);
+        assertEq(usdc.balanceOf(treasury), 20e6);
         assertEq(vault.accumulatedFees(), 0);
+    }
+
+    function test_protocolFees_zeroOnPrincipalOnly() public {
+        address creditLine = makeAddr("creditLine");
+        factory.setVaultCreditLine(agentId, creditLine);
+
+        vm.startPrank(backer1);
+        usdc.approve(address(vault), 10_000e6);
+        vault.deposit(10_000e6, backer1);
+        vm.stopPrank();
+
+        vm.prank(creditLine);
+        vault.borrow(agentWallet, 5_000e6);
+
+        // Repay 1000 USDC with 0 interest → no fee
+        usdc.mint(creditLine, 1_000e6);
+        vm.startPrank(creditLine);
+        usdc.approve(address(vault), 1_000e6);
+        vault.receiveRepayment(1_000e6, 0);
+        vm.stopPrank();
+
+        assertEq(vault.accumulatedFees(), 0, "No fee on principal-only repayment");
     }
 
     function test_depositCap() public {
@@ -279,21 +319,21 @@ contract AgentVaultTest is Test {
         vm.prank(creditLine);
         vault.borrow(agentWallet, 5_000e6);
 
-        // Agent fully repays 5k
-        address repayer = makeAddr("repayer");
-        usdc.mint(repayer, 5_500e6);
-        vm.startPrank(repayer);
+        // Agent repays 5500 (5000 principal + 500 interest)
+        usdc.mint(creditLine, 5_500e6);
+        vm.startPrank(creditLine);
         usdc.approve(address(vault), 5_500e6);
-        vault.receiveRepayment(5_500e6);
+        vault.receiveRepayment(5_500e6, 500e6);
         vm.stopPrank();
 
         // balance = 10000 - 5000 + 5500 = 10500
         // totalBorrowed went from 5000 to 0 (repaid 5500, capped at 5000 borrowed)
-        // fees = 5500 * 10% = 550
-        // totalAssets = 10500 + 0 - 550 = 9950
-        assertEq(vault.totalAssets(), 9_950e6);
+        // fees = 500 interest * 10% = 50 (fee only on interest, not principal!)
+        // totalAssets = 10500 + 0 - 50 = 10450
+        assertEq(vault.totalAssets(), 10_450e6);
 
-        // Redeem all shares - backer gets 9950 (lost 50 to fees on repayment beyond borrow)
+        // Redeem all shares - backer gets ~10450 (yield of ~450 after fee)
+        // ERC4626 virtual offset causes ±1 wei rounding
         vm.startPrank(backer1);
         vault.approve(address(vault), shares);
         vault.requestWithdrawal();
@@ -301,7 +341,7 @@ contract AgentVaultTest is Test {
         uint256 redeemed = vault.redeem(shares, backer1, backer1);
         vm.stopPrank();
 
-        assertEq(redeemed, 9_950e6);
+        assertApproxEqAbs(redeemed, 10_450e6, 1);
     }
 
     function test_creditLineCanOnlyBeSetOnce() public {

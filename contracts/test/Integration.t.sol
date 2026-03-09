@@ -56,14 +56,12 @@ contract IntegrationTest is Test {
         // Set credit line on the vault
         factory.setVaultCreditLine(agentId, address(creditLine));
 
-        // 2. Deploy RevenueLockbox for agent pointing to its vault
-        RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId, address(usdc), 5000, address(0) // 50% repayment
-        );
-        registry.setLockbox(agentId, address(lockbox));
+        // 2. Use the factory-deployed lockbox (auto-created during registerAgent)
+        address lockboxAddr = factory.getLockbox(agentId);
+        RevenueLockbox lockbox = RevenueLockbox(payable(lockboxAddr));
 
         // 3. Agent earns revenue (simulated by minting USDC to lockbox)
-        usdc.mint(address(lockbox), 20_000e6);
+        usdc.mint(lockboxAddr, 20_000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
@@ -126,13 +124,11 @@ contract IntegrationTest is Test {
         // Set credit line on the vault
         factory.setVaultCreditLine(agentId, address(creditLine));
 
-        RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId, address(usdc), 5000, address(0)
-        );
-        registry.setLockbox(agentId, address(lockbox));
-        usdc.mint(address(lockbox), 20_000e6);
+        // Use the factory-deployed lockbox (auto-created during registerAgent)
+        address lockboxAddr = factory.getLockbox(agentId);
+        usdc.mint(lockboxAddr, 20_000e6);
         vm.prank(agentWallet);
-        lockbox.processRevenue();
+        RevenueLockbox(payable(lockboxAddr)).processRevenue();
 
         // Seed vault with liquidity
         // (vault has 10K from lockbox revenue, cap is 500K, so deposit up to 400K)
@@ -171,22 +167,21 @@ contract IntegrationTest is Test {
     /// @notice Test revenue lockbox immutability - multiple processings
     function test_lockboxRevenueAccumulation() public {
         uint256 agentId_ = registry.registerAgent(agentWallet, keccak256("code"), "Agent", address(0), 0, bytes32(0));
-        address agentVaultAddr = factory.getVault(agentId_);
 
-        RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId_, address(usdc), 5000, address(0)
-        );
+        // Use the factory-deployed lockbox
+        address lockboxAddr = factory.getLockbox(agentId_);
+        RevenueLockbox lockbox = RevenueLockbox(payable(lockboxAddr));
 
         // Process 3 rounds of revenue
-        usdc.mint(address(lockbox), 1000e6);
+        usdc.mint(lockboxAddr, 1000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
-        usdc.mint(address(lockbox), 2000e6);
+        usdc.mint(lockboxAddr, 2000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
-        usdc.mint(address(lockbox), 3000e6);
+        usdc.mint(lockboxAddr, 3000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 

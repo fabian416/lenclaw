@@ -45,16 +45,13 @@ contract AgentCreditLineTest is Test {
         // Set credit line on the vault
         factory.setVaultCreditLine(agentId, address(creditLine));
 
-        // Deploy lockbox pointing to the agent's vault
-        RevenueLockbox lockbox = new RevenueLockbox(
-            agentWallet, agentVaultAddr, agentId, address(usdc), 5000, address(0)
-        );
-        registry.setLockbox(agentId, address(lockbox));
+        // Use the factory-deployed lockbox (auto-created during registerAgent)
+        address lockboxAddr = factory.getLockbox(agentId);
 
         // Give lockbox some revenue (so credit line is not zero)
-        usdc.mint(address(lockbox), 50_000e6);
+        usdc.mint(lockboxAddr, 50_000e6);
         vm.prank(agentWallet);
-        lockbox.processRevenue();
+        RevenueLockbox(payable(lockboxAddr)).processRevenue();
 
         // Seed the agent's vault with additional liquidity from depositor
         // (vault has 25K from lockbox revenue, cap is 500K, so deposit up to 400K)
