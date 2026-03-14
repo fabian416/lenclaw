@@ -4,9 +4,11 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AgentVault} from "./AgentVault.sol";
-import {RevenueLockbox} from "./RevenueLockbox.sol";
 import {AgentSmartWallet} from "./AgentSmartWallet.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
+import {VaultDeployer} from "./deployers/VaultDeployer.sol";
+import {LockboxDeployer} from "./deployers/LockboxDeployer.sol";
+import {WalletDeployer} from "./deployers/WalletDeployer.sol";
 
 /// @title AgentVaultFactory - Deploys individual AgentVault + RevenueLockbox + SmartWallet per AI agent
 /// @notice Factory pattern: when an agent registers, this deploys an ERC-4626 vault,
@@ -116,64 +118,47 @@ contract AgentVaultFactory is Ownable {
         string memory name = string.concat("Lenclaw Agent ", _uint2str(agentId), " Vault");
         string memory symbol = string.concat("lcA", _uint2str(agentId));
 
-        // ── 1. Deploy AgentVault ──
-        AgentVault newVault = new AgentVault(
-            IERC20(asset),
-            agentId,
-            name,
-            symbol,
-            defaultProtocolFeeBps,
-            defaultDepositCap
+        // ── 1. Deploy AgentVault (via library to reduce factory bytecode) ──
+        vault = VaultDeployer.deploy(
+            IERC20(asset), agentId, name, symbol, defaultProtocolFeeBps, defaultDepositCap
         );
 
-        vault = address(newVault);
         vaults[agentId] = vault;
         agentAssets[agentId] = asset;
         allVaults.push(vault);
 
         if (creditLine != address(0)) {
-            newVault.setCreditLine(creditLine);
+            AgentVault(vault).setCreditLine(creditLine);
         }
 
         emit VaultCreated(agentId, vault, asset);
 
-        // ── 2. Deploy RevenueLockbox ──
-        RevenueLockbox newLockbox = new RevenueLockbox(
-            profile.wallet, // agent operator EOA (receives remainder after repayment)
-            vault,
-            agentId,
-            asset,
-            defaultRepaymentRateBps,
-            creditLine,
-            defaultMaxRevenuePerProcess
+        // ── 2. Deploy RevenueLockbox (via library) ──
+        address newLockbox = LockboxDeployer.deploy(
+            profile.wallet, vault, agentId, asset, defaultRepaymentRateBps, creditLine, defaultMaxRevenuePerProcess
         );
 
-        lockboxes[agentId] = address(newLockbox);
-        newVault.setLockbox(address(newLockbox));
+        lockboxes[agentId] = newLockbox;
+        AgentVault(vault).setLockbox(newLockbox);
 
-        emit LockboxCreated(agentId, address(newLockbox), vault);
+        emit LockboxCreated(agentId, newLockbox, vault);
 
-        // ── 3. Deploy SmartWallet (MANDATORY) ──
-        AgentSmartWallet newSmartWallet = new AgentSmartWallet(
-            profile.wallet,         // operator = the EOA that registered
-            address(this),          // protocol = factory
-            address(newLockbox),    // lockbox for revenue routing
-            asset,                  // asset to route
-            agentId,
-            defaultRepaymentRateBps
+        // ── 3. Deploy SmartWallet (MANDATORY, via library) ──
+        address newSmartWallet = WalletDeployer.deploy(
+            profile.wallet, address(this), newLockbox, asset, agentId, defaultRepaymentRateBps
         );
 
-        smartWallets[agentId] = address(newSmartWallet);
+        smartWallets[agentId] = newSmartWallet;
 
         // Whitelist creditLine as allowed target so agent can call drawdown via SmartWallet
         if (creditLine != address(0)) {
-            newSmartWallet.setAllowedTarget(creditLine, true);
+            AgentSmartWallet(payable(newSmartWallet)).setAllowedTarget(creditLine, true);
         }
 
         // Update registry: set SmartWallet as agent's public address for revenue
-        registry.setSmartWallet(agentId, address(newSmartWallet));
+        registry.setSmartWallet(agentId, newSmartWallet);
 
-        emit SmartWalletCreated(agentId, address(newSmartWallet), profile.wallet);
+        emit SmartWalletCreated(agentId, newSmartWallet, profile.wallet);
     }
 
     // ─── Vault admin ────────────────────────────────────────────────────

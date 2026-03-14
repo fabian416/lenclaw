@@ -58,6 +58,9 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     uint256 public totalAmountRecovered;
     uint256 public totalLosses;
 
+    /// @notice Accumulated sub-MIN_DEPOSIT recovery amounts per agent, awaiting flush
+    mapping(uint256 => uint256) public pendingRecovery;
+
     /// @notice Reputation penalty for default (how much to slash on default)
     uint256 public defaultReputationPenalty = 200; // Subtract from 0-1000 score
 
@@ -88,6 +91,8 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     event WriteOff(uint256 indexed recoveryId, uint256 indexed agentId, uint256 lossAmount);
     event VaultOperationFailed(string operation, uint256 indexed agentId);
     event BuyerSharesMinted(uint256 indexed recoveryId, address indexed buyer, uint256 assets, uint256 shares);
+    event RecoveryPending(uint256 indexed agentId, uint256 amount, uint256 totalPending);
+    event PendingRecoveryFlushed(uint256 indexed agentId, uint256 amount, uint256 shares);
 
     // -- Constructor --
 
@@ -243,12 +248,21 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
                     uint256 sharesMinted = IAgentVault(agentVault).deposit(recoveredAmount, buyer);
                     emit BuyerSharesMinted(recoveryId, buyer, recoveredAmount, sharesMinted);
                 } else {
-                    // Amount below MIN_DEPOSIT — fallback to direct transfer (no shares minted)
-                    asset.safeTransfer(agentVault, recoveredAmount);
+                    // Amount below MIN_DEPOSIT — accumulate in pending until threshold is met
+                    pendingRecovery[recovery.agentId] += recoveredAmount;
+                    emit RecoveryPending(recovery.agentId, recoveredAmount, pendingRecovery[recovery.agentId]);
                 }
             } else {
                 // No buyer (shouldn't happen for SETTLED, but defensive)
-                asset.safeTransfer(agentVault, recoveredAmount);
+                // Route through deposit to maintain ERC-4626 accounting
+                uint256 minDeposit = IAgentVault(agentVault).MIN_DEPOSIT();
+                if (recoveredAmount >= minDeposit) {
+                    asset.approve(agentVault, recoveredAmount);
+                    IAgentVault(agentVault).deposit(recoveredAmount, address(this));
+                } else {
+                    pendingRecovery[recovery.agentId] += recoveredAmount;
+                    emit RecoveryPending(recovery.agentId, recoveredAmount, pendingRecovery[recovery.agentId]);
+                }
             }
 
             emit ProceedsDistributed(recoveryId, recoveredAmount);
@@ -308,6 +322,27 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         }
 
         // Note: vault was already unfrozen in step 2
+    }
+
+    /// @notice Flush accumulated pending recovery funds into the agent's vault.
+    ///         Callable once the pending amount meets the vault's MIN_DEPOSIT threshold.
+    /// @param agentId The agent whose pending funds should be deposited
+    function flushPendingRecovery(uint256 agentId) external nonReentrant {
+        uint256 pending = pendingRecovery[agentId];
+        require(pending > 0, "RecoveryManager: nothing pending");
+
+        address agentVault = vaultFactory.getVault(agentId);
+        require(agentVault != address(0), "RecoveryManager: no vault for agent");
+
+        uint256 minDeposit = IAgentVault(agentVault).MIN_DEPOSIT();
+        require(pending >= minDeposit, "RecoveryManager: below MIN_DEPOSIT");
+
+        pendingRecovery[agentId] = 0;
+
+        asset.approve(agentVault, pending);
+        uint256 shares = IAgentVault(agentVault).deposit(pending, address(this));
+
+        emit PendingRecoveryFlushed(agentId, pending, shares);
     }
 
     // -- Internal --

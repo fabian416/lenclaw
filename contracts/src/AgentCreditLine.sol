@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 import {ICreditScorer} from "./interfaces/ICreditScorer.sol";
@@ -15,7 +16,7 @@ import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 /// @notice Manages borrowing, repayment, and status tracking for each AI agent.
 ///         Each agent borrows from and repays to their individual AgentVault.
 ///         Supports multiple assets (USDC, WETH, USDT) — reads the token from each agent's vault.
-contract AgentCreditLine is Ownable, ReentrancyGuard {
+contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     enum Status {
@@ -107,6 +108,14 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         requireSmartWallet = _require;
     }
 
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /// @notice Get the agent's individual vault address
     function _getAgentVault(uint256 agentId) internal view returns (address) {
         address vault = vaultFactory.getVault(agentId);
@@ -135,7 +144,7 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
     /// @notice Borrow from the agent's individual vault up to credit limit
     /// @dev Caller must be the agent's operator wallet or SmartWallet.
     ///      Borrowed funds are sent to operator wallet (NOT SmartWallet) to avoid circular routing.
-    function drawdown(uint256 agentId, uint256 amount) external nonReentrant {
+    function drawdown(uint256 agentId, uint256 amount) external nonReentrant whenNotPaused {
         uint256 minDrawdown = _getMinDrawdown(agentId);
         require(amount >= minDrawdown, "AgentCreditLine: amount too small");
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
@@ -242,6 +251,7 @@ contract AgentCreditLine is Ownable, ReentrancyGuard {
         token.safeTransferFrom(msg.sender, address(this), amount);
         token.forceApprove(vault, amount);
         IAgentVault(vault).receiveRepayment(amount, interestPaid);
+        token.forceApprove(vault, 0);
 
         emit Repayment(agentId, amount, interestPaid, principalPaid);
     }

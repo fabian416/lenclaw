@@ -174,7 +174,7 @@ contract LiquidationTest is Test {
         // Bidder bids
         vm.startPrank(bidder);
         usdc.approve(address(dutchAuction), currentPrice);
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
@@ -192,7 +192,7 @@ contract LiquidationTest is Test {
         vm.startPrank(bidder);
         usdc.approve(address(dutchAuction), 15_000e6);
         vm.expectRevert("DutchAuction: expired");
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
     }
 
@@ -385,7 +385,7 @@ contract LiquidationTest is Test {
 
         vm.startPrank(bidder);
         usdc.approve(address(dutchAuction), currentPrice);
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         // Finalize recovery
@@ -445,7 +445,7 @@ contract LiquidationTest is Test {
 
         vm.startPrank(bidder);
         usdc.approve(address(dutchAuction), currentPrice);
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         // Finalize
@@ -546,7 +546,7 @@ contract LiquidationTest is Test {
 
         vm.startPrank(bidder);
         usdc.approve(address(dutchAuction), bidPrice);
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         assertFalse(dutchAuction.hasActiveAuction(agentId));
@@ -584,7 +584,7 @@ contract LiquidationTest is Test {
         // Bid should still work at exact end time
         vm.startPrank(bidder);
         usdc.approve(address(dutchAuction), price);
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
@@ -633,7 +633,7 @@ contract LiquidationTest is Test {
         // Bidder bids on the auction
         vm.startPrank(bidder);
         usdc.approve(address(dutchAuction), currentPrice);
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         // Still no shares — shares are minted on finalization, not on bid
@@ -668,7 +668,7 @@ contract LiquidationTest is Test {
         vm.startPrank(bidder);
         uint256 price = dutchAuction.getCurrentPrice(auctionId);
         usdc.approve(address(dutchAuction), price);
-        dutchAuction.bid(auctionId);
+        dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         uint256 rmBalAfter = usdc.balanceOf(address(recoveryManager));

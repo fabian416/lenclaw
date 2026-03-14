@@ -144,13 +144,15 @@ contract DutchAuction is Ownable, ReentrancyGuard {
     /// @notice Bid on an active auction at the current Dutch auction price.
     ///         The bidder pays the current price and the auction settles immediately.
     /// @param auctionId The auction to bid on
-    function bid(uint256 auctionId) external nonReentrant {
+    /// @param maxPrice  Maximum price the bidder is willing to pay (MEV/front-running protection)
+    function bid(uint256 auctionId, uint256 maxPrice) external nonReentrant {
         Auction storage auction = auctions[auctionId];
         require(auction.status == AuctionStatus.ACTIVE, "DutchAuction: not active");
         require(block.timestamp <= auction.startTime + auction.duration, "DutchAuction: expired");
 
         uint256 currentPrice = getCurrentPrice(auctionId);
         require(currentPrice > 0, "DutchAuction: price is zero");
+        require(currentPrice <= maxPrice, "DutchAuction: price slipped");
 
         // Transfer USDC from bidder to this contract
         asset.safeTransferFrom(msg.sender, address(this), currentPrice);

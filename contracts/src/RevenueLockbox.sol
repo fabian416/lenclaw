@@ -31,6 +31,7 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     uint256 public totalRepaid;
 
     // Epoch-based revenue tracking for credit scoring consistency analysis
+    uint256 public constant MIN_REVENUE_AMOUNT = 1e6; // 1 USDC minimum to count as real revenue
     uint256 public constant EPOCH_LENGTH = 30 days;
     uint256 public immutable deployedAt;
     mapping(uint256 => uint256) public revenueByEpoch; // epoch index => USDC captured
@@ -157,12 +158,14 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
             totalRepaid += repaymentAmount;
         }
 
-        // Track revenue per epoch for consistency scoring
+        // Track revenue per epoch for consistency scoring (only if above dust threshold)
         uint256 epoch = currentEpoch();
-        if (revenueByEpoch[epoch] == 0) {
-            epochsWithRevenue++;
+        if (balance >= MIN_REVENUE_AMOUNT) {
+            if (revenueByEpoch[epoch] == 0) {
+                epochsWithRevenue++;
+            }
+            revenueByEpoch[epoch] += balance;
         }
-        revenueByEpoch[epoch] += balance;
 
         // Interactions: external calls after all state updates
         if (repaymentAmount > 0) {
@@ -176,6 +179,7 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
                     // CreditLine.repay() pulls USDC from us, updates debt, forwards to vault
                     asset.forceApprove(creditLine, toDebt);
                     IAgentCreditLine(creditLine).repay(agentId, toDebt);
+                    asset.forceApprove(creditLine, 0);
                 }
 
                 if (toVaultDirect > 0) {
@@ -183,12 +187,14 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
                     // interestPortion=0: this is revenue, not interest — no protocol fee
                     asset.forceApprove(vault, toVaultDirect);
                     IAgentVault(vault).receiveRepayment(toVaultDirect, 0);
+                    asset.forceApprove(vault, 0);
                 }
             } else {
                 // Fallback: no credit line set, send directly to vault
                 // interestPortion=0: this is revenue, not interest — no protocol fee
                 asset.forceApprove(vault, repaymentAmount);
                 IAgentVault(vault).receiveRepayment(repaymentAmount, 0);
+                asset.forceApprove(vault, 0);
             }
         }
 
