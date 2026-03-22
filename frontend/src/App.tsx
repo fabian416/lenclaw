@@ -11,6 +11,7 @@ import AgentDetail from "@/pages/AgentDetail"
 import Portfolio from "@/pages/Portfolio"
 import Leaderboard from "@/pages/Leaderboard"
 import Feed from "@/pages/Feed"
+import Docs from "@/pages/Docs"
 import { Noise } from "@/components/reactbits/Noise"
 
 function NotFound() {
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/feed" element={<Feed />} />
+            <Route path="/docs" element={<Docs />} />
             {/* Redirects for removed routes */}
             <Route path="/lend" element={<Navigate to="/agents" replace />} />
             <Route path="/borrow" element={<Navigate to="/agents" replace />} />

@@ -5,10 +5,9 @@ import { motion } from "framer-motion"
 import { MOCK_AGENTS_WITH_VAULT, MOCK_ACTIVITY_FEED, MOCK_GLOBAL_STATS } from "@/lib/constants"
 import { formatCompact } from "@/lib/utils"
 import type { RiskLevel } from "@/lib/types"
+import PixelBlast from "@/components/reactbits/PixelBlast"
 import { SplitText } from "@/components/reactbits/SplitText"
 import { ShinyText } from "@/components/reactbits/ShinyText"
-import { Aurora } from "@/components/reactbits/Aurora"
-import { Squares } from "@/components/reactbits/Squares"
 import { RotatingText } from "@/components/reactbits/RotatingText"
 import { TiltedCard } from "@/components/reactbits/TiltedCard"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
@@ -65,11 +64,27 @@ const ARENA_STATS = [
 export default function Home() {
   return (
     <div>
-      <main className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Hero */}
-        <section className="pt-24 md:pt-40 pb-20 md:pb-32 relative overflow-hidden">
-          <Aurora />
-          <Squares borderColor="var(--primary)" squareSize={80} speed={25} className="opacity-15 z-0" />
+      {/* Hero — full width */}
+      <section className="relative w-full overflow-hidden">
+        {/* PixelBlast — right half only, fades into left */}
+        <div className="absolute top-0 right-0 bottom-0 w-[65%] z-0">
+          <PixelBlast
+            pixelSize={4}
+            color="#f4a261"
+            edgeFade={0.15}
+            speed={0.5}
+            enableRipples={true}
+            rippleIntensityScale={0.6}
+            rippleThickness={0.15}
+            rippleSpeed={0.4}
+            patternDensity={0.97}
+            transparent={true}
+          />
+          {/* Fade gradient — AFTER canvas, pointer-events-none */}
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent pointer-events-none" />
+        </div>
+        {/* Hero content */}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-24 md:pt-40 pb-20 md:pb-32 pointer-events-none [&_a]:pointer-events-auto [&_button]:pointer-events-auto">
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -140,8 +155,10 @@ export default function Home() {
               </div>
             </BorderBeam>
           </AnimatedContent>
-        </section>
+        </div>{/* end hero content */}
+      </section>{/* end hero */}
 
+      <main className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Live Ticker */}
         <section className="pb-16 md:pb-24">
           <Marquee speed={35} pauseOnHover className="py-4 text-sm font-medium">
