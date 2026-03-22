@@ -32,7 +32,8 @@ services:
       retries: 3
     deploy:
       resources:
-        limits: {}
+        limits:
+          memory: 1G
 
   # ---------------------------------------------------------------------------
   # Backend - uvicorn with --reload

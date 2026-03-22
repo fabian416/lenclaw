@@ -1,0 +1,124 @@
+# =============================================================================
+# Lenclaw - Production Compose (EC2)
+# Runs alongside gaucho-agents. Uses shared Caddy for HTTPS routing.
+#
+# Deploy: push to main → GitHub Actions builds → SSH deploys here
+# Auto-update: Watchtower picks up :latest tags
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Frontend - React SPA (nginx)
+  # ---------------------------------------------------------------------------
+  lenclaw-frontend:
+    image: ghcr.io/lucholeonel/lenclaw/frontend:latest
+    container_name: lenclaw-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    networks:
+      - lenclaw-net
+      - mateos_default
+
+  # ---------------------------------------------------------------------------
+  # Backend - FastAPI + Gunicorn/Uvicorn
+  # ---------------------------------------------------------------------------
+  lenclaw-backend:
+    image: ghcr.io/lucholeonel/lenclaw/backend:latest
+    container_name: lenclaw-backend
+    restart: unless-stopped
+    expose:
+      - "8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-lenclaw}:${POSTGRES_PASSWORD:-lenclaw}@lenclaw-postgres:5432/${POSTGRES_DB:-lenclaw_db}
+      - REDIS_URL=redis://lenclaw-redis:6379/0
+      - APP_ENV=production
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    depends_on:
+      lenclaw-postgres:
+        condition: service_healthy
+      lenclaw-redis:
+        condition: service_healthy
+    networks:
+      - lenclaw-net
+      - mateos_default
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 15
+  # ---------------------------------------------------------------------------
+  lenclaw-postgres:
+    image: postgres:15-alpine
+    container_name: lenclaw-postgres
+    restart: unless-stopped
+    expose:
+      - "5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lenclaw}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lenclaw}
+      POSTGRES_DB: ${POSTGRES_DB:-lenclaw_db}
+    volumes:
+      - lenclaw-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lenclaw} -d ${POSTGRES_DB:-lenclaw_db}"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks:
+      - lenclaw-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
+  lenclaw-redis:
+    image: redis:7-alpine
+    container_name: lenclaw-redis
+    restart: unless-stopped
+    expose:
+      - "6379"
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - lenclaw-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    networks:
+      - lenclaw-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  lenclaw-postgres-data:
+  lenclaw-redis-data:
+
+networks:
+  lenclaw-net:
+    driver: bridge
+  mateos_default:
+    external: true
