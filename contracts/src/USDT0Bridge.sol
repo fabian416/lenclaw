@@ -127,6 +127,7 @@ contract USDT0Bridge is Ownable, ReentrancyGuard {
         returns (uint256 nonce)
     {
         if (amount == 0) revert ZeroAmount();
+        require(minAmount <= amount, "minAmount exceeds amount");
         if (!supportedChains[dstEid]) revert ChainNotSupported(dstEid);
 
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
@@ -257,8 +258,14 @@ contract USDT0Bridge is Ownable, ReentrancyGuard {
     }
 
     /// @notice Estimate LayerZero fee for a bridge operation (calls LZ endpoint quoteSend)
-    function estimateBridgeFee(uint32 dstEid, uint256 amount) external view returns (uint256 nativeFee) {
-        if (lzEndpoint == address(0)) return 0;
+    /// @return nativeFee The estimated native fee for the bridge operation
+    /// @return available Whether the fee estimate is available (false if no endpoint or call fails)
+    function estimateBridgeFee(uint32 dstEid, uint256 amount)
+        external
+        view
+        returns (uint256 nativeFee, bool available)
+    {
+        if (lzEndpoint == address(0)) return (0, false);
 
         SendParam memory sendParam = SendParam({
             dstEid: dstEid,
@@ -282,6 +289,7 @@ contract USDT0Bridge is Ownable, ReentrancyGuard {
 
         if (success && result.length >= 64) {
             (nativeFee,) = abi.decode(result, (uint256, uint256));
+            available = true;
         }
     }
 

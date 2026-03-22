@@ -33,6 +33,9 @@ export interface AgentConfig {
   /** Minimum USDC balance to trigger revenue processing (6 decimals) */
   minRevenueThreshold: bigint;
 
+  /** Maximum gas price in gwei before skipping transactions */
+  maxGasPriceGwei: number;
+
   /** Log level */
   logLevel: LogLevel;
 }
@@ -90,6 +93,8 @@ export function loadConfig(): AgentConfig {
   const minThresholdStr = optionalEnv('MIN_REVENUE_THRESHOLD', '1.0');
   const logLevel = optionalEnv('LOG_LEVEL', 'info') as LogLevel;
 
+  const maxGasPriceGwei = parseInt(optionalEnv('MAX_GAS_PRICE_GWEI', '50'), 10);
+
   const agentIdStr = requireEnv('AGENT_ID');
   const agentId = parseInt(agentIdStr, 10);
   if (isNaN(agentId) || agentId <= 0) {
@@ -110,6 +115,7 @@ export function loadConfig(): AgentConfig {
     agentId,
     pollIntervalMs,
     minRevenueThreshold: parseUSDC(minThresholdStr),
+    maxGasPriceGwei,
     logLevel,
   };
 }

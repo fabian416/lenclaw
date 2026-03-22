@@ -276,7 +276,7 @@ async function main(): Promise<void> {
   await printStartupDiagnostics(config, wallet);
 
   // Initialize DeFi operations (bridge, swap) -- non-blocking
-  const defi = new DeFiOperations(wallet);
+  const defi = new DeFiOperations(wallet, config.maxGasPriceGwei);
   defi.initBridge().catch((err) => {
     log.warn('USDT0 bridge initialization failed (non-critical)', { error: String(err) });
   });

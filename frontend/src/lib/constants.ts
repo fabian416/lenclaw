@@ -29,19 +29,35 @@ export const CHAIN_IDS = {
 export const CHAIN_ID = CHAIN_IDS.BASE
 
 // ── Contract addresses per chain ────────────────────────────────────────────
+// NOTE: All non-USDC addresses below are zero addresses (0x000...000).
+// They MUST be replaced with real deployed addresses after running:
+//   cd contracts && forge script script/Deploy.s.sol --broadcast
+// Until then, use `isContractDeployed()` in the UI to gate contract interactions
+// and show "Not deployed" states gracefully.
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const
 
 export const CONTRACTS = {
   [CHAIN_IDS.BASE]: {
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const,
-    AGENT_REGISTRY: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
-    AGENT_VAULT_FACTORY: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
-    AGENT_CREDIT_LINE: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
-    CREDIT_SCORER: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
-    DUTCH_AUCTION: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
-    RECOVERY_MANAGER: "0x0000000000000000000000000000000000000000" as const, // TODO: deploy
+    AGENT_REGISTRY: ZERO_ADDRESS,        // TODO: fill after deployment
+    AGENT_VAULT_FACTORY: ZERO_ADDRESS,   // TODO: fill after deployment
+    AGENT_CREDIT_LINE: ZERO_ADDRESS,     // TODO: fill after deployment
+    CREDIT_SCORER: ZERO_ADDRESS,         // TODO: fill after deployment
+    DUTCH_AUCTION: ZERO_ADDRESS,         // TODO: fill after deployment
+    RECOVERY_MANAGER: ZERO_ADDRESS,      // TODO: fill after deployment
   },
   // Other chains can be added after deployment
 } as const
+
+/**
+ * Returns true if the given address is a real deployed contract
+ * (i.e., not the zero address). Use this to guard UI interactions
+ * and show "Not deployed" placeholders when contracts are missing.
+ */
+export function isContractDeployed(address: string): boolean {
+  return !!address && address !== ZERO_ADDRESS
+}
 
 /** Helper to get contracts for the current chain */
 export function getContracts(chainId: number = CHAIN_ID) {

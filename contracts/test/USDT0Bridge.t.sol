@@ -498,13 +498,15 @@ contract USDT0BridgeTest is Test {
             protocolOwner
         );
 
-        uint256 fee = bridgeNoLz.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
+        (uint256 fee, bool available) = bridgeNoLz.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
         assertEq(fee, 0);
+        assertFalse(available, "Should not be available without endpoint");
     }
 
     function test_estimateBridgeFee_returnsQuote() public view {
-        uint256 fee = bridge.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
+        (uint256 fee, bool available) = bridge.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
         assertEq(fee, 0.01 ether, "Should return mock endpoint quote");
+        assertTrue(available, "Should be available with working endpoint");
     }
 
     function test_estimateBridgeFee_handlesEndpointFailure() public {
@@ -517,8 +519,9 @@ contract USDT0BridgeTest is Test {
         );
 
         // Should return 0 gracefully when quoteSend reverts
-        uint256 fee = bridgeFailQuote.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
+        (uint256 fee, bool available) = bridgeFailQuote.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
         assertEq(fee, 0, "Should return 0 on quote failure");
+        assertFalse(available, "Should not be available on quote failure");
     }
 
     // ═══════════════════════════════════════════════════════════════════

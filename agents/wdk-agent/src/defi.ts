@@ -9,11 +9,11 @@
 
 import WDK from '@tetherto/wdk';
 import { ProtocolBridgeUSDT0Evm } from '@tetherto/wdk-protocol-bridge-usdt0-evm';
-import { type Address, encodeFunctionData, type PublicClient } from 'viem';
+import { type Address, encodeFunctionData, type PublicClient, parseGwei } from 'viem';
 import { AgentWallet } from './wallet';
 import { ERC20_ABI } from './contracts';
 import { getLogger } from './logger';
-import { formatUSDC } from './config';
+import { AgentConfig, formatUSDC } from './config';
 
 const log = getLogger('defi');
 
@@ -47,9 +47,56 @@ export interface SwapResult {
 export class DeFiOperations {
   private wallet: AgentWallet;
   private bridgeProtocol: InstanceType<typeof ProtocolBridgeUSDT0Evm> | null = null;
+  private maxGasPriceGwei: number;
 
-  constructor(wallet: AgentWallet) {
+  constructor(wallet: AgentWallet, maxGasPriceGwei: number = 50) {
     this.wallet = wallet;
+    this.maxGasPriceGwei = maxGasPriceGwei;
+  }
+
+  /**
+   * Check gas price against the configured maximum. Returns true if gas price is acceptable.
+   */
+  private async checkGasPrice(): Promise<boolean> {
+    try {
+      const gasPrice = await this.wallet.publicClient.getGasPrice();
+      const maxGasPriceWei = parseGwei(this.maxGasPriceGwei.toString());
+      const gasPriceGwei = Number(gasPrice) / 1e9;
+
+      if (gasPrice > maxGasPriceWei) {
+        log.warn('Gas price exceeds configured maximum, skipping transaction', {
+          currentGasPriceGwei: gasPriceGwei.toFixed(2),
+          maxGasPriceGwei: this.maxGasPriceGwei,
+        });
+        return false;
+      }
+
+      log.debug('Gas price check passed', { gasPriceGwei: gasPriceGwei.toFixed(2) });
+      return true;
+    } catch (err) {
+      log.warn('Failed to fetch gas price, proceeding anyway', { error: String(err) });
+      return true;
+    }
+  }
+
+  /**
+   * Estimate gas for a transaction. Returns true if estimation succeeds (tx likely won't revert).
+   */
+  private async estimateGas(to: Address, data: `0x${string}`): Promise<boolean> {
+    try {
+      await this.wallet.publicClient.estimateGas({
+        account: this.wallet.address,
+        to,
+        data,
+      });
+      return true;
+    } catch (err) {
+      log.warn('Gas estimation failed, transaction would likely revert -- skipping', {
+        to,
+        error: String(err),
+      });
+      return false;
+    }
   }
 
   /**
@@ -178,6 +225,14 @@ export class DeFiOperations {
     });
 
     try {
+      // Check gas price before submitting
+      if (!(await this.checkGasPrice())) {
+        return {
+          success: false, txHash: null, tokenIn, tokenOut, amountIn, amountOut: 0n,
+          error: 'Gas price too high',
+        };
+      }
+
       const account = await this.wallet.wdk.getAccount('ethereum', 0);
 
       // Step 1: Approve the router to spend tokenIn
@@ -186,6 +241,14 @@ export class DeFiOperations {
         functionName: 'approve',
         args: [routerAddress, amountIn],
       });
+
+      // Estimate gas for approval
+      if (!(await this.estimateGas(tokenIn, approveData as `0x${string}`))) {
+        return {
+          success: false, txHash: null, tokenIn, tokenOut, amountIn, amountOut: 0n,
+          error: 'Approval gas estimation failed',
+        };
+      }
 
       const approveTxResult = await account.sendTransaction({
         to: tokenIn,
@@ -213,7 +276,17 @@ export class DeFiOperations {
         };
       }
 
-      // Step 2: Execute the swap
+      // Step 2: Estimate gas for the swap before executing
+      if (!(await this.estimateGas(routerAddress, swapCalldata))) {
+        log.warn('Swap gas estimation failed, revoking approval and skipping');
+        await this.revokeApproval(account, tokenIn, routerAddress);
+        return {
+          success: false, txHash: null, tokenIn, tokenOut, amountIn, amountOut: 0n,
+          error: 'Swap gas estimation failed',
+        };
+      }
+
+      // Execute the swap
       const swapTxResult = await account.sendTransaction({
         to: routerAddress,
         data: swapCalldata,

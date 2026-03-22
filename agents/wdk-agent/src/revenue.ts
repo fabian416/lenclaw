@@ -18,6 +18,7 @@ import {
   type PublicClient,
   encodeFunctionData,
   parseAbi,
+  parseGwei,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
@@ -42,7 +43,7 @@ export interface RevenueMonitorState {
 export class RevenueMonitor {
   private config: AgentConfig;
   private wallet: AgentWallet;
-  private intervalHandle: ReturnType<typeof setInterval> | null = null;
+  private intervalHandle: ReturnType<typeof setTimeout> | null = null;
   private state: RevenueMonitorState = {
     isRunning: false,
     totalProcessed: 0n,
@@ -51,9 +52,28 @@ export class RevenueMonitor {
     errors: 0,
   };
 
+  /** Exponential backoff state */
+  private consecutiveFailures: number = 0;
+  private static readonly BACKOFF_BASE_DELAY_MS = 5000;
+  private static readonly BACKOFF_MAX_DELAY_MS = 300000; // 5 minutes
+
   constructor(config: AgentConfig, wallet: AgentWallet) {
     this.config = config;
     this.wallet = wallet;
+  }
+
+  /**
+   * Compute the delay before the next poll, applying exponential backoff on failures.
+   */
+  private getNextPollDelay(): number {
+    if (this.consecutiveFailures === 0) {
+      return this.config.pollIntervalMs;
+    }
+    const backoffDelay = Math.min(
+      RevenueMonitor.BACKOFF_BASE_DELAY_MS * Math.pow(2, this.consecutiveFailures),
+      RevenueMonitor.BACKOFF_MAX_DELAY_MS,
+    );
+    return backoffDelay;
   }
 
   /**
@@ -72,17 +92,37 @@ export class RevenueMonitor {
       minThreshold: formatUSDC(this.config.minRevenueThreshold),
     });
 
-    // Run immediately, then on interval
-    this.checkAndProcess().catch((err) => {
-      log.error('Error in initial revenue check', { error: String(err) });
-    });
+    // Run immediately, then schedule the next poll
+    this.pollLoop();
+  }
 
-    this.intervalHandle = setInterval(() => {
-      this.checkAndProcess().catch((err) => {
+  /**
+   * Internal polling loop with exponential backoff on failures.
+   */
+  private pollLoop(): void {
+    if (!this.state.isRunning) return;
+
+    this.checkAndProcess()
+      .then(() => {
+        // Success: reset consecutive failures
+        this.consecutiveFailures = 0;
+      })
+      .catch((err) => {
         log.error('Error in revenue check cycle', { error: String(err) });
         this.state.errors++;
+        this.consecutiveFailures++;
+      })
+      .finally(() => {
+        if (!this.state.isRunning) return;
+        const delay = this.getNextPollDelay();
+        if (this.consecutiveFailures > 0) {
+          log.warn('Applying exponential backoff before next poll', {
+            consecutiveFailures: this.consecutiveFailures,
+            backoffDelayMs: delay,
+          });
+        }
+        this.intervalHandle = setTimeout(() => this.pollLoop(), delay);
       });
-    }, this.config.pollIntervalMs);
   }
 
   /**
@@ -90,7 +130,7 @@ export class RevenueMonitor {
    */
   stop(): void {
     if (this.intervalHandle) {
-      clearInterval(this.intervalHandle);
+      clearTimeout(this.intervalHandle);
       this.intervalHandle = null;
     }
     this.state.isRunning = false;
@@ -106,6 +146,51 @@ export class RevenueMonitor {
    */
   getState(): RevenueMonitorState {
     return { ...this.state };
+  }
+
+  /**
+   * Check gas price against the configured maximum. Returns true if gas price is acceptable.
+   */
+  private async checkGasPrice(): Promise<boolean> {
+    try {
+      const gasPrice = await this.wallet.publicClient.getGasPrice();
+      const maxGasPriceWei = parseGwei(this.config.maxGasPriceGwei.toString());
+      const gasPriceGwei = Number(gasPrice) / 1e9;
+
+      if (gasPrice > maxGasPriceWei) {
+        log.warn('Gas price exceeds configured maximum, skipping transaction', {
+          currentGasPriceGwei: gasPriceGwei.toFixed(2),
+          maxGasPriceGwei: this.config.maxGasPriceGwei,
+        });
+        return false;
+      }
+
+      log.debug('Gas price check passed', { gasPriceGwei: gasPriceGwei.toFixed(2) });
+      return true;
+    } catch (err) {
+      log.warn('Failed to fetch gas price, proceeding anyway', { error: String(err) });
+      return true;
+    }
+  }
+
+  /**
+   * Estimate gas for a transaction. Returns true if estimation succeeds (tx likely won't revert).
+   */
+  private async estimateGas(to: Address, data: `0x${string}`): Promise<boolean> {
+    try {
+      await this.wallet.publicClient.estimateGas({
+        account: this.wallet.address,
+        to,
+        data,
+      });
+      return true;
+    } catch (err) {
+      log.warn('Gas estimation failed, transaction would likely revert -- skipping', {
+        to,
+        error: String(err),
+      });
+      return false;
+    }
   }
 
   /**
@@ -127,6 +212,9 @@ export class RevenueMonitor {
         amount: formatUSDCBalance(agentBalance),
       });
 
+      // Nonce management: transactions are serialized (each awaited before the next)
+      // to prevent nonce conflicts between transfer and processRevenue calls.
+      // WDK handles nonce assignment internally; we ensure ordering by awaiting each tx.
       await this.transferToLockbox(usdcAddress, lockboxAddress, agentBalance);
     }
 
@@ -164,6 +252,12 @@ export class RevenueMonitor {
         to: lockboxAddress,
       });
 
+      // Check gas price before submitting
+      if (!(await this.checkGasPrice())) {
+        log.warn('Skipping USDC transfer due to high gas price');
+        return;
+      }
+
       // Use WDK to send the transfer transaction
       const account = await this.wallet.wdk.getAccount('ethereum', 0);
 
@@ -173,6 +267,12 @@ export class RevenueMonitor {
         functionName: 'transfer',
         args: [lockboxAddress, amount],
       });
+
+      // Estimate gas to verify transaction won't revert
+      if (!(await this.estimateGas(usdcAddress, transferData))) {
+        log.warn('Skipping USDC transfer: gas estimation failed');
+        return;
+      }
 
       // Execute the transaction through WDK
       const txResult = await account.sendTransaction({
@@ -214,6 +314,12 @@ export class RevenueMonitor {
    */
   private async callProcessRevenue(lockboxAddress: Address, amount: bigint): Promise<void> {
     try {
+      // Check gas price before submitting
+      if (!(await this.checkGasPrice())) {
+        log.warn('Skipping processRevenue() due to high gas price');
+        return;
+      }
+
       const account = await this.wallet.wdk.getAccount('ethereum', 0);
 
       // Encode processRevenue() call (no arguments)
@@ -222,6 +328,12 @@ export class RevenueMonitor {
         functionName: 'processRevenue',
         args: [],
       });
+
+      // Estimate gas to verify transaction won't revert
+      if (!(await this.estimateGas(lockboxAddress, callData))) {
+        log.warn('Skipping processRevenue(): gas estimation failed');
+        return;
+      }
 
       const txResult = await account.sendTransaction({
         to: lockboxAddress,

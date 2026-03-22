@@ -14,6 +14,14 @@ import WalletManagerEvm from "@tetherto/wdk-wallet-evm"
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
+// ⚠ SECURITY WARNING: The seed phrase is stored in plain-text localStorage.
+// localStorage is accessible to ANY JavaScript running on this origin, which
+// means an XSS vulnerability would expose the seed and all derived keys.
+// This is acceptable ONLY for hackathon / demo purposes.
+// For production, migrate to:
+//   - WebAuthn / passkey-gated storage
+//   - Secure enclave via platform APIs (e.g., Credential Management API)
+//   - At minimum, encrypt at rest with a user-provided passphrase
 const STORAGE_KEY = "lenclaw_wdk_seed"
 const BASE_RPC = "https://mainnet.base.org"
 const BASE_CHAIN_ID = 8453

@@ -16,6 +16,7 @@ import {
   Plus,
   ArrowLeft,
   AlertCircle,
+  AlertTriangle,
   CircleDollarSign,
 } from "lucide-react"
 import { WDKBadge } from "./WDKBadge"
@@ -152,6 +153,14 @@ export function WDKWalletButton() {
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">ETH</div>
               <div className="text-sm font-semibold text-foreground">{ethDisplay}</div>
             </div>
+          </div>
+
+          {/* Demo mode security warning */}
+          <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-amber-500/[0.08] border border-amber-500/20">
+            <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />
+            <span className="text-[10px] text-amber-600 dark:text-amber-400">
+              Demo mode: seed stored in browser. Not for production use.
+            </span>
           </div>
 
           {/* Seed phrase reveal (only shown right after creation) */}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 import type { WDKWalletState, WDKAccountInfo } from "@/lib/wdk"
 import {
   tryAutoRestore,
@@ -53,11 +53,19 @@ export function WDKProvider({ children }: { children: ReactNode }) {
   const [accountInfo, setAccountInfo] = useState<WDKAccountInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Guard against race conditions between auto-restore and manual create/restore
+  const operationInProgress = useRef(false)
+
   // Auto-restore on mount
   useEffect(() => {
     let cancelled = false
 
     async function autoRestore() {
+      if (operationInProgress.current) {
+        if (!cancelled) setIsLoading(false)
+        return
+      }
+      operationInProgress.current = true
       try {
         const restored = await tryAutoRestore()
         if (!cancelled && restored) {
@@ -76,6 +84,7 @@ export function WDKProvider({ children }: { children: ReactNode }) {
       } catch {
         // Auto-restore failure is not critical
       } finally {
+        operationInProgress.current = false
         if (!cancelled) setIsLoading(false)
       }
     }
@@ -89,6 +98,8 @@ export function WDKProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const createWallet = useCallback(async () => {
+    if (operationInProgress.current) return
+    operationInProgress.current = true
     setError(null)
     try {
       const state = await createWDKWallet()
@@ -106,10 +117,14 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to create wallet"
       setError(msg)
+    } finally {
+      operationInProgress.current = false
     }
   }, [])
 
   const restoreWallet = useCallback(async (seed: string) => {
+    if (operationInProgress.current) return
+    operationInProgress.current = true
     setError(null)
     try {
       const state = await restoreWDKWallet(seed)
@@ -127,6 +142,8 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to restore wallet"
       setError(msg)
+    } finally {
+      operationInProgress.current = false
     }
   }, [])
 
