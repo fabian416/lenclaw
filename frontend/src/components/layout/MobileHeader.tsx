@@ -1,16 +1,14 @@
 import { Link } from "react-router-dom"
-import { Sun, Moon } from "lucide-react"
+import { Sun, Moon, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useAccount, useConnect, useDisconnect } from "wagmi"
-import { injected } from "wagmi/connectors"
 import { shortenAddress } from "@/lib/utils"
 import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
+import { useWDK } from "@/providers/WDKProvider"
+import { WDKWalletButton } from "@/components/wallet/WDKWalletButton"
 
 export function MobileHeader() {
-  const { address, isConnected } = useAccount()
-  const { connect } = useConnect()
-  const { disconnect } = useDisconnect()
+  const wdk = useWDK()
   const { theme, toggleTheme } = useThemeContext()
 
   return (
@@ -27,7 +25,7 @@ export function MobileHeader() {
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
             aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
           >
             {theme === "light" ? (
@@ -37,23 +35,18 @@ export function MobileHeader() {
             )}
           </button>
 
-          {isConnected ? (
+          {wdk.isConnected ? (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => disconnect()}
+              onClick={() => wdk.disconnect()}
               className="text-[10px] h-8 px-2.5 font-medium"
             >
-              {shortenAddress(address!)}
+              <Shield className="w-3 h-3 mr-1 text-teal-500" />
+              {shortenAddress(wdk.address!)}
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={() => connect({ connector: injected() })}
-              className="text-[10px] h-8 px-2.5 font-semibold"
-            >
-              Connect
-            </Button>
+            <WDKWalletButton compact />
           )}
         </div>
       </div>

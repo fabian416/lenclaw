@@ -23,7 +23,11 @@ import { WDKBadge } from "./WDKBadge"
 
 type View = "idle" | "choose" | "creating" | "created" | "restoring"
 
-export function WDKWalletButton() {
+interface WDKWalletButtonProps {
+  compact?: boolean
+}
+
+export function WDKWalletButton({ compact }: WDKWalletButtonProps = {}) {
   const {
     isConnected,
     isLoading,
@@ -57,6 +61,8 @@ export function WDKWalletButton() {
     setView("creating")
     clearError()
     await createWallet()
+    // If createWallet failed, error will be set in provider — show choose view with error
+    // If succeeded, isConnected will be true and the connected UI renders instead
     setView("created")
   }
 
@@ -102,6 +108,45 @@ export function WDKWalletButton() {
     )
   }
 
+  // ── Error state after failed create/restore ────────────────────────────
+  if (error && (view === "created" || view === "creating")) {
+    const errorContent = (
+      <div className="space-y-4">
+        <div className="p-5 rounded-xl border border-destructive/30 bg-destructive/[0.06]">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-base font-medium text-foreground mb-1">Wallet creation failed</div>
+              <div className="text-sm text-muted-foreground break-all">{error}</div>
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => { setView("choose"); clearError() }}
+          className="w-full h-12 text-base font-semibold cursor-pointer"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          Try Again
+        </Button>
+      </div>
+    )
+
+    return compact ? (
+      <>
+        <Button size="sm" className="text-xs font-semibold h-8 bg-teal-600 hover:bg-teal-700 text-white cursor-pointer">
+          <Wallet className="w-3.5 h-3.5 mr-1.5" /> Connect
+        </Button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default" onClick={() => { setView("idle"); clearError() }} />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-background shadow-2xl p-6">
+            {errorContent}
+          </div>
+        </div>
+      </>
+    ) : errorContent
+  }
+
   // ── Connected state ────────────────────────────────────────────────────
   if (isConnected && address) {
     return (
@@ -125,14 +170,14 @@ export function WDKWalletButton() {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                 title="Refresh balances"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
               </button>
               <button
                 onClick={handleDisconnect}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                 title="Disconnect WDK wallet"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -173,14 +218,14 @@ export function WDKWalletButton() {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setSeedVisible(!seedVisible)}
-                    className="p-1 rounded text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                    className="p-1 rounded text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
                     title={seedVisible ? "Hide seed" : "Show seed"}
                   >
                     {seedVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                   <button
                     onClick={handleCopySeed}
-                    className="p-1 rounded text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                    className="p-1 rounded text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
                     title="Copy seed phrase"
                   >
                     {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -203,122 +248,153 @@ export function WDKWalletButton() {
     )
   }
 
-  // ── Choose: create or restore ──────────────────────────────────────────
-  if (view === "choose") {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <button
-            onClick={() => setView("idle")}
-            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm font-medium text-foreground">Tether WDK Wallet</span>
-        </div>
-
+  // ── Dropdown panel content (shared between compact and full) ───────────
+  const choosePanel = (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2.5 mb-2">
         <button
-          onClick={handleCreate}
-          className="w-full text-left p-4 rounded-lg border-2 border-border hover:border-teal-500/40 hover:bg-teal-500/[0.04] transition-all group"
+          onClick={() => setView("idle")}
+          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/15 transition-colors">
-              <Plus className="w-5 h-5 text-teal-500" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground">Create New Wallet</div>
-              <div className="text-xs text-muted-foreground">Generate a fresh BIP39 seed phrase</div>
-            </div>
-          </div>
+          <ArrowLeft className="w-5 h-5" />
         </button>
+        <span className="text-base font-medium text-foreground">Tether WDK Wallet</span>
+      </div>
 
+      <button
+        onClick={handleCreate}
+        className="w-full text-left p-5 rounded-xl border-2 border-border hover:border-teal-500/40 hover:bg-teal-500/[0.04] transition-all group cursor-pointer"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/15 transition-colors">
+            <Plus className="w-6 h-6 text-teal-500" />
+          </div>
+          <div>
+            <div className="text-base font-semibold text-foreground">Create New Wallet</div>
+            <div className="text-sm text-muted-foreground">Generate a fresh BIP39 seed phrase</div>
+          </div>
+        </div>
+      </button>
+
+      <button
+        onClick={() => setView("restoring")}
+        className="w-full text-left p-5 rounded-xl border-2 border-border hover:border-teal-500/40 hover:bg-teal-500/[0.04] transition-all group cursor-pointer"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/15 transition-colors">
+            <KeyRound className="w-6 h-6 text-teal-500" />
+          </div>
+          <div>
+            <div className="text-base font-semibold text-foreground">Restore Existing</div>
+            <div className="text-sm text-muted-foreground">Import from a seed phrase</div>
+          </div>
+        </div>
+      </button>
+
+      <WDKBadge />
+    </div>
+  )
+
+  const creatingPanel = (
+    <div className="p-8 rounded-xl border border-border bg-muted/50 flex flex-col items-center gap-4">
+      <span className="h-6 w-6 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+      <span className="text-base text-muted-foreground">Creating WDK wallet...</span>
+    </div>
+  )
+
+  const restoringPanel = (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2.5 mb-2">
         <button
-          onClick={() => setView("restoring")}
-          className="w-full text-left p-4 rounded-lg border-2 border-border hover:border-teal-500/40 hover:bg-teal-500/[0.04] transition-all group"
+          onClick={() => { setView("choose"); setRestoreError(null); setRestoreSeed("") }}
+          className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/15 transition-colors">
-              <KeyRound className="w-5 h-5 text-teal-500" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground">Restore Existing</div>
-              <div className="text-xs text-muted-foreground">Import from a seed phrase</div>
-            </div>
-          </div>
+          <ArrowLeft className="w-5 h-5" />
         </button>
-
-        <WDKBadge />
+        <span className="text-base font-medium text-foreground">Restore WDK Wallet</span>
       </div>
-    )
-  }
 
-  // ── Creating state ─────────────────────────────────────────────────────
-  if (view === "creating") {
-    return (
-      <div className="p-6 rounded-lg border border-border bg-muted/50 flex flex-col items-center gap-3">
-        <span className="h-5 w-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
-        <span className="text-sm text-muted-foreground">Creating WDK wallet...</span>
+      <div>
+        <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">
+          Seed Phrase (12 or 24 words)
+        </label>
+        <Input
+          placeholder="Enter your BIP39 seed phrase..."
+          value={restoreSeed}
+          onChange={(e) => { setRestoreSeed(e.target.value); setRestoreError(null) }}
+          className="h-12 mono-text text-sm"
+        />
+        {(restoreError || error) && (
+          <div className="flex items-center gap-2 mt-2.5 text-destructive">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm">{restoreError || error}</span>
+          </div>
+        )}
       </div>
-    )
-  }
 
-  // ── Restore from seed ──────────────────────────────────────────────────
-  if (view === "restoring") {
+      <Button
+        onClick={handleRestore}
+        className="w-full font-semibold h-12 text-base"
+        disabled={!restoreSeed.trim()}
+      >
+        <KeyRound className="w-5 h-5 mr-2" />
+        Restore Wallet
+      </Button>
+
+      <WDKBadge />
+    </div>
+  )
+
+  // ── Active panel (choose / creating / restoring) ─────────────────────
+  const activePanel = view === "choose" ? choosePanel
+    : view === "creating" ? creatingPanel
+    : view === "restoring" ? restoringPanel
+    : null
+
+  // ── Modal overlay (shared for both compact and full mode) ──────────
+  const modal = activePanel ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
+        onClick={() => { setView("idle"); setRestoreError(null); setRestoreSeed("") }}
+      />
+      {/* Modal card */}
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-background shadow-2xl p-6">
+        {activePanel}
+      </div>
+    </div>
+  ) : null
+
+  // ── Compact mode (header) ──────────────────────────────────────────
+  if (compact) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <button
-            onClick={() => { setView("choose"); setRestoreError(null); setRestoreSeed("") }}
-            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm font-medium text-foreground">Restore WDK Wallet</span>
-        </div>
-
-        <div>
-          <label className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 block">
-            Seed Phrase (12 or 24 words)
-          </label>
-          <Input
-            placeholder="Enter your BIP39 seed phrase..."
-            value={restoreSeed}
-            onChange={(e) => { setRestoreSeed(e.target.value); setRestoreError(null) }}
-            className="h-11 mono-text text-xs"
-          />
-          {(restoreError || error) && (
-            <div className="flex items-center gap-1.5 mt-2 text-destructive">
-              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="text-xs">{restoreError || error}</span>
-            </div>
-          )}
-        </div>
-
+      <>
         <Button
-          onClick={handleRestore}
-          className="w-full font-semibold h-10"
-          disabled={!restoreSeed.trim()}
+          size="sm"
+          onClick={() => setView("choose")}
+          className="text-xs font-semibold h-8 bg-teal-600 hover:bg-teal-700 text-white cursor-pointer"
         >
-          <KeyRound className="w-4 h-4 mr-2" />
-          Restore Wallet
+          <Wallet className="w-3.5 h-3.5 mr-1.5" />
+          Connect
         </Button>
-
-        <WDKBadge />
-      </div>
+        {modal}
+      </>
     )
   }
 
-  // ── Default: idle / not connected ──────────────────────────────────────
+  // ── Full mode (pages) ──────────────────────────────────────────────
   return (
-    <div>
+    <>
       <Button
         variant="outline"
         onClick={() => setView("choose")}
-        className="w-full md:w-auto h-11 font-semibold border-teal-500/30 text-teal-600 dark:text-teal-400 hover:bg-teal-500/[0.06] hover:border-teal-500/50"
+        className="w-full md:w-auto h-11 font-semibold border-teal-500/30 text-teal-600 dark:text-teal-400 hover:bg-teal-500/[0.06] hover:border-teal-500/50 cursor-pointer"
       >
         <Wallet className="w-4 h-4 mr-2" />
         Connect with WDK
       </Button>
-    </div>
+      {modal}
+    </>
   )
 }

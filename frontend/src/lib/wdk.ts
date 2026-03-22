@@ -1,33 +1,23 @@
 // ============================================================================
-// Tether WDK Integration
+// Tether WDK Integration — via WDK API Server
 //
-// Self-custodial wallet SDK powered by Tether WDK.
-// Generates BIP39 seed phrases, manages keys locally in the browser.
-// Supports ERC-4337 Account Abstraction and ERC-7702 delegation.
+// WDK requires Node.js runtime (bare-node-runtime). The frontend calls a
+// lightweight Node.js API server (wdk-api/) that runs WDK operations
+// server-side and returns results over HTTP.
 //
 // NOTE: Seed phrase is stored in localStorage for hackathon demo purposes.
 // In production, use secure enclave / biometric-gated storage.
 // ============================================================================
 
-import WDK from "@tetherto/wdk"
-import WalletManagerEvm from "@tetherto/wdk-wallet-evm"
-
 // ── Constants ───────────────────────────────────────────────────────────────
 
-// ⚠ SECURITY WARNING: The seed phrase is stored in plain-text localStorage.
-// localStorage is accessible to ANY JavaScript running on this origin, which
-// means an XSS vulnerability would expose the seed and all derived keys.
-// This is acceptable ONLY for hackathon / demo purposes.
-// For production, migrate to:
-//   - WebAuthn / passkey-gated storage
-//   - Secure enclave via platform APIs (e.g., Credential Management API)
-//   - At minimum, encrypt at rest with a user-provided passphrase
 const STORAGE_KEY = "lenclaw_wdk_seed"
-const BASE_RPC = "https://mainnet.base.org"
-const BASE_CHAIN_ID = 8453
+const WDK_API_BASE = import.meta.env.VITE_WDK_API_URL || ""
 
 /** USDC on Base */
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+const BASE_CHAIN_ID = 8453
+const BASE_RPC = "https://mainnet.base.org"
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,15 +33,25 @@ export interface WDKAccountInfo {
   usdcBalance: bigint
 }
 
+// ── API helpers ─────────────────────────────────────────────────────────────
+
+async function wdkFetch<T>(path: string, body?: Record<string, unknown>): Promise<T> {
+  const res = await fetch(`${WDK_API_BASE}${path}`, {
+    method: body ? "POST" : "GET",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(data.error || `WDK API error: ${res.status}`)
+  }
+
+  return data as T
+}
+
 // ── Seed phrase management ──────────────────────────────────────────────────
-
-export function generateSeedPhrase(): string {
-  return WDK.getRandomSeedPhrase()
-}
-
-export function isValidSeedPhrase(seed: string): boolean {
-  return WDK.isValidSeed(seed)
-}
 
 export function storeSeedPhrase(seed: string): void {
   localStorage.setItem(STORAGE_KEY, seed)
@@ -65,99 +65,39 @@ export function clearStoredSeedPhrase(): void {
   localStorage.removeItem(STORAGE_KEY)
 }
 
-// ── WDK instance management ────────────────────────────────────────────────
+// ── Wallet operations (via API) ─────────────────────────────────────────────
 
-let _wdkInstance: InstanceType<typeof WDK> | null = null
-
-export function initializeWDK(seedPhrase: string): InstanceType<typeof WDK> {
-  if (_wdkInstance) {
-    _wdkInstance.dispose()
-  }
-
-  const wdk = new WDK(seedPhrase)
-
-  // EvmWalletConfig.provider accepts string URL or Eip1193Provider
-  wdk.registerWallet("base", WalletManagerEvm, {
-    provider: BASE_RPC,
-  })
-
-  _wdkInstance = wdk
-  return wdk
-}
-
-export function getWDKInstance(): InstanceType<typeof WDK> | null {
-  return _wdkInstance
-}
-
-export function disposeWDK(): void {
-  if (_wdkInstance) {
-    _wdkInstance.dispose()
-    _wdkInstance = null
-  }
-}
-
-// ── Account helpers ─────────────────────────────────────────────────────────
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getWDKAccount(wdk: InstanceType<typeof WDK>, index = 0): Promise<any> {
-  return await wdk.getAccount("base", index)
-}
-
-export async function getWDKAddress(wdk: InstanceType<typeof WDK>, index = 0): Promise<string> {
-  const account = await getWDKAccount(wdk, index)
-  // WDK EVM accounts expose .address as a getter (from WalletAccountReadOnlyEvm)
-  return await account.getAddress()
-}
-
-export async function getWDKAccountInfo(wdk: InstanceType<typeof WDK>, index = 0): Promise<WDKAccountInfo> {
-  const account = await getWDKAccount(wdk, index)
-  const address: string = await account.getAddress()
-
-  let ethBalance = 0n
-  let usdcBalance = 0n
-
+export async function isWDKAvailable(): Promise<boolean> {
   try {
-    ethBalance = await account.getBalance()
+    await wdkFetch<{ status: string }>("/api/wdk/health")
+    return true
   } catch {
-    // Provider may not be available; default to 0
+    return false
   }
-
-  try {
-    usdcBalance = await account.getTokenBalance(USDC_ADDRESS)
-  } catch {
-    // Provider may not be available; default to 0
-  }
-
-  return { address, ethBalance, usdcBalance }
 }
 
-// ── Convenience: create a new wallet from scratch ───────────────────────────
+export async function isValidSeedPhrase(seed: string): Promise<boolean> {
+  try {
+    const { valid } = await wdkFetch<{ valid: boolean }>("/api/wdk/validate", { seedPhrase: seed })
+    return valid
+  } catch {
+    // Fallback: basic word count check
+    const words = seed.trim().split(/\s+/)
+    return words.length === 12 || words.length === 24
+  }
+}
 
 export async function createWDKWallet(): Promise<WDKWalletState> {
-  const seedPhrase = generateSeedPhrase()
+  const { address, seedPhrase } = await wdkFetch<{ address: string; seedPhrase: string }>("/api/wdk/create")
   storeSeedPhrase(seedPhrase)
-
-  const wdk = initializeWDK(seedPhrase)
-  const address = await getWDKAddress(wdk)
-
   return { address, seedPhrase, isInitialized: true }
 }
-
-// ── Convenience: restore wallet from seed phrase ────────────────────────────
 
 export async function restoreWDKWallet(seedPhrase: string): Promise<WDKWalletState> {
-  if (!isValidSeedPhrase(seedPhrase)) {
-    throw new Error("Invalid seed phrase")
-  }
-
+  const { address } = await wdkFetch<{ address: string }>("/api/wdk/restore", { seedPhrase })
   storeSeedPhrase(seedPhrase)
-  const wdk = initializeWDK(seedPhrase)
-  const address = await getWDKAddress(wdk)
-
   return { address, seedPhrase, isInitialized: true }
 }
-
-// ── Convenience: try to restore from localStorage on page load ──────────────
 
 export async function tryAutoRestore(): Promise<WDKWalletState | null> {
   const stored = getStoredSeedPhrase()
@@ -171,9 +111,38 @@ export async function tryAutoRestore(): Promise<WDKWalletState | null> {
   }
 }
 
-// ── USDC formatting helpers ─────────────────────────────────────────────────
+// ── Account info (via API) ──────────────────────────────────────────────────
 
-/** Format USDC balance from 6 decimal base units to human-readable string */
+export async function getWDKAccountInfo(_wdk?: unknown, _index?: number): Promise<WDKAccountInfo> {
+  const seedPhrase = getStoredSeedPhrase()
+  if (!seedPhrase) throw new Error("No wallet connected")
+
+  const data = await wdkFetch<{ address: string; ethBalance: string; usdcBalance: string }>(
+    "/api/wdk/balance",
+    { seedPhrase }
+  )
+
+  return {
+    address: data.address,
+    ethBalance: BigInt(data.ethBalance),
+    usdcBalance: BigInt(data.usdcBalance),
+  }
+}
+
+// ── Instance management (no-ops — WDK runs server-side) ─────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getWDKInstance(): any {
+  // WDK runs server-side; return a truthy marker so provider calls getWDKAccountInfo
+  return getStoredSeedPhrase() ? { _serverSide: true } : null
+}
+
+export function disposeWDK(): void {
+  // No-op: WDK instances live on the API server
+}
+
+// ── Balance formatting ──────────────────────────────────────────────────────
+
 export function formatUSDCBalance(balance: bigint): string {
   const whole = balance / 1_000_000n
   const fraction = balance % 1_000_000n
@@ -181,7 +150,6 @@ export function formatUSDCBalance(balance: bigint): string {
   return `${whole.toLocaleString()}.${fractionStr}`
 }
 
-/** Format ETH balance from wei to human-readable string */
 export function formatETHBalance(balance: bigint): string {
   const whole = balance / 1_000_000_000_000_000_000n
   const fraction = (balance % 1_000_000_000_000_000_000n) / 1_000_000_000_000_000n

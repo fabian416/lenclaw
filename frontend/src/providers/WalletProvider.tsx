@@ -2,13 +2,12 @@ import { WagmiProvider as WagmiProviderBase } from "wagmi"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { http, createConfig } from "wagmi"
 import { base, baseSepolia } from "viem/chains"
-import { injected } from "wagmi/connectors"
 import { WDKProvider } from "@/providers/WDKProvider"
 import type { ReactNode } from "react"
 
 const config = createConfig({
   chains: [base, baseSepolia],
-  connectors: [injected()],
+  connectors: [],
   transports: {
     [base.id]: http(),
     [baseSepolia.id]: http(),

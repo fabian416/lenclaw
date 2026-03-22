@@ -35,8 +35,8 @@ import { NumberTicker } from "@/components/reactbits/NumberTicker"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
 import type { ActivityEvent, RiskLevel } from "@/lib/types"
 import { MOCK_AGENTS_WITH_VAULT } from "@/lib/constants"
-import { useAccount, useConnect } from "wagmi"
-import { injected } from "wagmi/connectors"
+import { useWDK } from "@/providers/WDKProvider"
+import { WDKWalletButton } from "@/components/wallet/WDKWalletButton"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -171,8 +171,8 @@ export default function AgentDetail() {
   const [mobileBackOpen, setMobileBackOpen] = useState(false)
   const [depositState, setDepositState] = useState<"idle" | "pending" | "success">("idle")
   const [depositError, setDepositError] = useState("")
-  const { isConnected } = useAccount()
-  const { connect } = useConnect()
+  const wdk = useWDK()
+  const isConnected = wdk.isConnected
 
   const agent = MOCK_AGENTS_WITH_VAULT.find((a) => String(a.id) === id)
 
@@ -201,7 +201,6 @@ export default function AgentDetail() {
 
   const handleDeposit = useCallback(() => {
     if (!isConnected) {
-      connect({ connector: injected() })
       return
     }
     const amount = parseFloat(backAmount)
@@ -221,7 +220,7 @@ export default function AgentDetail() {
       setDepositState("success")
       setTimeout(() => setDepositState("idle"), 3000)
     }, 2000)
-  }, [isConnected, connect, backAmount, availableCapacity])
+  }, [isConnected, backAmount, availableCapacity])
 
   return (
     <motion.div
@@ -491,15 +490,7 @@ export default function AgentDetail() {
               </div>
 
               {!isConnected ? (
-                <Button
-                  className="w-full font-semibold h-11"
-                  onClick={() => connect({ connector: injected() })}
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <Wallet className="w-4 h-4" />
-                    Connect Wallet to Back
-                  </span>
-                </Button>
+                <WDKWalletButton />
               ) : (
                 <Magnet strength={0.15}>
                   <ClickSpark>
@@ -701,16 +692,7 @@ export default function AgentDetail() {
                   )}
 
                   {!isConnected ? (
-                    <Button
-                      className="w-full font-semibold h-14 text-base rounded-xl"
-                      size="lg"
-                      onClick={() => connect({ connector: injected() })}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Wallet className="w-5 h-5" />
-                        Connect Wallet to Back
-                      </span>
-                    </Button>
+                    <WDKWalletButton />
                   ) : (
                     <ClickSpark>
                       <Button

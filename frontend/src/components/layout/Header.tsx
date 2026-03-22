@@ -1,14 +1,14 @@
 import { Link, NavLink } from "react-router-dom"
-import { Menu, X, Wallet, Sun, Moon } from "lucide-react"
+import { Menu, X, Shield, Sun, Moon } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { useAccount, useConnect, useDisconnect } from "wagmi"
-import { injected } from "wagmi/connectors"
 import { shortenAddress } from "@/lib/utils"
 import { GlitchText } from "@/components/reactbits/GlitchText"
 import { LenclawLogo } from "@/components/shared/LenclawLogo"
 import { useThemeContext } from "@/providers/ThemeProvider"
+import { useWDK } from "@/providers/WDKProvider"
+import { WDKWalletButton } from "@/components/wallet/WDKWalletButton"
 
 const navItems = [
   { to: "/agents", label: "Agents" },
@@ -21,9 +21,7 @@ const navItems = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { address, isConnected } = useAccount()
-  const { connect } = useConnect()
-  const { disconnect } = useDisconnect()
+  const wdk = useWDK()
   const { theme, toggleTheme } = useThemeContext()
 
   useEffect(() => {
@@ -83,7 +81,7 @@ export function Header() {
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
             aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
           >
             {theme === "light" ? (
@@ -93,31 +91,24 @@ export function Header() {
             )}
           </button>
 
-          {/* Wallet */}
-          {isConnected ? (
+          {/* WDK Wallet */}
+          {wdk.isConnected ? (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => disconnect()}
+              onClick={() => wdk.disconnect()}
               className="text-xs font-medium h-8"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-primary mr-2" />
-              {shortenAddress(address!)}
+              <Shield className="w-3 h-3 mr-1.5 text-teal-500" />
+              {shortenAddress(wdk.address!)}
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={() => connect({ connector: injected() })}
-              className="text-xs font-semibold h-8"
-            >
-              <Wallet className="w-3.5 h-3.5 mr-1.5" />
-              Connect
-            </Button>
+            <WDKWalletButton compact />
           )}
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
