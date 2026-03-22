@@ -4,7 +4,34 @@
 
 Built for the [Tether Hackathon Galactica: WDK Edition 1](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01).
 
+Built for the **Lending Bot** track — autonomous agents that issue loans, assess risk, and manage debt without human intervention. Lending agent built on the **OpenClaw** framework for autonomous credit assessment and loan management.
+
 ---
+
+## Hackathon Track: Lending Bot
+
+### Must Have (3/3)
+
+| Requirement | Lenclaw delivers |
+|-------------|-----------------|
+| Agent makes lending decisions autonomously | CreditScorer — 5 on-chain factors, no human input. OpenClaw agent framework drives autonomous credit assessment and loan lifecycle |
+| All transactions settle on-chain using USD₮ | Deployed on Base mainnet with USDT (see contracts table below) |
+| Agent autonomously tracks and collects repayments | RevenueLockbox auto-deducts repayments + WDK revenue monitor agent polls and routes funds every 30 s |
+
+### Nice to Have (5/7)
+
+| Requirement | Lenclaw delivers |
+|-------------|-----------------|
+| DIDs / on-chain history for credit scores | ERC-8004 agent identity + fully on-chain behavioral scoring (5 factors) |
+| Minimal / no collateral | Zero-collateral, revenue-backed lending — the immutable lockbox replaces collateral |
+| ML models predict default | XGBoost scoring model in backend (`ml_scoring.py`) |
+| ZK proofs verify credit privately | Noir circuits + HonkVerifier on-chain (revenue threshold, reputation, composite proof) |
+| Agents use revenue to service debt | Immutable RevenueLockbox auto-deducts before agent receives any funds |
+
+### Bonus
+
+- **OpenClaw agent framework** — autonomous lending decisions, credit assessment, and loan management without human intervention
+- **Agent-to-agent lending** — vault-per-agent architecture enables isolated, composable credit lines between agents
 
 Lenclaw is a DeFi lending protocol that enables autonomous AI agents to borrow USDT against their verifiable revenue streams -- with zero collateral. Each agent gets its own isolated ERC-4626 vault. An immutable RevenueLockbox auto-deducts repayments before revenue reaches the agent. No human intervention. No legal enforcement. Pure smart contract guarantees.
 
@@ -69,11 +96,12 @@ A FastAPI Python server that acts as the WDK relay layer:
 
 ### Autonomous WDK Agent (`agents/wdk-agent/`)
 
-A long-running TypeScript agent that uses WDK for self-custodial wallet management:
+The core **autonomous revenue tracking and repayment collection** agent — a long-running TypeScript process that uses WDK for self-custodial wallet management. This is the "Lending Bot" in action: it monitors revenue, routes repayments, and manages debt without any human intervention.
 
 - **Creates wallets programmatically** -- BIP39 seed phrase generation via `@tetherto/wdk`, keys never leave the agent
-- **Monitors revenue autonomously** -- Polls for incoming USDT every 30 seconds with exponential backoff
-- **Routes revenue to RevenueLockbox** -- Transfers USDT and calls `processRevenue()` without human intervention
+- **Monitors revenue autonomously** -- Polls for incoming USDT every 30 seconds with exponential backoff, tracking all revenue streams
+- **Routes revenue to RevenueLockbox** -- Transfers USDT and calls `processRevenue()` to auto-deduct repayments before the agent touches funds
+- **Collects repayments autonomously** -- RevenueLockbox splits are enforced on every revenue event; the agent never needs to manually repay
 - **Executes DeFi operations** -- Cross-chain USDT0 bridging via `@tetherto/wdk-protocol-bridge-usdt0-evm`, token swaps
 - **Gas-aware** -- Estimates gas before every transaction, skips if gas price exceeds threshold
 

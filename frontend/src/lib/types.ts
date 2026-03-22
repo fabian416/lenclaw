@@ -39,7 +39,7 @@ export type AgentCategory = "Trading" | "Content" | "Oracle" | "DeFi" | "NFT" | 
  * auto-fill behavior, and platform verification multipliers.
  * Maps to externalProtocolId on-chain.
  */
-export type AgentEcosystem = "virtuals" | "openclaw" | "clawnch" | "independent"
+export type AgentEcosystem = "virtuals" | "openclaw" | "mateos" | "independent"
 
 // ── Agent (maps to IAgentRegistry.AgentProfile) ─────────────────────────────
 
@@ -137,7 +137,7 @@ export interface OnboardingFormData {
   description: string
   agentCategory: AgentCategory
   codeHash: string
-  externalTokenAddress: string     // Virtuals/Clawnch: agent token contract
+  externalTokenAddress: string     // Virtuals/Mateos: agent token contract
   externalAgentId: string          // Platform-specific agent ID
   // Trust
   deploySmartWallet: boolean

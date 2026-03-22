@@ -76,7 +76,7 @@ export function getContracts(chainId: number = CHAIN_ID) {
 export const ECOSYSTEM_PROTOCOL_IDS = {
   independent: 0,
   virtuals: 1,
-  clawnch: 2,
+  mateos: 2,
   openclaw: 3,
 } as const
 
@@ -95,12 +95,12 @@ export const ECOSYSTEM_CONFIG = {
     autoFills: ["wallet", "identity"],
     needsTokenAddress: false,
   },
-  clawnch: {
-    name: "Clawnch",
-    description: "Agent-only token launchpad",
-    color: "#EA580C",
-    autoFills: ["name", "category", "revenue"],
-    needsTokenAddress: true,
+  mateos: {
+    name: "Mateos",
+    description: "Autonomous agent ecosystem",
+    color: "#3B82F6",
+    autoFills: ["name", "category", "wallet"],
+    needsTokenAddress: false,
   },
   independent: {
     name: "Independent Agent",

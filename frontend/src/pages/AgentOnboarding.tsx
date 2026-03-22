@@ -39,7 +39,7 @@ import { useRegisterAgent } from "@/hooks/useAgentRegistry"
 const ECOSYSTEM_ICONS: Record<AgentEcosystem, typeof Globe> = {
   virtuals: Zap,
   openclaw: Radio,
-  clawnch: Flame,
+  mateos: Flame,
   independent: Box,
 }
 
@@ -93,8 +93,8 @@ export default function AgentOnboarding() {
 
   const selectEcosystem = (eco: AgentEcosystem) => {
     updateForm("ecosystem", eco)
-    // Auto-set category for Clawnch
-    if (eco === "clawnch") updateForm("agentCategory", "Trading")
+    // Auto-set category for Mateos
+    if (eco === "mateos") updateForm("agentCategory", "Trading")
     // Auto-enable smart wallet for all
     updateForm("deploySmartWallet", true)
   }
@@ -304,11 +304,11 @@ export default function AgentOnboarding() {
                   <span className="text-sm font-medium text-foreground">{ecoConfig.name}</span>
                 </div>
 
-                {/* Token address — Virtuals & Clawnch */}
+                {/* Token address — Virtuals & Mateos */}
                 {needsToken && (
                   <div>
                     <label className="text-xs md:text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
-                      {form.ecosystem === "virtuals" ? "Agent Token Address" : "Clawnch Token Address"}
+                      {form.ecosystem === "virtuals" ? "Agent Token Address" : "Mateos Token Address"}
                     </label>
                     <Input
                       placeholder="0x..."
@@ -370,7 +370,7 @@ export default function AgentOnboarding() {
                       value={form.agentCategory}
                       onChange={(e) => updateForm("agentCategory", e.target.value as AgentCategory)}
                       className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm text-foreground appearance-none cursor-pointer"
-                      disabled={form.ecosystem === "clawnch"}
+                      disabled={form.ecosystem === "mateos"}
                     >
                       {AGENT_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -404,7 +404,7 @@ export default function AgentOnboarding() {
                           ? "Auto-routes inference revenue to your Lockbox. Highest trust tier for backers."
                           : form.ecosystem === "openclaw"
                             ? "Auto-routes x402 payments and Bankr fees to your Lockbox for trustless repayment."
-                            : form.ecosystem === "clawnch"
+                            : form.ecosystem === "mateos"
                               ? "Auto-routes trading fee revenue to your Lockbox. Maximum credit terms."
                               : "Auto-routes all USDC revenue to your Lockbox. Essential for building trust as an independent agent."}
                       </p>
