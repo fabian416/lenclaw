@@ -9,6 +9,14 @@ class Settings(BaseSettings):
     usdc_address: str = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
     redis_url: str = "redis://localhost:6379/1"
     port: int = 3002
+    # Private key for relay transactions (registerAgent on behalf of users)
+    private_key: str = ""
+    # Deployer private key (authorized to call registerAgent)
+    deployer_private_key: str = ""
+    # Deployed contract addresses on Base
+    agent_registry: str = "0x9B2A14A423067BAdd5a64979E59dED6C7A5681Ea"
+    agent_registry_address: str = "0x9B2A14A423067BAdd5a64979E59dED6C7A5681Ea"
+    usdt_address: str = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
 
     model_config = {"env_file": ".env"}
 

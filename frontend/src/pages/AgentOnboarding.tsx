@@ -18,10 +18,11 @@ import {
   Radio,
   Flame,
   Box,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-// wagmi removed — onboarding uses Tether WDK exclusively
 import { shortenAddress } from "@/lib/utils"
 import type { OnboardingFormData, AgentEcosystem, AgentCategory } from "@/lib/types"
 import { ECOSYSTEM_CONFIG, AGENT_CATEGORIES } from "@/lib/constants"
@@ -31,6 +32,7 @@ import { BorderBeam } from "@/components/reactbits/BorderBeam"
 import { useWDK } from "@/providers/WDKProvider"
 import { WDKWalletButton } from "@/components/wallet/WDKWalletButton"
 import { WDKBadge } from "@/components/wallet/WDKBadge"
+import { useRegisterAgent } from "@/hooks/useAgentRegistry"
 
 // ── Ecosystem card icons ────────────────────────────────────────────────────
 
@@ -76,6 +78,14 @@ export default function AgentOnboarding() {
   const [deploying, setDeploying] = useState(false)
   const [deployed, setDeployed] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [deployError, setDeployError] = useState<string | null>(null)
+  const [deployTxHash, setDeployTxHash] = useState<string | null>(null)
+  const [deployedAgentId, setDeployedAgentId] = useState<number | null>(null)
+
+  const { registerAgent } = useRegisterAgent()
+
+  // Check if wallet has ETH for gas (WDK accountInfo has ethBalance)
+  const hasNoEth = wdk.accountInfo?.ethBalance === 0n
 
   const updateForm = <K extends keyof OnboardingFormData>(field: K, value: OnboardingFormData[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -108,10 +118,34 @@ export default function AgentOnboarding() {
   }
 
   const handleDeploy = async () => {
+    if (!activeAddress) return
     setDeploying(true)
-    await new Promise((r) => setTimeout(r, form.deploySmartWallet ? 3000 : 2000))
-    setDeploying(false)
-    setDeployed(true)
+    setDeployError(null)
+    setDeployTxHash(null)
+    setDeployedAgentId(null)
+
+    try {
+      const result = await registerAgent(form, activeAddress)
+      setDeployTxHash(result.txHash)
+      setDeployedAgentId(result.agentId)
+      setDeployed(true)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Deployment failed"
+      // Provide user-friendly error messages
+      if (msg.includes("User rejected") || msg.includes("user rejected")) {
+        setDeployError("Transaction was rejected. Please try again.")
+      } else if (msg.includes("insufficient funds") || msg.includes("insufficient gas")) {
+        setDeployError("Insufficient ETH for gas on Base. Please fund your wallet first.")
+      } else if (msg.includes("already registered")) {
+        setDeployError("This wallet is already registered as an agent.")
+      } else if (msg.includes("fetch") || msg.includes("network") || msg.includes("Failed to fetch")) {
+        setDeployError("Could not reach the registration server. Make sure the WDK API is running.")
+      } else {
+        setDeployError(msg)
+      }
+    } finally {
+      setDeploying(false)
+    }
   }
 
   const ecoConfig = ECOSYSTEM_CONFIG[form.ecosystem]
@@ -506,9 +540,26 @@ export default function AgentOnboarding() {
                         <CheckCircle2 className="w-7 h-7 text-success" />
                       </div>
                       <h3 className="text-lg font-semibold mb-1 text-foreground">{form.name} is Live!</h3>
-                      <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-5">
-                        Registered on-chain via {ecoConfig.name}. Start building credit history now.
+                      <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-3">
+                        Registered on-chain via {ecoConfig.name}.{deployedAgentId ? ` Agent ID: #${deployedAgentId}.` : ""} Start building credit history now.
                       </p>
+
+                      {/* Transaction hash + Basescan link */}
+                      {deployTxHash && (
+                        <div className="mb-5 p-3 rounded-lg bg-muted border border-border">
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Transaction</div>
+                          <a
+                            href={`https://basescan.org/tx/${deployTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-mono text-primary hover:underline break-all flex items-center justify-center gap-1"
+                          >
+                            {shortenAddress(deployTxHash, 10)}
+                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                          </a>
+                        </div>
+                      )}
+
                       <div className="flex flex-col sm:flex-row gap-2 justify-center">
                         <Button variant="outline" onClick={() => navigate("/agents")} className="font-medium min-h-[44px] md:min-h-0">
                           <span className="flex items-center gap-2">View Agents <ArrowRight className="w-4 h-4" /></span>
@@ -602,6 +653,50 @@ export default function AgentOnboarding() {
                       <WDKBadge />
                     )}
 
+                    {/* Gas warning */}
+                    {hasNoEth && (
+                      <div className="p-3 rounded-lg bg-amber-500/[0.08] border border-amber-500/20">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                              No ETH on Base
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Your wallet needs ETH on Base for gas fees. Registration is relayed by the protocol,
+                              but you may need ETH later for other transactions.
+                            </p>
+                            <a
+                              href="https://bridge.base.org"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1"
+                            >
+                              Bridge ETH to Base <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Deploy error */}
+                    {deployError && (
+                      <div className="p-3 rounded-lg bg-destructive/[0.08] border border-destructive/20">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-destructive">{deployError}</p>
+                            <button
+                              onClick={() => setDeployError(null)}
+                              className="text-xs text-muted-foreground hover:text-foreground mt-1 underline"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <ClickSpark>
                       <Button
                         className="w-full font-semibold h-12 rounded-lg"
@@ -612,7 +707,7 @@ export default function AgentOnboarding() {
                           {deploying ? (
                             <>
                               <span className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
-                              Deploying Contracts...
+                              Registering On-Chain...
                             </>
                           ) : (
                             <>

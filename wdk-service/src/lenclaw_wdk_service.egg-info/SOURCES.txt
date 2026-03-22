@@ -4,6 +4,7 @@ src/__init__.py
 src/config.py
 src/indexer.py
 src/main.py
+src/registry.py
 src/routes.py
 src/tasks.py
 src/wallet.py
