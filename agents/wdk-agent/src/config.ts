@@ -57,7 +57,7 @@ function optionalEnv(key: string, defaultValue: string): string {
 }
 
 /** USDC on Base mainnet */
-export const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+export const USDC_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
 
 /** Base chain ID */
 export const BASE_CHAIN_ID = 8453;

@@ -39,7 +39,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const
 
 export const CONTRACTS = {
   [CHAIN_IDS.BASE]: {
-    USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const,
+    USDT: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2" as const,
     AGENT_REGISTRY: ZERO_ADDRESS,        // TODO: fill after deployment
     AGENT_VAULT_FACTORY: ZERO_ADDRESS,   // TODO: fill after deployment
     AGENT_CREDIT_LINE: ZERO_ADDRESS,     // TODO: fill after deployment

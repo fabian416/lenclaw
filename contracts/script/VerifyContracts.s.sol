@@ -8,7 +8,7 @@ import {Script, console} from "forge-std/Script.sol";
 ///
 /// Usage example (Base):
 ///   CHAIN=base \
-///   USDC=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+///   USDC=0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2 \
 ///   AGENT_REGISTRY=<addr> \
 ///   AGENT_VAULT_FACTORY=<addr> \
 ///   CREDIT_SCORER=<addr> \

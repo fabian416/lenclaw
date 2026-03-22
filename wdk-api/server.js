@@ -9,7 +9,7 @@ app.use(express.json())
 
 const PORT = process.env.WDK_API_PORT || 3002
 const BASE_RPC = process.env.BASE_RPC || 'https://mainnet.base.org'
-const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+const USDT_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2'
 
 // In-memory WDK instances keyed by session (for demo purposes)
 const sessions = new Map()
@@ -91,7 +91,7 @@ app.post('/api/wdk/balance', async (req, res) => {
     } catch { /* provider may be unavailable */ }
 
     try {
-      const usdc = await account.getTokenBalance(USDC_ADDRESS)
+      const usdc = await account.getTokenBalance(USDT_ADDRESS)
       usdcBalance = usdc.toString()
     } catch { /* provider may be unavailable */ }
 

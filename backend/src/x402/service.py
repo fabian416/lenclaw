@@ -24,7 +24,7 @@ from src.x402.schemas import (
 logger = logging.getLogger(__name__)
 
 # Base mainnet constants
-USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+USDC_BASE_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
 BASE_CHAIN_ID = 8453
 
 

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { BookOpen, Code, Layers, Calculator, Rocket, ChevronRight, Copy, Check, ExternalLink } from "lucide-react"
 
-const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+const USDC_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)

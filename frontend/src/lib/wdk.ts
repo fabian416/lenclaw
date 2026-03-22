@@ -14,8 +14,8 @@
 const STORAGE_KEY = "lenclaw_wdk_seed"
 const WDK_API_BASE = import.meta.env.VITE_WDK_API_URL || ""
 
-/** USDC on Base */
-const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+/** USDT on Base */
+const USDC_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
 const BASE_CHAIN_ID = 8453
 const BASE_RPC = "https://mainnet.base.org"
 
