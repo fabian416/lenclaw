@@ -83,11 +83,7 @@ contract USDT0Bridge is Ownable, ReentrancyGuard {
 
     // --- Events ---
     event BridgeInitiated(
-        uint256 indexed nonce,
-        uint256 indexed agentId,
-        uint32 indexed dstEid,
-        address recipient,
-        uint256 amount
+        uint256 indexed nonce, uint256 indexed agentId, uint32 indexed dstEid, address recipient, uint256 amount
     );
     event BridgeCompleted(uint256 indexed nonce, uint256 indexed agentId, uint256 amount);
     event BridgeFailed(uint256 indexed nonce, uint256 indexed agentId, uint256 amount);

@@ -22,13 +22,13 @@ contract DutchAuction is Ownable, ReentrancyGuard {
 
     struct Auction {
         uint256 agentId;
-        uint256 debtAmount;          // Total outstanding debt being auctioned
-        uint256 startPrice;          // Starting price (high)
-        uint256 minPrice;            // Floor price (minimum acceptable)
-        uint256 startTime;           // Auction start timestamp
-        uint256 duration;            // Auction duration in seconds
-        uint256 settledPrice;        // Final settlement price (0 if unsettled)
-        address buyer;               // Winning bidder
+        uint256 debtAmount; // Total outstanding debt being auctioned
+        uint256 startPrice; // Starting price (high)
+        uint256 minPrice; // Floor price (minimum acceptable)
+        uint256 startTime; // Auction start timestamp
+        uint256 duration; // Auction duration in seconds
+        uint256 settledPrice; // Final settlement price (0 if unsettled)
+        address buyer; // Winning bidder
         AuctionStatus status;
     }
 
@@ -38,7 +38,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
     /// @notice Configurable auction parameters
     uint256 public startPriceMultiplierBps = 15000; // 150% of debt
     uint256 public defaultDuration = 6 hours;
-    uint256 public minPriceBps = 3000;              // 30% of debt (floor)
+    uint256 public minPriceBps = 3000; // 30% of debt (floor)
 
     /// @notice Auction storage: auctionId => Auction
     mapping(uint256 => Auction) public auctions;
@@ -58,10 +58,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
         uint256 duration
     );
     event AuctionSettled(
-        uint256 indexed auctionId,
-        uint256 indexed agentId,
-        address indexed buyer,
-        uint256 settledPrice
+        uint256 indexed auctionId, uint256 indexed agentId, address indexed buyer, uint256 settledPrice
     );
     event AuctionExpired(uint256 indexed auctionId, uint256 indexed agentId);
     event ParametersUpdated(uint256 startPriceMultiplierBps, uint256 defaultDuration, uint256 minPriceBps);
@@ -84,11 +81,10 @@ contract DutchAuction is Ownable, ReentrancyGuard {
         emit RecoveryManagerUpdated(_recoveryManager);
     }
 
-    function setParameters(
-        uint256 _startPriceMultiplierBps,
-        uint256 _defaultDuration,
-        uint256 _minPriceBps
-    ) external onlyOwner {
+    function setParameters(uint256 _startPriceMultiplierBps, uint256 _defaultDuration, uint256 _minPriceBps)
+        external
+        onlyOwner
+    {
         require(_startPriceMultiplierBps >= 10000, "DutchAuction: multiplier < 100%");
         require(_defaultDuration >= 1 hours, "DutchAuction: duration too short");
         require(_minPriceBps > 0 && _minPriceBps <= 10000, "DutchAuction: invalid min price");
@@ -109,15 +105,9 @@ contract DutchAuction is Ownable, ReentrancyGuard {
     /// @param debtAmount Total outstanding debt
     /// @return auctionId The newly created auction's ID
     function createAuction(uint256 agentId, uint256 debtAmount) external returns (uint256 auctionId) {
-        require(
-            msg.sender == recoveryManager || msg.sender == owner(),
-            "DutchAuction: not authorized"
-        );
+        require(msg.sender == recoveryManager || msg.sender == owner(), "DutchAuction: not authorized");
         require(debtAmount > 0, "DutchAuction: zero debt");
-        require(
-            activeAuctionByAgent[agentId] == 0,
-            "DutchAuction: auction already active for agent"
-        );
+        require(activeAuctionByAgent[agentId] == 0, "DutchAuction: auction already active for agent");
 
         uint256 startPrice = (debtAmount * startPriceMultiplierBps) / 10000;
         uint256 minPrice = (debtAmount * minPriceBps) / 10000;
@@ -177,10 +167,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
     function markExpired(uint256 auctionId) external {
         Auction storage auction = auctions[auctionId];
         require(auction.status == AuctionStatus.ACTIVE, "DutchAuction: not active");
-        require(
-            block.timestamp > auction.startTime + auction.duration,
-            "DutchAuction: not yet expired"
-        );
+        require(block.timestamp > auction.startTime + auction.duration, "DutchAuction: not yet expired");
 
         auction.status = AuctionStatus.EXPIRED;
         activeAuctionByAgent[auction.agentId] = 0;

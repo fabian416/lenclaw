@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from src.bridge.schemas import (
-    AttestationInfo,
     BridgeRevenueReport,
     BridgeTransaction,
     ConnectorInfo,
     ConnectorListResponse,
-    ConnectorStatusEnum,
     ConnectorStatus,
+    ConnectorStatusEnum,
     ConnectorTypeEnum,
     ConnectResponse,
 )
@@ -33,15 +31,15 @@ class _ConnectorRecord:
 
     __slots__ = (
         "agent_id",
-        "connector_type",
         "api_key",
-        "status",
-        "merchant_name",
-        "merchant_id",
         "connected_at",
-        "last_sync_at",
+        "connector_type",
         "error_message",
         "extra",
+        "last_sync_at",
+        "merchant_id",
+        "merchant_name",
+        "status",
     )
 
     def __init__(
@@ -173,7 +171,7 @@ class BridgeService:
         record.status = ConnectorStatusEnum.CONNECTED
         record.merchant_name = merchant.name
         record.merchant_id = merchant.merchant_id
-        record.connected_at = datetime.now(timezone.utc)
+        record.connected_at = datetime.now(UTC)
         _connector_store[key] = record
 
         logger.info(
@@ -217,7 +215,7 @@ class BridgeService:
         """Fetch and aggregate revenue from all connected connectors for an agent."""
         from bridge.connectors import ConnectorType, get_connector
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         since = now - timedelta(days=days)
 
         report = BridgeRevenueReport(

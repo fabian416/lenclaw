@@ -91,11 +91,7 @@ contract ZKCreditVerifier is Ownable, IZKCreditVerifier {
     /// @param _agentRegistry Address of the AgentRegistry contract
     /// @param _owner Admin address
     /// @param _verifierKeyHash Hash of the initial verifier key
-    constructor(
-        address _agentRegistry,
-        address _owner,
-        bytes32 _verifierKeyHash
-    ) Ownable(_owner) {
+    constructor(address _agentRegistry, address _owner, bytes32 _verifierKeyHash) Ownable(_owner) {
         require(_agentRegistry != address(0), "ZKCreditVerifier: zero registry");
         agentRegistry = IAgentRegistry(_agentRegistry);
         verifierKeyHash = _verifierKeyHash;
@@ -146,17 +142,11 @@ contract ZKCreditVerifier is Ownable, IZKCreditVerifier {
             proofData.revenueThreshold >= globalRevenueThreshold,
             "ZKCreditVerifier: revenue threshold below global minimum"
         );
-        require(
-            proofData.minReputation >= globalMinReputation,
-            "ZKCreditVerifier: reputation below global minimum"
-        );
+        require(proofData.minReputation >= globalMinReputation, "ZKCreditVerifier: reputation below global minimum");
 
         // 3. Validate the code hash matches what's registered on-chain
         IAgentRegistry.AgentProfile memory profile = agentRegistry.getAgent(proofData.agentId);
-        require(
-            proofData.registeredCodeHash == profile.codeHash,
-            "ZKCreditVerifier: code hash mismatch with registry"
-        );
+        require(proofData.registeredCodeHash == profile.codeHash, "ZKCreditVerifier: code hash mismatch with registry");
 
         // 4. Validate revenue tier and reputation band are in valid ranges
         require(proofData.revenueTier <= 4, "ZKCreditVerifier: invalid revenue tier");
@@ -333,11 +323,11 @@ contract ZKCreditVerifier is Ownable, IZKCreditVerifier {
     /// @param revenueThreshold Minimum revenue the proof must attest to
     /// @param minReputation Minimum reputation the proof must attest to
     /// @return eligible True if agent has a valid proof meeting the thresholds
-    function isCreditEligible(
-        uint256 agentId,
-        uint64 revenueThreshold,
-        uint64 minReputation
-    ) external view returns (bool eligible) {
+    function isCreditEligible(uint256 agentId, uint64 revenueThreshold, uint64 minReputation)
+        external
+        view
+        returns (bool eligible)
+    {
         // Must have a valid, non-expired proof
         if (!_proofValid[agentId]) return false;
         if ((block.timestamp - _verificationTimestamp[agentId]) > proofValidityPeriod) return false;

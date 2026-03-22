@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -34,9 +34,7 @@ class RevenueService:
         )
         session.add(record)
         await session.flush()
-        logger.info(
-            "Recorded revenue for agent=%s amount=%s", agent_id, data["amount"]
-        )
+        logger.info("Recorded revenue for agent=%s amount=%s", agent_id, data["amount"])
         return record
 
     async def get_revenue_history(
@@ -53,7 +51,7 @@ class RevenueService:
         )
 
         if days is not None:
-            since = datetime.now(timezone.utc) - timedelta(days=days)
+            since = datetime.now(UTC) - timedelta(days=days)
             query = query.where(RevenueRecord.recorded_at >= since)
 
         query = query.limit(limit)
@@ -63,7 +61,7 @@ class RevenueService:
     async def get_revenue_for_period(
         self, session: AsyncSession, agent_id: uuid.UUID, days: int
     ) -> Decimal:
-        since = datetime.now(timezone.utc) - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
         result = await session.execute(
             select(func.coalesce(func.sum(RevenueRecord.amount), 0)).where(
                 RevenueRecord.agent_id == agent_id,
@@ -111,7 +109,7 @@ class RevenueService:
         Consistency score (0-100) based on daily revenue standard deviation over 30 days.
         Lower variance = higher consistency.
         """
-        since = datetime.now(timezone.utc) - timedelta(days=30)
+        since = datetime.now(UTC) - timedelta(days=30)
 
         result = await session.execute(
             select(

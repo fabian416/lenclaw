@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -94,7 +94,7 @@ class LiquidationService:
                 f"Liquidation cannot be triggered from status {liquidation.status.value}"
             )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Transition to auction_active
         liquidation.status = LiquidationStatus.AUCTION_ACTIVE
@@ -102,8 +102,8 @@ class LiquidationService:
         liquidation.triggered_at = now
 
         # Create the auction record
-        start_price = liquidation.outstanding_debt * Decimal("1.5")   # 150%
-        min_price = liquidation.outstanding_debt * Decimal("0.3")     # 30%
+        start_price = liquidation.outstanding_debt * Decimal("1.5")  # 150%
+        min_price = liquidation.outstanding_debt * Decimal("0.3")  # 30%
 
         auction = LiquidationAuction(
             liquidation_id=liquidation.id,
@@ -138,9 +138,7 @@ class LiquidationService:
         Called by the monitoring system when it detects a default.
         """
         # Verify agent exists and is defaulted
-        agent_result = await session.execute(
-            select(Agent).where(Agent.id == agent_id)
-        )
+        agent_result = await session.execute(select(Agent).where(Agent.id == agent_id))
         agent = agent_result.scalar_one_or_none()
         if agent is None:
             raise NotFoundError(f"Agent {agent_id} not found")
@@ -154,10 +152,12 @@ class LiquidationService:
         existing_result = await session.execute(
             select(Liquidation).where(
                 Liquidation.agent_id == agent_id,
-                Liquidation.status.in_([
-                    LiquidationStatus.PENDING,
-                    LiquidationStatus.AUCTION_ACTIVE,
-                ]),
+                Liquidation.status.in_(
+                    [
+                        LiquidationStatus.PENDING,
+                        LiquidationStatus.AUCTION_ACTIVE,
+                    ]
+                ),
             )
         )
         existing = existing_result.scalar_one_or_none()
@@ -204,7 +204,7 @@ class LiquidationService:
                 f"Liquidation cannot be settled from status {liquidation.status.value}"
             )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         liquidation.recovered_amount = recovered_amount
         liquidation.settle_tx_hash = settle_tx_hash
@@ -259,9 +259,7 @@ class LiquidationService:
 
     async def get_summary(self, session: AsyncSession) -> dict:
         """Return aggregate liquidation statistics."""
-        total_result = await session.execute(
-            select(func.count(Liquidation.id))
-        )
+        total_result = await session.execute(select(func.count(Liquidation.id)))
         total_liquidations = total_result.scalar() or 0
 
         active_result = await session.execute(

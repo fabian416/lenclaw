@@ -14,11 +14,9 @@ from __future__ import annotations
 
 import asyncio
 import signal
-import time
 from typing import Any
 
 import redis.asyncio as aioredis
-import structlog
 
 from src.common.config import load_settings
 from src.db.session import init_db
@@ -27,8 +25,10 @@ from src.workers.chain_sync_worker import ChainSyncWorker
 from src.workers.config import WorkerSettings, load_worker_settings
 from src.workers.credit_scoring_worker import CreditScoringWorker
 from src.workers.monitoring_worker import MonitoringWorker
-from src.workers.observability.logging import configure_worker_logging, get_worker_logger
-from src.workers.observability.metrics import metrics
+from src.workers.observability.logging import (
+    configure_worker_logging,
+    get_worker_logger,
+)
 from src.workers.resilience.dead_letter import DeadLetterQueue
 from src.workers.revenue_sync_worker import RevenueSyncWorker
 
@@ -122,7 +122,11 @@ class WorkerScheduler:
         # Launch periodic loops
         for name, worker in self._workers.items():
             interval_attr = SCHEDULE_MAP.get(name)
-            interval = getattr(self._settings.schedule, interval_attr, 60) if interval_attr else 60
+            interval = (
+                getattr(self._settings.schedule, interval_attr, 60)
+                if interval_attr
+                else 60
+            )
             task = asyncio.create_task(
                 self._run_loop(worker, interval),
                 name=f"worker-{name}",

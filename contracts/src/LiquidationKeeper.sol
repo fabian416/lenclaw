@@ -38,10 +38,7 @@ contract LiquidationKeeper is Ownable {
     // ── Events ──────────────────────────────────────────────────
 
     event LiquidationTriggered(
-        uint256 indexed agentId,
-        address indexed keeper,
-        uint256 outstandingDebt,
-        uint256 bountyPaid
+        uint256 indexed agentId, address indexed keeper, uint256 outstandingDebt, uint256 bountyPaid
     );
     event RecoveryManagerUpdated(address indexed recoveryManager);
     event KeeperBountyUpdated(uint256 bountyBps, uint256 maxBounty);
@@ -50,13 +47,9 @@ contract LiquidationKeeper is Ownable {
 
     // ── Constructor ─────────────────────────────────────────────
 
-    constructor(
-        address _creditLine,
-        address _registry,
-        address _asset,
-        address _recoveryManager,
-        address _owner
-    ) Ownable(_owner) {
+    constructor(address _creditLine, address _registry, address _asset, address _recoveryManager, address _owner)
+        Ownable(_owner)
+    {
         require(_creditLine != address(0), "LiquidationKeeper: zero credit line");
         require(_registry != address(0), "LiquidationKeeper: zero registry");
         require(_asset != address(0), "LiquidationKeeper: zero asset");
@@ -102,11 +95,7 @@ contract LiquidationKeeper is Ownable {
     /// @param agentId The agent to check
     /// @return eligible True if the agent can be liquidated now
     /// @return outstandingDebt The agent's total outstanding debt
-    function checkLiquidation(uint256 agentId)
-        public
-        view
-        returns (bool eligible, uint256 outstandingDebt)
-    {
+    function checkLiquidation(uint256 agentId) public view returns (bool eligible, uint256 outstandingDebt) {
         // Must not already be liquidated
         if (liquidated[agentId]) return (false, 0);
 

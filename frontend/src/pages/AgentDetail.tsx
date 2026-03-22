@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -176,6 +176,34 @@ export default function AgentDetail() {
 
   const agent = MOCK_AGENTS_WITH_VAULT.find((a) => String(a.id) === id)
 
+  const events = agent ? getMockEvents(agent.id, agent.name) : []
+  const estimatedMonthlyYield = agent && backAmount ? (parseFloat(backAmount) * (agent.vault.apy / 100)) / 12 : 0
+  const isDefaulted = agent?.status === "default"
+  const isRisky = agent?.riskLevel === "risky" || agent?.riskLevel === "degen"
+  const availableCapacity = agent ? Math.max(agent.vault.cap - agent.vault.totalBacked, 0) : 0
+
+  const handleDeposit = () => {
+    if (!isConnected || !agent) {
+      return
+    }
+    const amount = parseFloat(backAmount)
+    if (!backAmount || amount <= 0) return
+    if (amount > availableCapacity) {
+      setDepositError(
+        availableCapacity <= 0
+          ? "This vault is fully backed. No additional capacity available."
+          : `Amount exceeds available capacity of ${formatUSD(availableCapacity)}.`
+      )
+      return
+    }
+    setDepositError("")
+    setDepositState("pending")
+    setTimeout(() => {
+      setDepositState("success")
+      setTimeout(() => setDepositState("idle"), 3000)
+    }, 2000)
+  }
+
   if (!agent) {
     return (
       <div className="max-w-5xl mx-auto px-6 py-24 text-center">
@@ -192,35 +220,6 @@ export default function AgentDetail() {
       </div>
     )
   }
-
-  const events = getMockEvents(agent.id, agent.name)
-  const estimatedMonthlyYield = backAmount ? (parseFloat(backAmount) * (agent.vault.apy / 100)) / 12 : 0
-  const isDefaulted = agent.status === "default"
-  const isRisky = agent.riskLevel === "risky" || agent.riskLevel === "degen"
-  const availableCapacity = Math.max(agent.vault.cap - agent.vault.totalBacked, 0)
-
-  const handleDeposit = useCallback(() => {
-    if (!isConnected) {
-      return
-    }
-    const amount = parseFloat(backAmount)
-    if (!backAmount || amount <= 0) return
-    if (amount > availableCapacity) {
-      setDepositError(
-        availableCapacity <= 0
-          ? "This vault is fully backed. No additional capacity available."
-          : `Amount exceeds available capacity of ${formatUSD(availableCapacity)}.`
-      )
-      return
-    }
-    setDepositError("")
-    // Simulate deposit tx (will be replaced with actual contract call)
-    setDepositState("pending")
-    setTimeout(() => {
-      setDepositState("success")
-      setTimeout(() => setDepositState("idle"), 3000)
-    }, 2000)
-  }, [isConnected, backAmount, availableCapacity])
 
   return (
     <motion.div

@@ -9,7 +9,6 @@ import pytest
 
 from src.pool.service import (
     BASE_APY_BPS,
-    UTILIZATION_BONUS_MULTIPLIER,
     PoolService,
 )
 
@@ -31,9 +30,9 @@ class TestPoolStats:
     ):
         mock_session.execute.side_effect = [
             _mock_scalar(Decimal("1000000")),  # total deposits
-            _mock_scalar(Decimal("800000")),   # total borrowed
-            _mock_scalar(5),                    # active agents
-            _mock_scalar(12),                   # total depositors
+            _mock_scalar(Decimal("800000")),  # total borrowed
+            _mock_scalar(5),  # active agents
+            _mock_scalar(12),  # total depositors
         ]
 
         stats = await pool_service.get_pool_stats(mock_session)

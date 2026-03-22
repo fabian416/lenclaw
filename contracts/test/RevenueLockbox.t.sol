@@ -19,10 +19,9 @@ contract RevenueLockboxTest is Test {
     function setUp() public {
         usdc = new ERC20Mock("USD Coin", "USDC", 6);
         // Deploy a real AgentVault (the factory is msg.sender)
-        agentVault = new AgentVault(
-            IERC20(address(usdc)), agentId, "Lenclaw Agent 1 USDC", "lcA1USDC", 1000, 500_000e6
-        );
-        lockbox = new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), repaymentRate, address(0), 0);
+        agentVault = new AgentVault(IERC20(address(usdc)), agentId, "Lenclaw Agent 1 USDC", "lcA1USDC", 1000, 500_000e6);
+        lockbox =
+            new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), repaymentRate, address(0), 0);
         // Wire lockbox on vault (this test contract is the factory)
         agentVault.setLockbox(address(lockbox));
     }
@@ -77,11 +76,15 @@ contract RevenueLockboxTest is Test {
     }
 
     function test_processRevenue_100PercentRepayment() public {
-        AgentVault v2 = new AgentVault(
-            IERC20(address(usdc)), 2, "Lenclaw Agent 2 USDC", "lcA2USDC", 1000, 500_000e6
-        );
+        AgentVault v2 = new AgentVault(IERC20(address(usdc)), 2, "Lenclaw Agent 2 USDC", "lcA2USDC", 1000, 500_000e6);
         RevenueLockbox fullRepay = new RevenueLockbox(
-            agentWallet, address(v2), agentId, address(usdc), 10000, address(0), 0 // 100%
+            agentWallet,
+            address(v2),
+            agentId,
+            address(usdc),
+            10000,
+            address(0),
+            0 // 100%
         );
         v2.setLockbox(address(fullRepay)); // Wire lockbox on vault
         usdc.mint(address(fullRepay), 1000e6);
@@ -94,11 +97,15 @@ contract RevenueLockboxTest is Test {
     }
 
     function test_processRevenue_zeroRepaymentRate() public {
-        AgentVault v3 = new AgentVault(
-            IERC20(address(usdc)), 3, "Lenclaw Agent 3 USDC", "lcA3USDC", 1000, 500_000e6
-        );
+        AgentVault v3 = new AgentVault(IERC20(address(usdc)), 3, "Lenclaw Agent 3 USDC", "lcA3USDC", 1000, 500_000e6);
         RevenueLockbox zeroRepay = new RevenueLockbox(
-            agentWallet, address(v3), agentId, address(usdc), 0, address(0), 0 // 0%
+            agentWallet,
+            address(v3),
+            agentId,
+            address(usdc),
+            0,
+            address(0),
+            0 // 0%
         );
         v3.setLockbox(address(zeroRepay)); // Wire lockbox on vault
         usdc.mint(address(zeroRepay), 1000e6);
@@ -212,12 +219,9 @@ contract RevenueLockboxTest is Test {
         rateBps = bound(rateBps, 0, 10000);
         if (rateBps > 0 && rateBps < 1000) rateBps = 1000;
 
-        AgentVault fuzzVault = new AgentVault(
-            IERC20(address(usdc)), 99, "Fuzz Vault", "lcFUZZ", 0, type(uint256).max
-        );
-        RevenueLockbox lb = new RevenueLockbox(
-            agentWallet, address(fuzzVault), agentId, address(usdc), rateBps, address(0), 0
-        );
+        AgentVault fuzzVault = new AgentVault(IERC20(address(usdc)), 99, "Fuzz Vault", "lcFUZZ", 0, type(uint256).max);
+        RevenueLockbox lb =
+            new RevenueLockbox(agentWallet, address(fuzzVault), agentId, address(usdc), rateBps, address(0), 0);
         fuzzVault.setLockbox(address(lb)); // Wire lockbox on vault
         usdc.mint(address(lb), amount);
 
@@ -235,12 +239,9 @@ contract RevenueLockboxTest is Test {
 
     function test_processRevenue_capsAtMax() public {
         // Deploy lockbox with 100K USDC cap
-        AgentVault capVault = new AgentVault(
-            IERC20(address(usdc)), 10, "Cap Vault", "lcCAP", 1000, 500_000e6
-        );
-        RevenueLockbox capLockbox = new RevenueLockbox(
-            agentWallet, address(capVault), 10, address(usdc), repaymentRate, address(0), 100_000e6
-        );
+        AgentVault capVault = new AgentVault(IERC20(address(usdc)), 10, "Cap Vault", "lcCAP", 1000, 500_000e6);
+        RevenueLockbox capLockbox =
+            new RevenueLockbox(agentWallet, address(capVault), 10, address(usdc), repaymentRate, address(0), 100_000e6);
         capVault.setLockbox(address(capLockbox));
 
         // Mint 200K to lockbox (above 100K cap)

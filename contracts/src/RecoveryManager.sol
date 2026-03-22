@@ -29,12 +29,12 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
     struct RecoveryRecord {
         uint256 agentId;
-        uint256 debtAmount;          // Original outstanding debt
-        uint256 recoveredAmount;     // Amount actually recovered from auction
-        uint256 lossAmount;          // Unrecovered debt (debtAmount - recoveredAmount)
-        uint256 auctionId;           // Associated DutchAuction ID
-        uint256 startedAt;           // When recovery was initiated
-        uint256 completedAt;         // When recovery was finalized
+        uint256 debtAmount; // Original outstanding debt
+        uint256 recoveredAmount; // Amount actually recovered from auction
+        uint256 lossAmount; // Unrecovered debt (debtAmount - recoveredAmount)
+        uint256 auctionId; // Associated DutchAuction ID
+        uint256 startedAt; // When recovery was initiated
+        uint256 completedAt; // When recovery was finalized
         RecoveryStatus status;
     }
 
@@ -66,12 +66,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
     // -- Events --
 
-    event RecoveryStarted(
-        uint256 indexed recoveryId,
-        uint256 indexed agentId,
-        uint256 debtAmount,
-        uint256 auctionId
-    );
+    event RecoveryStarted(uint256 indexed recoveryId, uint256 indexed agentId, uint256 debtAmount, uint256 auctionId);
     event RecoveryCompleted(
         uint256 indexed recoveryId,
         uint256 indexed agentId,
@@ -79,14 +74,8 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         uint256 lossAmount,
         RecoveryStatus status
     );
-    event LossDistributed(
-        uint256 indexed recoveryId,
-        uint256 lossAmount
-    );
-    event ProceedsDistributed(
-        uint256 indexed recoveryId,
-        uint256 toVault
-    );
+    event LossDistributed(uint256 indexed recoveryId, uint256 lossAmount);
+    event ProceedsDistributed(uint256 indexed recoveryId, uint256 toVault);
     event ReputationSlashed(uint256 indexed agentId, uint256 newScore);
     event WriteOff(uint256 indexed recoveryId, uint256 indexed agentId, uint256 lossAmount);
     event VaultOperationFailed(string operation, uint256 indexed agentId);
@@ -96,13 +85,9 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
     // -- Constructor --
 
-    constructor(
-        address _asset,
-        address _dutchAuction,
-        address _registry,
-        address _vaultFactory,
-        address _owner
-    ) Ownable(_owner) {
+    constructor(address _asset, address _dutchAuction, address _registry, address _vaultFactory, address _owner)
+        Ownable(_owner)
+    {
         require(_asset != address(0), "RecoveryManager: zero asset");
         require(_dutchAuction != address(0), "RecoveryManager: zero auction");
         require(_registry != address(0), "RecoveryManager: zero registry");
@@ -144,15 +129,9 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     /// @param agentId    The defaulted agent's ID
     /// @param debtAmount Total outstanding debt
     function startRecovery(uint256 agentId, uint256 debtAmount) external {
-        require(
-            msg.sender == keeper || msg.sender == owner(),
-            "RecoveryManager: not authorized"
-        );
+        require(msg.sender == keeper || msg.sender == owner(), "RecoveryManager: not authorized");
         require(debtAmount > 0, "RecoveryManager: zero debt");
-        require(
-            activeRecoveryByAgent[agentId] == 0,
-            "RecoveryManager: recovery already active"
-        );
+        require(activeRecoveryByAgent[agentId] == 0, "RecoveryManager: recovery already active");
 
         // Create Dutch auction for the defaulted position
         uint256 auctionId = dutchAuction.createAuction(agentId, debtAmount);
@@ -174,7 +153,8 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         totalDebtProcessed += debtAmount;
 
         // Freeze vault to prevent bank run during recovery
-        (bool freezeSuccess, ) = address(vaultFactory).call(abi.encodeWithSignature("freezeVault(uint256,bool)", agentId, true));
+        (bool freezeSuccess,) =
+            address(vaultFactory).call(abi.encodeWithSignature("freezeVault(uint256,bool)", agentId, true));
         // Continue even if freeze fails — recovery is more important
         if (!freezeSuccess) emit VaultOperationFailed("freezeVault", agentId);
 
@@ -193,24 +173,17 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
     ///         (reflected as reduced share value in the ERC-4626 vault).
     /// @param recoveryId The recovery record to finalize
     function finalizeRecovery(uint256 recoveryId) external nonReentrant {
-        require(
-            msg.sender == keeper || msg.sender == owner(),
-            "RecoveryManager: not authorized"
-        );
+        require(msg.sender == keeper || msg.sender == owner(), "RecoveryManager: not authorized");
 
         RecoveryRecord storage recovery = recoveries[recoveryId];
-        require(
-            recovery.status == RecoveryStatus.AUCTION_ACTIVE,
-            "RecoveryManager: not active"
-        );
+        require(recovery.status == RecoveryStatus.AUCTION_ACTIVE, "RecoveryManager: not active");
 
         // 1. Get auction details: settled price AND buyer address
         DutchAuction.Auction memory auction = dutchAuction.getAuction(recovery.auctionId);
 
         // Auction must be settled or expired
         require(
-            auction.status == DutchAuction.AuctionStatus.SETTLED
-                || auction.status == DutchAuction.AuctionStatus.EXPIRED,
+            auction.status == DutchAuction.AuctionStatus.SETTLED || auction.status == DutchAuction.AuctionStatus.EXPIRED,
             "RecoveryManager: auction still active"
         );
 
@@ -230,7 +203,9 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
         // 2. Unfreeze vault FIRST so deposit works (frozen vaults revert on deposit)
         {
-            (bool _ok, ) = address(vaultFactory).call(abi.encodeWithSignature("freezeVault(uint256,bool)", recovery.agentId, false));
+            (bool _ok,) = address(vaultFactory).call(
+                abi.encodeWithSignature("freezeVault(uint256,bool)", recovery.agentId, false)
+            );
             if (!_ok) emit VaultOperationFailed("unfreezeVault", recovery.agentId);
         }
 
@@ -284,9 +259,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             // repayment, lowering the share price for everyone equally).
             emit LossDistributed(recoveryId, recovery.lossAmount);
 
-            recovery.status = recoveredAmount > 0
-                ? RecoveryStatus.PARTIAL_RECOVERY
-                : RecoveryStatus.WRITE_OFF;
+            recovery.status = recoveredAmount > 0 ? RecoveryStatus.PARTIAL_RECOVERY : RecoveryStatus.WRITE_OFF;
         }
 
         // 5. Write down the FULL debt on the credit line so principal/accruedInterest
@@ -299,7 +272,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         //    The vault balance already has the recovered USDC, so totalAssets adjusts correctly:
         //    totalAssets = (balance + recoveredAmount) + (totalBorrowed - debtAmount) - fees
         {
-            (bool wdSuccess, ) = address(vaultFactory).call(
+            (bool wdSuccess,) = address(vaultFactory).call(
                 abi.encodeWithSignature("writeDownVaultLoss(uint256,uint256)", recovery.agentId, recovery.debtAmount)
             );
             // Continue even if write-down fails
@@ -309,13 +282,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         // Clear active recovery
         activeRecoveryByAgent[recovery.agentId] = 0;
 
-        emit RecoveryCompleted(
-            recoveryId,
-            recovery.agentId,
-            recoveredAmount,
-            recovery.lossAmount,
-            recovery.status
-        );
+        emit RecoveryCompleted(recoveryId, recovery.agentId, recoveredAmount, recovery.lossAmount, recovery.status);
 
         if (recovery.status == RecoveryStatus.WRITE_OFF) {
             emit WriteOff(recoveryId, recovery.agentId, recovery.lossAmount);

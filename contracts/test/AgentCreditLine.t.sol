@@ -31,9 +31,7 @@ contract AgentCreditLineTest is Test {
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
         factory.setAllowedAsset(address(usdc), true);
-        creditLine = new AgentCreditLine(
-            address(registry), address(scorer), address(factory), owner
-        );
+        creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
 
         // Link registry to factory for auto vault deployment
         registry.setVaultFactory(address(factory));

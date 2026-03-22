@@ -100,11 +100,13 @@ def load_settings(env: Environment | None = None) -> AppSettings:
         settings.auth.jwt_secret = jwt_from_env
 
     # Require JWT_SECRET in production — never run prod with an empty or default secret
-    if settings.env in (Environment.PROD, Environment.DEV):
-        if not settings.auth.jwt_secret or settings.auth.jwt_secret == "dev-secret-change-in-production":
-            raise RuntimeError(
-                "JWT_SECRET environment variable must be set to a strong random value "
-                "in production/dev. Generate one with: openssl rand -hex 32"
-            )
+    if settings.env in (Environment.PROD, Environment.DEV) and (
+        not settings.auth.jwt_secret
+        or settings.auth.jwt_secret == "dev-secret-change-in-production"
+    ):
+        raise RuntimeError(
+            "JWT_SECRET environment variable must be set to a strong random value "
+            "in production/dev. Generate one with: openssl rand -hex 32"
+        )
 
     return settings

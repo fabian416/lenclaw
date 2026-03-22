@@ -42,8 +42,9 @@ contract WDKSmartWalletTest is Test {
         registry.setVaultFactory(address(vaultFactory));
 
         // Register agent (auto-deploys vault + lockbox + standard smartWallet)
-        agentId =
-            registry.registerAgent(agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdc));
+        agentId = registry.registerAgent(
+            agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdc)
+        );
         vaultAddr = vaultFactory.getVault(agentId);
         lockboxAddr = vaultFactory.getLockbox(agentId);
 
@@ -62,8 +63,9 @@ contract WDKSmartWalletTest is Test {
         // we deploy a fresh agent without a pre-existing smart wallet.
         // Register a new agent without vault (no asset) to get a clean profile
         address agentWallet2 = makeAddr("agentWallet2");
-        uint256 newAgentId =
-            registry.registerAgent(agentWallet2, keccak256("code2"), "TestAgent2", address(0), 0, bytes32(0), address(0));
+        uint256 newAgentId = registry.registerAgent(
+            agentWallet2, keccak256("code2"), "TestAgent2", address(0), 0, bytes32(0), address(0)
+        );
 
         // Manually set lockbox and vault for this agent (simulate partial setup)
         registry.setLockbox(newAgentId, lockboxAddr);

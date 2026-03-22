@@ -151,11 +151,11 @@ class TestGetRevenueSummary:
         consistency_result.all.return_value = []  # empty -> 0 consistency
 
         mock_session.execute.side_effect = [
-            agent_result,      # agent check
-            total_result,      # total
-            period_result,     # 30d
-            period_result,     # 60d
-            period_result,     # 90d
+            agent_result,  # agent check
+            total_result,  # total
+            period_result,  # 30d
+            period_result,  # 60d
+            period_result,  # 90d
             consistency_result,  # consistency
         ]
 

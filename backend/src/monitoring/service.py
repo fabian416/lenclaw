@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -32,13 +32,11 @@ class MonitoringService:
         if agent is None:
             raise NotFoundError(f"Agent {agent_id} not found")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Revenue 30d
         rev_30 = await self._revenue_for_period(session, agent_id, 30)
-        rev_prev_30 = await self._revenue_for_period_range(
-            session, agent_id, 30, 60
-        )
+        rev_prev_30 = await self._revenue_for_period_range(session, agent_id, 30, 60)
 
         # Revenue trend
         if rev_prev_30 == 0:
@@ -155,7 +153,7 @@ class MonitoringService:
     async def _revenue_for_period(
         self, session: AsyncSession, agent_id: uuid.UUID, days: int
     ) -> Decimal:
-        since = datetime.now(timezone.utc) - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
         result = await session.execute(
             select(func.coalesce(func.sum(RevenueRecord.amount), 0)).where(
                 RevenueRecord.agent_id == agent_id,
@@ -171,7 +169,7 @@ class MonitoringService:
         start_days_ago: int,
         end_days_ago: int,
     ) -> Decimal:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         since = now - timedelta(days=end_days_ago)
         until = now - timedelta(days=start_days_ago)
         result = await session.execute(

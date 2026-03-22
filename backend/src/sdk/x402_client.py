@@ -30,7 +30,7 @@ from src.x402.protocol import (
     build_payment_header,
     parse_payment_required,
 )
-from src.x402.schemas import PaymentReceipt, PaymentRequired
+from src.x402.schemas import PaymentRequired
 
 logger = logging.getLogger(__name__)
 
@@ -119,33 +119,23 @@ class X402Client:
     # HTTP methods with x402 handling
     # ------------------------------------------------------------------ #
 
-    async def get(
-        self, url: str, **kwargs: Any
-    ) -> httpx.Response:
+    async def get(self, url: str, **kwargs: Any) -> httpx.Response:
         """Send a GET request, handling 402 automatically."""
         return await self._request("GET", url, **kwargs)
 
-    async def post(
-        self, url: str, **kwargs: Any
-    ) -> httpx.Response:
+    async def post(self, url: str, **kwargs: Any) -> httpx.Response:
         """Send a POST request, handling 402 automatically."""
         return await self._request("POST", url, **kwargs)
 
-    async def put(
-        self, url: str, **kwargs: Any
-    ) -> httpx.Response:
+    async def put(self, url: str, **kwargs: Any) -> httpx.Response:
         """Send a PUT request, handling 402 automatically."""
         return await self._request("PUT", url, **kwargs)
 
-    async def patch(
-        self, url: str, **kwargs: Any
-    ) -> httpx.Response:
+    async def patch(self, url: str, **kwargs: Any) -> httpx.Response:
         """Send a PATCH request, handling 402 automatically."""
         return await self._request("PATCH", url, **kwargs)
 
-    async def delete(
-        self, url: str, **kwargs: Any
-    ) -> httpx.Response:
+    async def delete(self, url: str, **kwargs: Any) -> httpx.Response:
         """Send a DELETE request, handling 402 automatically."""
         return await self._request("DELETE", url, **kwargs)
 
@@ -218,13 +208,15 @@ class X402Client:
                 return response
 
             # Record payment attempt
-            self.payment_history.append({
-                "url": url,
-                "method": method,
-                "amount": str(amount_usd),
-                "recipient": payment_required.recipient,
-                "attempt": attempt + 1,
-            })
+            self.payment_history.append(
+                {
+                    "url": url,
+                    "method": method,
+                    "amount": str(amount_usd),
+                    "recipient": payment_required.recipient,
+                    "attempt": attempt + 1,
+                }
+            )
 
             # Retry request with payment header
             headers = dict(kwargs.get("headers", {}))
@@ -273,9 +265,7 @@ class X402Client:
     @property
     def total_spent(self) -> Decimal:
         """Total USD spent on x402 payments in this session."""
-        return sum(
-            Decimal(p["amount"]) for p in self.payment_history
-        )
+        return sum(Decimal(p["amount"]) for p in self.payment_history)
 
     @property
     def address(self) -> str:

@@ -15,11 +15,17 @@ import redis.asyncio as aioredis
 import structlog
 
 from src.workers.config import WorkerSettings
-from src.workers.observability.logging import get_worker_logger, log_task_failure, log_task_start, log_task_success
+from src.workers.observability.logging import (
+    get_worker_logger,
+    log_task_failure,
+    log_task_start,
+    log_task_success,
+)
 from src.workers.observability.metrics import metrics
-from src.workers.resilience.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
+from src.workers.resilience.circuit_breaker import (
+    CircuitBreakerOpenError,
+)
 from src.workers.resilience.dead_letter import DeadLetterEntry, DeadLetterQueue
-from src.workers.resilience.retry import retry_with_backoff
 
 
 class BaseWorker(ABC):

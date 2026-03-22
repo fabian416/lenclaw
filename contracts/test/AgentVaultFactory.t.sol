@@ -39,7 +39,8 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_createVault() public {
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
         address vaultAddr = factory.createVault(agentId, address(usdc));
 
         assertTrue(vaultAddr != address(0), "Vault should be deployed");
@@ -53,9 +54,12 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_createMultipleVaults() public {
-        uint256 id1 = registry.registerAgent(agent1Wallet, keccak256("code1"), "Agent1", address(0), 0, bytes32(0), address(0));
-        uint256 id2 = registry.registerAgent(agent2Wallet, keccak256("code2"), "Agent2", address(0), 0, bytes32(0), address(0));
-        uint256 id3 = registry.registerAgent(agent3Wallet, keccak256("code3"), "Agent3", address(0), 0, bytes32(0), address(0));
+        uint256 id1 =
+            registry.registerAgent(agent1Wallet, keccak256("code1"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 id2 =
+            registry.registerAgent(agent2Wallet, keccak256("code2"), "Agent2", address(0), 0, bytes32(0), address(0));
+        uint256 id3 =
+            registry.registerAgent(agent3Wallet, keccak256("code3"), "Agent3", address(0), 0, bytes32(0), address(0));
 
         address v1 = factory.createVault(id1, address(usdc));
         address v2 = factory.createVault(id2, address(usdc));
@@ -71,7 +75,8 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_cannotCreateDuplicateVault() public {
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
         factory.createVault(agentId, address(usdc));
 
         vm.expectRevert(abi.encodeWithSelector(AgentVaultFactory.VaultAlreadyExists.selector, agentId));
@@ -86,7 +91,8 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_setVaultCreditLine() public {
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
         factory.createVault(agentId, address(usdc));
 
         address creditLine = makeAddr("creditLine");
@@ -97,7 +103,8 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_onlyOwnerCanSetCreditLine() public {
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
         factory.createVault(agentId, address(usdc));
 
         vm.prank(agent1Wallet);
@@ -106,7 +113,8 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_setVaultDepositCap() public {
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
         factory.createVault(agentId, address(usdc));
 
         factory.setVaultDepositCap(agentId, 1_000_000e6);
@@ -118,7 +126,8 @@ contract AgentVaultFactoryTest is Test {
     function test_setDefaultProtocolFee() public {
         factory.setDefaultProtocolFeeBps(500); // 5%
 
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
         address vaultAddr = factory.createVault(agentId, address(usdc));
 
         assertEq(AgentVault(vaultAddr).protocolFeeBps(), 500);
@@ -132,7 +141,8 @@ contract AgentVaultFactoryTest is Test {
     function test_setDefaultDepositCap() public {
         factory.setDefaultDepositCap(1_000_000e6);
 
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
         address vaultAddr = factory.createVault(agentId, address(usdc));
 
         assertEq(AgentVault(vaultAddr).depositCap(), 1_000_000e6);
@@ -155,7 +165,8 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_onlyRegistryOrOwnerCanCreateVault() public {
-        uint256 agentId = registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
 
         // Non-owner/non-registry cannot create vault
         vm.prank(agent1Wallet);
@@ -164,8 +175,10 @@ contract AgentVaultFactoryTest is Test {
     }
 
     function test_allVaultsEnumeration() public {
-        uint256 id1 = registry.registerAgent(agent1Wallet, keccak256("code1"), "Agent1", address(0), 0, bytes32(0), address(0));
-        uint256 id2 = registry.registerAgent(agent2Wallet, keccak256("code2"), "Agent2", address(0), 0, bytes32(0), address(0));
+        uint256 id1 =
+            registry.registerAgent(agent1Wallet, keccak256("code1"), "Agent1", address(0), 0, bytes32(0), address(0));
+        uint256 id2 =
+            registry.registerAgent(agent2Wallet, keccak256("code2"), "Agent2", address(0), 0, bytes32(0), address(0));
 
         address v1 = factory.createVault(id1, address(usdc));
         address v2 = factory.createVault(id2, address(usdc));

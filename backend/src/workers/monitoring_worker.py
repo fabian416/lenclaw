@@ -8,7 +8,7 @@ Runs periodically to:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -31,7 +31,7 @@ from src.workers.config import WorkerSettings
 from src.workers.resilience.dead_letter import DeadLetterQueue
 
 # Thresholds
-REVENUE_DROP_WARNING_PERCENT = Decimal("30")   # 30 % drop triggers WARNING
+REVENUE_DROP_WARNING_PERCENT = Decimal("30")  # 30 % drop triggers WARNING
 REVENUE_DROP_CRITICAL_PERCENT = Decimal("60")  # 60 % drop triggers CRITICAL
 OVERDUE_DAYS_DELINQUENT = 7
 OVERDUE_DAYS_DEFAULT = 30
@@ -63,10 +63,12 @@ class MonitoringWorker(BaseWorker):
         async for session in get_session():
             result = await session.execute(
                 select(Agent).where(
-                    Agent.status.in_([
-                        AgentStatus.ACTIVE,
-                        AgentStatus.DELINQUENT,
-                    ]),
+                    Agent.status.in_(
+                        [
+                            AgentStatus.ACTIVE,
+                            AgentStatus.DELINQUENT,
+                        ]
+                    ),
                 )
             )
             agents = list(result.scalars().all())
@@ -156,14 +158,12 @@ class MonitoringWorker(BaseWorker):
     # Overdue draw detection
     # ------------------------------------------------------------------
 
-    async def _check_overdue_draws(
-        self, session: AsyncSession
-    ) -> tuple[int, int]:
+    async def _check_overdue_draws(self, session: AsyncSession) -> tuple[int, int]:
         """Detect overdue credit draws and update agent statuses.
 
         Returns (delinquent_count, default_count).
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         delinquent_threshold = now - timedelta(days=OVERDUE_DAYS_DELINQUENT)
         default_threshold = now - timedelta(days=OVERDUE_DAYS_DEFAULT)
 

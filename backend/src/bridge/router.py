@@ -5,19 +5,17 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_wallet
 from src.bridge.schemas import (
     BridgeRevenueReport,
-    ConnectRequest,
-    ConnectResponse,
     ConnectorListResponse,
     ConnectorStatus,
+    ConnectRequest,
+    ConnectResponse,
     DisconnectRequest,
 )
 from src.bridge.service import BridgeService
-from src.db.session import get_session
 
 router = APIRouter(prefix="/bridge", tags=["bridge"])
 

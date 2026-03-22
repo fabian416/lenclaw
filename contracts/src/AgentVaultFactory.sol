@@ -104,10 +104,7 @@ contract AgentVaultFactory is Ownable {
     /// @return vault The deployed AgentVault address
     /// @dev Only callable by registry (during registerAgent) or owner
     function createVault(uint256 agentId, address asset) external returns (address vault) {
-        require(
-            msg.sender == address(registry) || msg.sender == owner(),
-            "AgentVaultFactory: not authorized"
-        );
+        require(msg.sender == address(registry) || msg.sender == owner(), "AgentVaultFactory: not authorized");
         if (!registry.isRegistered(agentId)) revert AgentNotRegistered(agentId);
         if (vaults[agentId] != address(0)) revert VaultAlreadyExists(agentId);
         if (!allowedAssets[asset]) revert AssetNotAllowed(asset);
@@ -119,9 +116,7 @@ contract AgentVaultFactory is Ownable {
         string memory symbol = string.concat("lcA", _uint2str(agentId));
 
         // ── 1. Deploy AgentVault (via library to reduce factory bytecode) ──
-        vault = VaultDeployer.deploy(
-            IERC20(asset), agentId, name, symbol, defaultProtocolFeeBps, defaultDepositCap
-        );
+        vault = VaultDeployer.deploy(IERC20(asset), agentId, name, symbol, defaultProtocolFeeBps, defaultDepositCap);
 
         vaults[agentId] = vault;
         agentAssets[agentId] = asset;
@@ -144,9 +139,8 @@ contract AgentVaultFactory is Ownable {
         emit LockboxCreated(agentId, newLockbox, vault);
 
         // ── 3. Deploy SmartWallet (MANDATORY, via library) ──
-        address newSmartWallet = WalletDeployer.deploy(
-            profile.wallet, address(this), newLockbox, asset, agentId, defaultRepaymentRateBps
-        );
+        address newSmartWallet =
+            WalletDeployer.deploy(profile.wallet, address(this), newLockbox, asset, agentId, defaultRepaymentRateBps);
 
         smartWallets[agentId] = newSmartWallet;
 

@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.common.exceptions import BadRequestError, InsufficientCreditError, NotFoundError
+from src.common.exceptions import (
+    BadRequestError,
+    InsufficientCreditError,
+    NotFoundError,
+)
 from src.credit.scoring import CreditScoreInput, compute_credit_score
 from src.db.models import (
     Agent,
@@ -16,7 +20,6 @@ from src.db.models import (
     CreditDraw,
     CreditDrawStatus,
     CreditLine,
-    RevenueRecord,
 )
 from src.revenue.service import RevenueService
 
@@ -38,9 +41,7 @@ class CreditService:
             raise NotFoundError(f"No credit line for agent {agent_id}")
         return credit_line
 
-    async def score_agent(
-        self, session: AsyncSession, agent_id: uuid.UUID
-    ) -> dict:
+    async def score_agent(self, session: AsyncSession, agent_id: uuid.UUID) -> dict:
         """Run credit scoring algorithm for an agent."""
         # Fetch agent
         agent_result = await session.execute(select(Agent).where(Agent.id == agent_id))
@@ -87,7 +88,7 @@ class CreditService:
             credit_line.interest_rate_bps = result.interest_rate_bps
             credit_line.repayment_rate_bps = result.repayment_rate_bps
             credit_line.credit_score = result.credit_score
-            credit_line.last_scored_at = datetime.now(timezone.utc)
+            credit_line.last_scored_at = datetime.now(UTC)
 
         await session.flush()
 
@@ -125,9 +126,7 @@ class CreditService:
         available = credit_line.max_amount - credit_line.used_amount
 
         if amount > available:
-            raise InsufficientCreditError(
-                f"Requested {amount}, available {available}"
-            )
+            raise InsufficientCreditError(f"Requested {amount}, available {available}")
 
         # Calculate interest for the tenor period
         annual_rate = Decimal(credit_line.interest_rate_bps) / Decimal(10000)
@@ -135,7 +134,7 @@ class CreditService:
         interest = (amount * period_rate).quantize(Decimal("0.000001"))
         amount_due = amount + interest
 
-        due_at = datetime.now(timezone.utc) + timedelta(days=tenor_days)
+        due_at = datetime.now(UTC) + timedelta(days=tenor_days)
 
         draw = CreditDraw(
             agent_id=agent_id,
@@ -198,9 +197,7 @@ class CreditService:
             raise NotFoundError(f"Credit draw {draw_id} not found for agent {agent_id}")
 
         if draw.status not in (CreditDrawStatus.ACTIVE, CreditDrawStatus.PENDING):
-            raise BadRequestError(
-                f"Cannot repay draw with status {draw.status}"
-            )
+            raise BadRequestError(f"Cannot repay draw with status {draw.status}")
 
         remaining = draw.amount_due - draw.amount_repaid
         if amount > remaining:
@@ -213,7 +210,7 @@ class CreditService:
 
         if fully_repaid:
             draw.status = CreditDrawStatus.REPAID
-            draw.repaid_at = datetime.now(timezone.utc)
+            draw.repaid_at = datetime.now(UTC)
 
         # Release used amount on credit line
         cl_result = await session.execute(
@@ -223,7 +220,9 @@ class CreditService:
         if credit_line is not None:
             # Release the principal portion proportional to repayment
             principal_ratio = draw.amount / draw.amount_due
-            principal_released = (amount * principal_ratio).quantize(Decimal("0.000001"))
+            principal_released = (amount * principal_ratio).quantize(
+                Decimal("0.000001")
+            )
             credit_line.used_amount = max(
                 Decimal(0), credit_line.used_amount - principal_released
             )
@@ -253,7 +252,9 @@ class CreditService:
     ) -> Decimal:
         result = await session.execute(
             select(
-                func.coalesce(func.sum(CreditDraw.amount_due - CreditDraw.amount_repaid), 0)
+                func.coalesce(
+                    func.sum(CreditDraw.amount_due - CreditDraw.amount_repaid), 0
+                )
             ).where(
                 CreditDraw.agent_id == agent_id,
                 CreditDraw.status == CreditDrawStatus.ACTIVE,

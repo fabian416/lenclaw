@@ -27,8 +27,10 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Callable
+from datetime import UTC
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -249,9 +251,9 @@ def x402_paywall(
                 # Return 402 Payment Required
                 # Get the recipient from config or env
                 import os
-                server_recipient = (
-                    paywall_config.recipient
-                    or os.getenv("X402_RECIPIENT", "")
+
+                server_recipient = paywall_config.recipient or os.getenv(
+                    "X402_RECIPIENT", ""
                 )
 
                 protocol = X402Protocol(recipient=server_recipient)
@@ -277,9 +279,9 @@ def x402_paywall(
                 )
 
             import os
-            server_recipient = (
-                paywall_config.recipient
-                or os.getenv("X402_RECIPIENT", "")
+
+            server_recipient = paywall_config.recipient or os.getenv(
+                "X402_RECIPIENT", ""
             )
 
             protocol = X402Protocol(recipient=server_recipient)
@@ -296,8 +298,8 @@ def x402_paywall(
                 )
 
             # Create a lightweight receipt for the request
-            from datetime import datetime, timezone
             import uuid
+            from datetime import datetime
 
             receipt = PaymentReceipt(
                 id=uuid.uuid4(),
@@ -307,7 +309,7 @@ def x402_paywall(
                 token=paywall_config.token,
                 resource=str(request.url),
                 nonce=payment_header.payload.nonce,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
 
             request.state.x402_receipt = receipt

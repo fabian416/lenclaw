@@ -32,32 +32,18 @@ contract DeployWDK is Script {
 
         // 1. Deploy WDKWalletFactory
         //    constructor(address _usdc, address _registry, address _entryPoint, address _owner)
-        WDKWalletFactory walletFactory = new WDKWalletFactory(
-            USDT,
-            AGENT_REGISTRY,
-            ENTRY_POINT_V06,
-            owner
-        );
+        WDKWalletFactory walletFactory = new WDKWalletFactory(USDT, AGENT_REGISTRY, ENTRY_POINT_V06, owner);
         console.log("WDKWalletFactory:", address(walletFactory));
 
         // 2. Deploy USDT0Bridge
         //    constructor(address _usdt0, address _registry, address _lzEndpoint, address _owner)
-        USDT0Bridge bridge = new USDT0Bridge(
-            USDT,
-            AGENT_REGISTRY,
-            LZ_ENDPOINT,
-            owner
-        );
+        USDT0Bridge bridge = new USDT0Bridge(USDT, AGENT_REGISTRY, LZ_ENDPOINT, owner);
         console.log("USDT0Bridge:", address(bridge));
 
         // 3. Wire WDKWalletFactory as authorized factory in AgentRegistry
         //    so it can call setSmartWallet() during wallet creation
         (bool success,) = AGENT_REGISTRY.call(
-            abi.encodeWithSignature(
-                "setAuthorizedFactory(address,bool)",
-                address(walletFactory),
-                true
-            )
+            abi.encodeWithSignature("setAuthorizedFactory(address,bool)", address(walletFactory), true)
         );
         require(success, "Failed to authorize WDKWalletFactory in AgentRegistry");
         console.log("WDKWalletFactory authorized in AgentRegistry");

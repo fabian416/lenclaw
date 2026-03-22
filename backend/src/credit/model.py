@@ -25,7 +25,6 @@ import joblib
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -34,7 +33,6 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import StratifiedKFold
 
 from src.credit.features import FEATURE_NAMES, features_to_array
 
@@ -262,7 +260,7 @@ class CreditScoringModel:
 
         # Map default probability to credit score.
         # Score 1000 = 0% default prob, score 0 = 100% default prob.
-        ml_score = int(round((1.0 - default_prob) * 1000))
+        ml_score = round((1.0 - default_prob) * 1000)
         ml_score = max(0, min(1000, ml_score))
 
         risk_tier = score_to_tier(ml_score)
@@ -327,7 +325,7 @@ class CreditScoringModel:
 
         return {
             name: round(float(imp), 6)
-            for name, imp in zip(self._feature_names, normalised)
+            for name, imp in zip(self._feature_names, normalised, strict=False)
         }
 
     # ------------------------------------------------------------------
@@ -402,7 +400,7 @@ class CreditScoringModel:
             normalised = raw / total
         return {
             name: round(float(v), 6)
-            for name, v in zip(self._feature_names, normalised)
+            for name, v in zip(self._feature_names, normalised, strict=False)
         }
 
     # ------------------------------------------------------------------

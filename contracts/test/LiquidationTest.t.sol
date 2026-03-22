@@ -41,9 +41,7 @@ contract LiquidationTest is Test {
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
         factory.setAllowedAsset(address(usdc), true);
-        creditLine = new AgentCreditLine(
-            address(registry), address(scorer), address(factory), owner
-        );
+        creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
 
         // Link registry to factory
         registry.setVaultFactory(address(factory));
@@ -66,13 +64,8 @@ contract LiquidationTest is Test {
         factory.setVaultCreditLine(agentId, address(creditLine));
 
         // RecoveryManager uses vaultFactory to look up per-agent vaults
-        recoveryManager = new RecoveryManager(
-            address(usdc),
-            address(dutchAuction),
-            address(registry),
-            address(factory),
-            owner
-        );
+        recoveryManager =
+            new RecoveryManager(address(usdc), address(dutchAuction), address(registry), address(factory), owner);
 
         // Update the DutchAuction to point at the real RecoveryManager
         dutchAuction.setRecoveryManager(address(recoveryManager));
@@ -81,11 +74,7 @@ contract LiquidationTest is Test {
         factory.setRecoveryManager(address(recoveryManager));
 
         keeper = new LiquidationKeeper(
-            address(creditLine),
-            address(registry),
-            address(usdc),
-            address(recoveryManager),
-            owner
+            address(creditLine), address(registry), address(usdc), address(recoveryManager), owner
         );
 
         // Wire up permissions
@@ -232,8 +221,8 @@ contract LiquidationTest is Test {
         uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
         DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
 
-        assertEq(auction.startPrice, 20_000e6);  // 200%
-        assertEq(auction.minPrice, 5_000e6);     // 50%
+        assertEq(auction.startPrice, 20_000e6); // 200%
+        assertEq(auction.minPrice, 5_000e6); // 50%
         assertEq(auction.duration, 12 hours);
     }
 

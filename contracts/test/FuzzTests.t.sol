@@ -39,9 +39,7 @@ contract FuzzTests is Test {
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
         factory.setAllowedAsset(address(usdc), true);
-        creditLine = new AgentCreditLine(
-            address(registry), address(scorer), address(factory), owner
-        );
+        creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
 
         registry.setVaultFactory(address(factory));
         scorer.setCreditLine(address(creditLine));
@@ -79,7 +77,7 @@ contract FuzzTests is Test {
 
     function testFuzz_drawdown_withinCreditLimit(uint256 amount) public {
         creditLine.refreshCreditLine(agentId);
-        (, , , , uint256 creditLimit, ) = creditLine.facilities(agentId);
+        (,,,, uint256 creditLimit,) = creditLine.facilities(agentId);
 
         // Bound between min drawdown (10 USDC) and credit limit
         amount = bound(amount, 10e6, creditLimit);
@@ -99,7 +97,7 @@ contract FuzzTests is Test {
 
     function testFuzz_drawdown_exceedsCreditLimit_reverts(uint256 amount) public {
         creditLine.refreshCreditLine(agentId);
-        (, , , , uint256 creditLimit, ) = creditLine.facilities(agentId);
+        (,,,, uint256 creditLimit,) = creditLine.facilities(agentId);
 
         // Amount above credit limit
         amount = bound(amount, creditLimit + 1, type(uint128).max);
@@ -115,7 +113,7 @@ contract FuzzTests is Test {
 
     function testFuzz_interestAccrual_noOverflow(uint256 amount, uint256 timeElapsed) public {
         creditLine.refreshCreditLine(agentId);
-        (, , , , uint256 creditLimit, ) = creditLine.facilities(agentId);
+        (,,,, uint256 creditLimit,) = creditLine.facilities(agentId);
 
         amount = bound(amount, 10e6, creditLimit);
         // Up to 10 years
@@ -160,7 +158,7 @@ contract FuzzTests is Test {
 
     function testFuzz_repayment_reducesOutstanding(uint256 borrowAmount, uint256 repayAmount) public {
         creditLine.refreshCreditLine(agentId);
-        (, , , , uint256 creditLimit, ) = creditLine.facilities(agentId);
+        (,,,, uint256 creditLimit,) = creditLine.facilities(agentId);
 
         borrowAmount = bound(borrowAmount, 10e6, creditLimit);
         vm.prank(agentWallet);
@@ -188,7 +186,7 @@ contract FuzzTests is Test {
 
     function testFuzz_dutchAuction_priceAlwaysInRange(uint256 debtAmount, uint256 timeElapsed) public {
         debtAmount = bound(debtAmount, 1e6, 10_000_000e6); // 1 USDC to 10M USDC
-        timeElapsed = bound(timeElapsed, 0, 6 hours);       // Within auction duration
+        timeElapsed = bound(timeElapsed, 0, 6 hours); // Within auction duration
 
         uint256 auctionId = dutchAuction.createAuction(agentId, debtAmount);
 
@@ -196,7 +194,7 @@ contract FuzzTests is Test {
 
         uint256 price = dutchAuction.getCurrentPrice(auctionId);
         uint256 startPrice = (debtAmount * 15000) / 10000; // 150%
-        uint256 minPrice = (debtAmount * 3000) / 10000;    // 30%
+        uint256 minPrice = (debtAmount * 3000) / 10000; // 30%
 
         assertGe(price, minPrice, "Price should never go below minPrice");
         assertLe(price, startPrice, "Price should never exceed startPrice");
@@ -255,7 +253,13 @@ contract FuzzTests is Test {
 
         address fuzzAgent = makeAddr(string(abi.encodePacked("fuzzAgent", revenue)));
         uint256 fuzzId = registry.registerAgent(
-            fuzzAgent, keccak256(abi.encodePacked("code", revenue)), "FuzzScoreAgent", address(0), 0, bytes32(0), address(usdc)
+            fuzzAgent,
+            keccak256(abi.encodePacked("code", revenue)),
+            "FuzzScoreAgent",
+            address(0),
+            0,
+            bytes32(0),
+            address(usdc)
         );
 
         if (revenue > 0) {
@@ -279,7 +283,13 @@ contract FuzzTests is Test {
 
         address fuzzAgent = makeAddr(string(abi.encodePacked("clampAgent", revenue)));
         uint256 fuzzId = registry.registerAgent(
-            fuzzAgent, keccak256(abi.encodePacked("clamp", revenue)), "ClampAgent", address(0), 0, bytes32(0), address(usdc)
+            fuzzAgent,
+            keccak256(abi.encodePacked("clamp", revenue)),
+            "ClampAgent",
+            address(0),
+            0,
+            bytes32(0),
+            address(usdc)
         );
 
         if (revenue > 0) {
@@ -306,14 +316,12 @@ contract FuzzTests is Test {
         rateBps = bound(rateBps, 0, 10000);
 
         address fuzzAgent2 = makeAddr("swAgent");
-        uint256 fuzzId2 = registry.registerAgent(
-            fuzzAgent2, keccak256("swCode"), "SWAgent", address(0), 0, bytes32(0), address(usdc)
-        );
+        uint256 fuzzId2 =
+            registry.registerAgent(fuzzAgent2, keccak256("swCode"), "SWAgent", address(0), 0, bytes32(0), address(usdc));
         address fuzzLockbox2 = factory.getLockbox(fuzzId2);
 
-        AgentSmartWallet wallet = new AgentSmartWallet(
-            fuzzAgent2, address(this), fuzzLockbox2, address(usdc), fuzzId2, rateBps
-        );
+        AgentSmartWallet wallet =
+            new AgentSmartWallet(fuzzAgent2, address(this), fuzzLockbox2, address(usdc), fuzzId2, rateBps);
 
         usdc.mint(address(wallet), balance);
 
@@ -329,11 +337,7 @@ contract FuzzTests is Test {
             expectedToLockbox,
             "Lockbox should receive exact repayment portion"
         );
-        assertEq(
-            usdc.balanceOf(address(wallet)),
-            expectedRemaining,
-            "Wallet should retain exact remainder"
-        );
+        assertEq(usdc.balanceOf(address(wallet)), expectedRemaining, "Wallet should retain exact remainder");
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -423,14 +427,11 @@ contract FuzzTests is Test {
         address capAgent = makeAddr("capAgent");
 
         // Deploy a standalone vault (this test contract is the factory)
-        AgentVault capVault = new AgentVault(
-            IERC20(address(usdc)), 99, "Cap Vault", "lcCAP", 0, type(uint256).max
-        );
+        AgentVault capVault = new AgentVault(IERC20(address(usdc)), 99, "Cap Vault", "lcCAP", 0, type(uint256).max);
 
         // Create lockbox with cap — uses standalone vault so we can setLockbox
-        RevenueLockbox capLockbox = new RevenueLockbox(
-            capAgent, address(capVault), 99, address(usdc), 5000, address(0), cap
-        );
+        RevenueLockbox capLockbox =
+            new RevenueLockbox(capAgent, address(capVault), 99, address(usdc), 5000, address(0), cap);
         capVault.setLockbox(address(capLockbox));
 
         usdc.mint(address(capLockbox), revenue);
@@ -442,11 +443,7 @@ contract FuzzTests is Test {
         assertEq(capLockbox.totalRevenueCapture(), cap, "Should only process up to cap");
 
         // Remaining should stay in lockbox
-        assertEq(
-            usdc.balanceOf(address(capLockbox)),
-            revenue - cap,
-            "Excess should remain in lockbox"
-        );
+        assertEq(usdc.balanceOf(address(capLockbox)), revenue - cap, "Excess should remain in lockbox");
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -455,7 +452,7 @@ contract FuzzTests is Test {
 
     function testFuzz_writeDown_reducesDebt(uint256 borrowAmount, uint256 writeDownAmount) public {
         creditLine.refreshCreditLine(agentId);
-        (, , , , uint256 creditLimit, ) = creditLine.facilities(agentId);
+        (,,,, uint256 creditLimit,) = creditLine.facilities(agentId);
 
         borrowAmount = bound(borrowAmount, 10e6, creditLimit);
 
@@ -516,9 +513,7 @@ contract FuzzTests is Test {
         // Fee should be exactly protocolFeeBps% of interestPortion
         uint256 expectedFee = (interestPortion * AgentVault(agentVaultAddr).protocolFeeBps()) / 10000;
         assertEq(
-            AgentVault(agentVaultAddr).accumulatedFees(),
-            expectedFee,
-            "Fee should be exact percentage of interest"
+            AgentVault(agentVaultAddr).accumulatedFees(), expectedFee, "Fee should be exact percentage of interest"
         );
     }
 

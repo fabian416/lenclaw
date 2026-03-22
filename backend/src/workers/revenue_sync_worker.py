@@ -8,7 +8,6 @@ the existing RevenueService.
 from __future__ import annotations
 
 import uuid
-from decimal import Decimal
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -17,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.common.config import load_settings
 from src.db.models import Agent, AgentStatus, RevenueRecord
-from src.db.session import get_session, init_db
+from src.db.session import get_session
 from src.revenue.service import RevenueService
 from src.workers.base import BaseWorker
 from src.workers.config import WorkerSettings
@@ -57,7 +56,7 @@ class RevenueSyncWorker(BaseWorker):
 
     async def execute(self) -> dict[str, Any]:
         """Scan all active agents with lockbox addresses for new revenue events."""
-        app_settings = load_settings()
+        load_settings()  # ensure settings are loaded
         total_events = 0
         agents_scanned = 0
 
@@ -83,9 +82,7 @@ class RevenueSyncWorker(BaseWorker):
             "events_synced": total_events,
         }
 
-    async def _sync_agent_revenue(
-        self, session: AsyncSession, agent: Agent
-    ) -> int:
+    async def _sync_agent_revenue(self, session: AsyncSession, agent: Agent) -> int:
         """Sync revenue events for a single agent. Returns event count."""
         last_block = await self._get_last_block(agent.id)
 

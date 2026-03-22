@@ -64,7 +64,9 @@ contract AgentVaultTest is Test {
         registry.setVaultFactory(address(factory));
 
         // Register an agent
-        agentId = registry.registerAgent(agentWallet, keccak256("code_v1"), "TestAgent", address(0), 0, bytes32(0), address(0));
+        agentId = registry.registerAgent(
+            agentWallet, keccak256("code_v1"), "TestAgent", address(0), 0, bytes32(0), address(0)
+        );
 
         // Create vault via factory
         address vaultAddr = factory.createVault(agentId, address(usdc));

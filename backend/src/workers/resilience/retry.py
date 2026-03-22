@@ -11,7 +11,8 @@ from __future__ import annotations
 import asyncio
 import functools
 import random
-from typing import Any, Callable, Type
+from collections.abc import Callable
+from typing import Any
 
 from src.workers.observability.metrics import metrics
 
@@ -22,7 +23,7 @@ def retry_with_backoff(
     base_delay: float = 1.0,
     max_delay: float = 60.0,
     exponential_base: float = 2.0,
-    retryable_exceptions: tuple[Type[BaseException], ...] = (Exception,),
+    retryable_exceptions: tuple[type[BaseException], ...] = (Exception,),
     worker_name: str = "unknown",
     task_name: str = "unknown",
 ) -> Callable:
@@ -57,7 +58,7 @@ def retry_with_backoff(
 
                     delay = min(
                         max_delay,
-                        base_delay * (exponential_base ** attempt),
+                        base_delay * (exponential_base**attempt),
                     )
                     # Full jitter: actual delay = random [0, delay)
                     jitter = random.uniform(0, base_delay)

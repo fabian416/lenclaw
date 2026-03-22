@@ -34,9 +34,9 @@ class PoolService:
 
         # Total borrowed (active draws)
         borrowed_result = await session.execute(
-            select(
-                func.coalesce(func.sum(CreditDraw.amount), 0)
-            ).where(CreditDraw.status == CreditDrawStatus.ACTIVE)
+            select(func.coalesce(func.sum(CreditDraw.amount), 0)).where(
+                CreditDraw.status == CreditDrawStatus.ACTIVE
+            )
         )
         total_borrowed = borrowed_result.scalar() or Decimal(0)
 
@@ -74,13 +74,13 @@ class PoolService:
         utilization = stats["utilization_rate_percent"]
 
         # APY increases with utilization: base + utilization_bonus
-        utilization_bonus = (utilization / 100 * UTILIZATION_BONUS_MULTIPLIER * 100).quantize(
+        utilization_bonus = (
+            utilization / 100 * UTILIZATION_BONUS_MULTIPLIER * 100
+        ).quantize(Decimal("0.01"))
+
+        apy = (Decimal(BASE_APY_BPS) / 100 + utilization_bonus).quantize(
             Decimal("0.01")
         )
-
-        apy = (
-            Decimal(BASE_APY_BPS) / 100 + utilization_bonus
-        ).quantize(Decimal("0.01"))
 
         return {
             "apy_percent": apy,

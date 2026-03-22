@@ -19,6 +19,7 @@ import {Script, console} from "forge-std/Script.sol";
 ///   OWNER=<addr> \
 ///   ETHERSCAN_API_KEY=<key> \
 ///   forge script script/VerifyContracts.s.sol --chain base --verify
+
 contract VerifyContracts is Script {
     function run() external view {
         // Read deployed addresses from environment
@@ -62,26 +63,20 @@ contract VerifyContracts is Script {
 
         // AgentCreditLine: constructor(address _registry, address _scorer, address _vaultFactory, address _owner)
         _logVerifyCommand(
-            "AgentCreditLine",
-            agentCreditLine,
-            abi.encode(agentRegistry, creditScorer, agentVaultFactory, owner)
+            "AgentCreditLine", agentCreditLine, abi.encode(agentRegistry, creditScorer, agentVaultFactory, owner)
         );
 
         // DutchAuction: constructor(address _usdc, address _recoveryManager, address _owner)
+        _logVerifyCommand("DutchAuction", dutchAuction, abi.encode(usdc, owner, owner));
+
+        // RecoveryManager: constructor(address _usdc, address _dutchAuction, address _registry, address _vaultFactory,
+        // address _owner)
         _logVerifyCommand(
-            "DutchAuction",
-            dutchAuction,
-            abi.encode(usdc, owner, owner)
+            "RecoveryManager", recoveryManager, abi.encode(usdc, dutchAuction, agentRegistry, agentVaultFactory, owner)
         );
 
-        // RecoveryManager: constructor(address _usdc, address _dutchAuction, address _registry, address _vaultFactory, address _owner)
-        _logVerifyCommand(
-            "RecoveryManager",
-            recoveryManager,
-            abi.encode(usdc, dutchAuction, agentRegistry, agentVaultFactory, owner)
-        );
-
-        // LiquidationKeeper: constructor(address _creditLine, address _registry, address _usdc, address _recoveryManager, address _owner)
+        // LiquidationKeeper: constructor(address _creditLine, address _registry, address _usdc, address
+        // _recoveryManager, address _owner)
         _logVerifyCommand(
             "LiquidationKeeper",
             liquidationKeeper,

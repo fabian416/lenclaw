@@ -15,10 +15,10 @@ import {ICreditScorer} from "./interfaces/ICreditScorer.sol";
 contract CreditScorer is Ownable, ICreditScorer {
     IAgentRegistry public immutable registry;
 
-    uint256 public minCreditLine = 100e6;     // 100 USDC (6 decimals)
+    uint256 public minCreditLine = 100e6; // 100 USDC (6 decimals)
     uint256 public maxCreditLine = 100_000e6; // 100,000 USDC
-    uint256 public minRateBps = 300;          // 3% APR
-    uint256 public maxRateBps = 2500;         // 25% APR
+    uint256 public minRateBps = 300; // 3% APR
+    uint256 public maxRateBps = 2500; // 25% APR
 
     // Revenue multiplier: credit line = revenue * multiplier / 100
     uint256 public revenueMultiplier = 300; // 3x revenue
@@ -33,11 +33,11 @@ contract CreditScorer is Ownable, ICreditScorer {
     address public zkVerifier;
 
     // Scoring weights (out of 100) — all based on observable on-chain data
-    uint256 public constant WEIGHT_REVENUE = 30;       // How much they generate
-    uint256 public constant WEIGHT_CONSISTENCY = 25;    // How steadily they generate it
+    uint256 public constant WEIGHT_REVENUE = 30; // How much they generate
+    uint256 public constant WEIGHT_CONSISTENCY = 25; // How steadily they generate it
     uint256 public constant WEIGHT_CREDIT_HISTORY = 20; // Past borrowing behavior
-    uint256 public constant WEIGHT_TIME = 15;           // Time in protocol (more data = more confidence)
-    uint256 public constant WEIGHT_DEBT_RATIO = 10;     // Not overextended
+    uint256 public constant WEIGHT_TIME = 15; // Time in protocol (more data = more confidence)
+    uint256 public constant WEIGHT_DEBT_RATIO = 10; // Not overextended
 
     // Time thresholds for maturity scoring
     uint256 public constant MAX_MATURITY_DAYS = 180; // 6 months for full maturity score
@@ -99,9 +99,8 @@ contract CreditScorer is Ownable, ICreditScorer {
 
         // --- Optional ZK proof bonus: 1.25x credit limit ---
         if (zkVerifier != address(0)) {
-            (bool ok, bytes memory data) = zkVerifier.staticcall(
-                abi.encodeWithSignature("isProofValid(uint256)", agentId)
-            );
+            (bool ok, bytes memory data) =
+                zkVerifier.staticcall(abi.encodeWithSignature("isProofValid(uint256)", agentId));
             if (ok && data.length >= 32 && abi.decode(data, (bool))) {
                 creditLimit = (creditLimit * 125) / 100;
             }
@@ -139,11 +138,8 @@ contract CreditScorer is Ownable, ICreditScorer {
         uint256 debtRatioScore = _scoreDebtRatio(agentId, totalRevenue);
 
         return (
-            revenueScore * WEIGHT_REVENUE
-            + consistencyScore * WEIGHT_CONSISTENCY
-            + creditHistoryScore * WEIGHT_CREDIT_HISTORY
-            + timeScore * WEIGHT_TIME
-            + debtRatioScore * WEIGHT_DEBT_RATIO
+            revenueScore * WEIGHT_REVENUE + consistencyScore * WEIGHT_CONSISTENCY
+                + creditHistoryScore * WEIGHT_CREDIT_HISTORY + timeScore * WEIGHT_TIME + debtRatioScore * WEIGHT_DEBT_RATIO
         ) / 100;
     }
 
@@ -177,18 +173,15 @@ contract CreditScorer is Ownable, ICreditScorer {
     function _scoreCreditHistory(uint256 agentId) internal view returns (uint256 score) {
         if (creditLine == address(0)) return 0;
 
-        (bool ok, bytes memory data) = creditLine.staticcall(
-            abi.encodeWithSignature("loansRepaid(uint256)", agentId)
-        );
+        (bool ok, bytes memory data) = creditLine.staticcall(abi.encodeWithSignature("loansRepaid(uint256)", agentId));
         if (ok && data.length >= 32) {
             uint256 completedLoans = abi.decode(data, (uint256));
             score = completedLoans >= 3 ? 100 : (completedLoans * 100) / 3;
         }
 
         // Only count credit history if meaningful amounts were borrowed
-        (bool okB, bytes memory dataB) = creditLine.staticcall(
-            abi.encodeWithSignature("totalAmountBorrowed(uint256)", agentId)
-        );
+        (bool okB, bytes memory dataB) =
+            creditLine.staticcall(abi.encodeWithSignature("totalAmountBorrowed(uint256)", agentId));
         if (okB && dataB.length >= 32) {
             uint256 totalBorrowed = abi.decode(dataB, (uint256));
             if (totalBorrowed < minCreditLine * 5) {
@@ -197,9 +190,7 @@ contract CreditScorer is Ownable, ICreditScorer {
         }
 
         // Penalize delinquent/default
-        (bool ok2, bytes memory data2) = creditLine.staticcall(
-            abi.encodeWithSignature("getStatus(uint256)", agentId)
-        );
+        (bool ok2, bytes memory data2) = creditLine.staticcall(abi.encodeWithSignature("getStatus(uint256)", agentId));
         if (ok2 && data2.length >= 32) {
             uint8 status = abi.decode(data2, (uint8));
             if (status == 1) score = score / 2;
@@ -216,9 +207,8 @@ contract CreditScorer is Ownable, ICreditScorer {
 
     function _scoreDebtRatio(uint256 agentId, uint256 totalRevenue) internal view returns (uint256) {
         if (creditLine == address(0) || totalRevenue == 0) return 100;
-        (bool ok, bytes memory data) = creditLine.staticcall(
-            abi.encodeWithSignature("getOutstanding(uint256)", agentId)
-        );
+        (bool ok, bytes memory data) =
+            creditLine.staticcall(abi.encodeWithSignature("getOutstanding(uint256)", agentId));
         if (ok && data.length >= 32) {
             uint256 outstanding = abi.decode(data, (uint256));
             if (outstanding > 0) {

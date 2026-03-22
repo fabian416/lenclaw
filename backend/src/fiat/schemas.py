@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 
 from src.fiat.models import FiatRampType, FiatTransactionStatus
 
-
 # ---------- Request Schemas ---------- #
 
 
@@ -28,7 +27,9 @@ class CreateRampSessionRequest(BaseModel):
         ..., min_length=42, max_length=42, description="Destination wallet address"
     )
     network: str = Field("base", description="Blockchain network")
-    redirect_url: str | None = Field(None, description="URL to redirect after completion")
+    redirect_url: str | None = Field(
+        None, description="URL to redirect after completion"
+    )
 
 
 # ---------- Response Schemas ---------- #

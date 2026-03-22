@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
@@ -19,8 +19,6 @@ from src.db.models import (
     AccessToken,
     Agent,
     AgentStatus,
-    CreditDraw,
-    CreditDrawStatus,
     CreditLine,
     RevenueRecord,
     SiweNonce,
@@ -77,8 +75,8 @@ def make_agent(overrides: dict | None = None) -> Agent:
         "lockbox_address": None,
         "reputation_score": 500,
         "status": AgentStatus.PENDING,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
     if overrides:
         defaults.update(overrides)
@@ -97,9 +95,9 @@ def make_credit_line(agent_id: uuid.UUID, overrides: dict | None = None) -> Cred
         "interest_rate_bps": 800,
         "repayment_rate_bps": 5000,
         "credit_score": 85,
-        "last_scored_at": datetime.now(timezone.utc),
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
+        "last_scored_at": datetime.now(UTC),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
     if overrides:
         defaults.update(overrides)
@@ -110,7 +108,9 @@ def make_credit_line(agent_id: uuid.UUID, overrides: dict | None = None) -> Cred
     return cl
 
 
-def make_revenue_record(agent_id: uuid.UUID, overrides: dict | None = None) -> RevenueRecord:
+def make_revenue_record(
+    agent_id: uuid.UUID, overrides: dict | None = None
+) -> RevenueRecord:
     defaults = {
         "id": uuid.uuid4(),
         "agent_id": agent_id,
@@ -119,8 +119,8 @@ def make_revenue_record(agent_id: uuid.UUID, overrides: dict | None = None) -> R
         "tx_hash": "0x" + "c" * 64,
         "block_number": 12345,
         "source": "lockbox",
-        "recorded_at": datetime.now(timezone.utc),
-        "created_at": datetime.now(timezone.utc),
+        "recorded_at": datetime.now(UTC),
+        "created_at": datetime.now(UTC),
     }
     if overrides:
         defaults.update(overrides)
@@ -135,8 +135,8 @@ def make_nonce(overrides: dict | None = None) -> SiweNonce:
         "id": uuid.uuid4(),
         "nonce": "a" * 32,
         "used": False,
-        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
-        "created_at": datetime.now(timezone.utc),
+        "expires_at": datetime.now(UTC) + timedelta(minutes=10),
+        "created_at": datetime.now(UTC),
     }
     if overrides:
         defaults.update(overrides)
@@ -151,9 +151,9 @@ def make_access_token(wallet: str, overrides: dict | None = None) -> AccessToken
         "id": uuid.uuid4(),
         "token": "test-token-" + uuid.uuid4().hex[:16],
         "wallet_address": wallet.lower(),
-        "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
+        "expires_at": datetime.now(UTC) + timedelta(hours=1),
         "revoked_at": None,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
     }
     if overrides:
         defaults.update(overrides)

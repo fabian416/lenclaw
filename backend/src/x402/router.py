@@ -7,14 +7,12 @@ for the x402 micropayment protocol.
 from __future__ import annotations
 
 import os
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 
 from src.x402.schemas import (
     PaymentConfig,
     PaymentListResponse,
-    PaymentReceipt,
     PaymentStatus,
     PaymentVerifyRequest,
     PaymentVerifyResponse,

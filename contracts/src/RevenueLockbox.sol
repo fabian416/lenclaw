@@ -62,7 +62,8 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
         require(_vault != address(0), "RevenueLockbox: zero vault");
         require(_asset != address(0), "RevenueLockbox: zero asset");
         require(
-            _repaymentRateBps == 0 || (_repaymentRateBps >= MIN_REPAYMENT_RATE_BPS && _repaymentRateBps <= MAX_REPAYMENT_RATE_BPS),
+            _repaymentRateBps == 0
+                || (_repaymentRateBps >= MIN_REPAYMENT_RATE_BPS && _repaymentRateBps <= MAX_REPAYMENT_RATE_BPS),
             "RevenueLockbox: rate out of bounds"
         );
 
@@ -136,10 +137,7 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     ///         Any repayment amount exceeding outstanding debt goes directly to vault as yield.
     ///         Restricted to agent, vault, or SmartWallet to prevent MEV/griefing.
     function processRevenue() external nonReentrant {
-        require(
-            msg.sender == agent || msg.sender == vault,
-            "RevenueLockbox: not authorized"
-        );
+        require(msg.sender == agent || msg.sender == vault, "RevenueLockbox: not authorized");
         uint256 balance = asset.balanceOf(address(this));
         require(balance > 0, "RevenueLockbox: no revenue");
 

@@ -142,8 +142,13 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
     }
 
     /// @notice Emergency pause (only factory)
-    function pause() external onlyFactory { _pause(); }
-    function unpause() external onlyFactory { _unpause(); }
+    function pause() external onlyFactory {
+        _pause();
+    }
+
+    function unpause() external onlyFactory {
+        _unpause();
+    }
 
     /// @notice Request a withdrawal. Must wait `withdrawalDelay` before executing.
     function requestWithdrawal() external {
@@ -237,7 +242,12 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
     }
 
     /// @dev Override withdraw: reentrancy + timelock + freeze check
-    function withdraw(uint256 assets, address receiver, address _owner) public override nonReentrant returns (uint256) {
+    function withdraw(uint256 assets, address receiver, address _owner)
+        public
+        override
+        nonReentrant
+        returns (uint256)
+    {
         if (frozen) revert VaultIsFrozen();
         _checkWithdrawalReady(_owner);
         return super.withdraw(assets, receiver, _owner);

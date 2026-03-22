@@ -26,7 +26,15 @@ interface IAgentRegistry {
     event ExternalIdentitySet(uint256 indexed agentId, address externalToken, uint256 externalProtocolId);
     event AgentCategorySet(uint256 indexed agentId, bytes32 category);
 
-    function registerAgent(address agentWallet, bytes32 codeHash, string calldata metadata, address externalToken, uint256 externalProtocolId, bytes32 agentCategory, address asset) external returns (uint256);
+    function registerAgent(
+        address agentWallet,
+        bytes32 codeHash,
+        string calldata metadata,
+        address externalToken,
+        uint256 externalProtocolId,
+        bytes32 agentCategory,
+        address asset
+    ) external returns (uint256);
     function setExternalIdentity(uint256 agentId, address externalToken, uint256 externalProtocolId) external;
     function setAgentCategory(uint256 agentId, bytes32 category) external;
     function setSmartWallet(uint256 agentId, address smartWallet) external;

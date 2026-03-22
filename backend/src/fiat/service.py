@@ -6,7 +6,7 @@ import hashlib
 import hmac
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from urllib.parse import urlencode
 
@@ -202,7 +202,9 @@ class FiatRampService:
     def verify_webhook_signature(raw_body: bytes, signature: str) -> bool:
         """Verify HMAC-SHA512 webhook signature from Transak."""
         if not TRANSAK_WEBHOOK_SECRET:
-            logger.warning("TRANSAK_WEBHOOK_SECRET not configured; skipping verification")
+            logger.warning(
+                "TRANSAK_WEBHOOK_SECRET not configured; skipping verification"
+            )
             return True
 
         expected = hmac.new(
@@ -228,9 +230,7 @@ class FiatRampService:
 
         # Look up by provider_order_id first; fall back to provider_tx_id
         result = await session.execute(
-            select(FiatTransaction).where(
-                FiatTransaction.provider_order_id == order_id
-            )
+            select(FiatTransaction).where(FiatTransaction.provider_order_id == order_id)
         )
         tx = result.scalar_one_or_none()
 
@@ -270,7 +270,7 @@ class FiatRampService:
         if failure_reason:
             tx.failure_reason = failure_reason
         if new_status == FiatTransactionStatus.COMPLETED:
-            tx.completed_at = datetime.now(timezone.utc)
+            tx.completed_at = datetime.now(UTC)
 
         await session.flush()
         logger.info(
@@ -348,9 +348,7 @@ class FiatRampService:
 
             crypto_amount = Decimal(str(data.get("cryptoAmount", 0)))
             fee = Decimal(str(data.get("totalFee", 0)))
-            rate = (
-                crypto_amount / fiat_amount if fiat_amount > 0 else Decimal(0)
-            )
+            rate = crypto_amount / fiat_amount if fiat_amount > 0 else Decimal(0)
 
             return {
                 "fiat_currency": fiat_currency.upper(),

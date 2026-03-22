@@ -15,7 +15,7 @@ import redis.asyncio as aioredis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import CreditDraw, CreditDrawStatus, PoolDeposit, DepositStatus
+from src.db.models import CreditDraw, CreditDrawStatus, DepositStatus, PoolDeposit
 from src.db.session import get_session
 from src.workers.base import BaseWorker
 from src.workers.config import WorkerSettings
@@ -91,7 +91,9 @@ class ChainSyncWorker(BaseWorker):
     # Event processing
     # ------------------------------------------------------------------
 
-    async def _process_event(self, session: AsyncSession, event: dict[str, Any]) -> None:
+    async def _process_event(
+        self, session: AsyncSession, event: dict[str, Any]
+    ) -> None:
         """Route and handle a single chain event. Idempotent by tx_hash."""
         event_type = event.get("event_type")
         tx_hash = event.get("tx_hash")
@@ -105,9 +107,13 @@ class ChainSyncWorker(BaseWorker):
         elif event_type == EVENT_REPAYMENT:
             await self._handle_repayment(session, event)
         else:
-            self.logger.warning("unknown_event_type", event_type=event_type, tx_hash=tx_hash)
+            self.logger.warning(
+                "unknown_event_type", event_type=event_type, tx_hash=tx_hash
+            )
 
-    async def _handle_deposit(self, session: AsyncSession, event: dict[str, Any]) -> None:
+    async def _handle_deposit(
+        self, session: AsyncSession, event: dict[str, Any]
+    ) -> None:
         """Handle a pool deposit event."""
         tx_hash = event["tx_hash"]
 
@@ -128,7 +134,9 @@ class ChainSyncWorker(BaseWorker):
         session.add(deposit)
         self.logger.info("deposit_recorded", tx_hash=tx_hash, amount=event["amount"])
 
-    async def _handle_withdrawal(self, session: AsyncSession, event: dict[str, Any]) -> None:
+    async def _handle_withdrawal(
+        self, session: AsyncSession, event: dict[str, Any]
+    ) -> None:
         """Handle a pool withdrawal event."""
         tx_hash = event["tx_hash"]
         deposit_tx = event.get("deposit_tx_hash")
@@ -140,9 +148,13 @@ class ChainSyncWorker(BaseWorker):
             deposit = result.scalar_one_or_none()
             if deposit is not None:
                 deposit.status = DepositStatus.WITHDRAWN
-                self.logger.info("withdrawal_recorded", tx_hash=tx_hash, deposit_tx=deposit_tx)
+                self.logger.info(
+                    "withdrawal_recorded", tx_hash=tx_hash, deposit_tx=deposit_tx
+                )
 
-    async def _handle_borrow(self, session: AsyncSession, event: dict[str, Any]) -> None:
+    async def _handle_borrow(
+        self, session: AsyncSession, event: dict[str, Any]
+    ) -> None:
         """Handle a borrow event — update the credit draw's tx_hash."""
         tx_hash = event["tx_hash"]
         draw_id = event.get("draw_id")
@@ -156,7 +168,9 @@ class ChainSyncWorker(BaseWorker):
                 draw.tx_hash = tx_hash
                 self.logger.info("borrow_recorded", tx_hash=tx_hash, draw_id=draw_id)
 
-    async def _handle_repayment(self, session: AsyncSession, event: dict[str, Any]) -> None:
+    async def _handle_repayment(
+        self, session: AsyncSession, event: dict[str, Any]
+    ) -> None:
         """Handle a repayment event — update draw repaid amount on-chain."""
         tx_hash = event["tx_hash"]
         draw_id = event.get("draw_id")

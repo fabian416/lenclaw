@@ -8,7 +8,7 @@ and that frontend type definitions align with backend responses.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -16,19 +16,13 @@ import pytest
 from src.agent.schemas import AgentCreate, AgentResponse, AgentSummary, AgentUpdate
 from src.auth.schemas import AuthTokenResponse, NonceResponse, SiweVerifyRequest
 from src.credit.schemas import (
-    CreditDrawListResponse,
-    CreditLineResponse,
-    CreditScoreBreakdown,
     DrawRequest,
-    DrawResponse,
     RepayRequest,
 )
-from src.db.models import AgentStatus, CreditDrawStatus
+from src.db.models import AgentStatus
 from src.pool.schemas import PoolAPYResponse, PoolStatsResponse
 from src.revenue.schemas import (
-    RevenueHistoryResponse,
     RevenueRecordCreate,
-    RevenueRecordResponse,
     RevenueSummary,
 )
 
@@ -182,8 +176,8 @@ class TestFrontendBackendAlignment:
             lockbox_address="0x" + "c" * 40,
             reputation_score=94,
             status=AgentStatus.ACTIVE,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         # All fields present
         assert r.name == "TestAgent"

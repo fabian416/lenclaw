@@ -19,11 +19,9 @@ Feature vector order (for model input):
 
 from __future__ import annotations
 
-import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from decimal import Decimal
-from typing import Sequence
+from datetime import UTC, datetime
 
 import numpy as np
 
@@ -152,7 +150,7 @@ def extract_days_since_registration(inp: AgentFeatureInput) -> float:
     agent has survived market cycles.  Capped at 730 (2 years) to
     prevent extreme-tenure agents from dominating the feature.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     delta = (now - inp.registered_at).total_seconds() / 86400.0
     return min(delta, 730.0)
 
@@ -197,7 +195,9 @@ def extract_revenue_to_debt_ratio(inp: AgentFeatureInput) -> float:
     to prevent outliers from warping the model.  Returns 10 (best) when
     debt is zero.
     """
-    rev_30 = float(np.sum(inp.daily_revenues_90d[:30])) if inp.daily_revenues_90d else 0.0
+    rev_30 = (
+        float(np.sum(inp.daily_revenues_90d[:30])) if inp.daily_revenues_90d else 0.0
+    )
     debt = inp.outstanding_debt
 
     if debt <= 0:
@@ -253,7 +253,7 @@ def extract_features(inp: AgentFeatureInput) -> dict[str, float]:
     """
     return {
         name: extractor(inp)
-        for name, extractor in zip(FEATURE_NAMES, _EXTRACTORS)
+        for name, extractor in zip(FEATURE_NAMES, _EXTRACTORS, strict=False)
     }
 
 

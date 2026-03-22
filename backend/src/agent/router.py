@@ -78,7 +78,9 @@ async def activate_agent(
     session: AsyncSession = Depends(get_session),
     wallet: str = Depends(get_current_wallet),
 ):
-    agent = await _service.activate_agent(session, agent_id, wallet, body.lockbox_address)
+    agent = await _service.activate_agent(
+        session, agent_id, wallet, body.lockbox_address
+    )
     return AgentResponse.model_validate(agent)
 
 

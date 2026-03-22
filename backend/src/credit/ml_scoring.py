@@ -11,13 +11,12 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +24,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.dependencies import get_current_wallet
 from src.common.exceptions import NotFoundError
 from src.credit.features import (
-    FEATURE_NAMES,
     AgentFeatureInput,
     extract_features,
 )
@@ -163,7 +161,7 @@ async def _build_feature_input(
 ) -> AgentFeatureInput:
     """Assemble an AgentFeatureInput from database records."""
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     since_90d = now - timedelta(days=90)
 
     # Fetch daily revenue aggregates for the last 90 days
@@ -204,9 +202,7 @@ async def _build_feature_input(
     # Outstanding debt
     debt_result = await session.execute(
         select(
-            func.coalesce(
-                func.sum(CreditDraw.amount_due - CreditDraw.amount_repaid), 0
-            )
+            func.coalesce(func.sum(CreditDraw.amount_due - CreditDraw.amount_repaid), 0)
         ).where(
             CreditDraw.agent_id == agent.id,
             CreditDraw.status == CreditDrawStatus.ACTIVE,
@@ -219,7 +215,11 @@ async def _build_feature_input(
         select(CreditDraw).where(
             CreditDraw.agent_id == agent.id,
             CreditDraw.status.in_(
-                [CreditDrawStatus.REPAID, CreditDrawStatus.ACTIVE, CreditDrawStatus.DEFAULTED]
+                [
+                    CreditDrawStatus.REPAID,
+                    CreditDrawStatus.ACTIVE,
+                    CreditDrawStatus.DEFAULTED,
+                ]
             ),
         )
     )
@@ -268,9 +268,7 @@ async def ml_score_agent(
     model = _get_model()
 
     # Fetch agent
-    agent_result = await session.execute(
-        select(Agent).where(Agent.id == body.agent_id)
-    )
+    agent_result = await session.execute(select(Agent).where(Agent.id == body.agent_id))
     agent = agent_result.scalar_one_or_none()
     if agent is None:
         raise NotFoundError(f"Agent {body.agent_id} not found")
@@ -291,7 +289,7 @@ async def ml_score_agent(
     # Predict
     result: PredictionResult = model.predict(features, monthly_revenue=monthly_revenue)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     return MLScoreResponse(
         agent_id=body.agent_id,
@@ -335,7 +333,7 @@ async def risk_dashboard(
     credit_lines = list(cl_result.scalars().all())
 
     if not credit_lines:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return RiskDashboardResponse(
             total_agents_scored=0,
             average_score=0.0,
@@ -381,9 +379,10 @@ async def risk_dashboard(
     weights = [float(cl.used_amount) for cl in credit_lines]
     total_weight = sum(weights)
     if total_weight > 0:
-        predicted_default_rate = sum(
-            p * w for p, w in zip(default_probs, weights)
-        ) / total_weight
+        predicted_default_rate = (
+            sum(p * w for p, w in zip(default_probs, weights, strict=False))
+            / total_weight
+        )
     else:
         predicted_default_rate = float(np.mean(default_probs))
 
@@ -400,7 +399,7 @@ async def risk_dashboard(
 
     # Average 30-day revenue across scored agents
     agent_ids = [cl.agent_id for cl in credit_lines]
-    since_30d = datetime.now(timezone.utc) - timedelta(days=30)
+    since_30d = datetime.now(UTC) - timedelta(days=30)
     rev_result = await session.execute(
         select(func.avg(RevenueRecord.amount)).where(
             RevenueRecord.agent_id.in_(agent_ids),
@@ -415,9 +414,7 @@ async def risk_dashboard(
     model_samples = metrics.n_train if metrics else None
 
     utilization = (
-        total_credit_outstanding / total_credit_limit
-        if total_credit_limit > 0
-        else 0.0
+        total_credit_outstanding / total_credit_limit if total_credit_limit > 0 else 0.0
     )
 
     return RiskDashboardResponse(
@@ -434,7 +431,7 @@ async def risk_dashboard(
         stressed_default_rate=round(stressed_default_rate, 6),
         model_auc=round(model_auc, 4) if model_auc is not None else None,
         model_trained_samples=model_samples,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
@@ -459,7 +456,10 @@ async def retrain_model(
     global _model
 
     # Import here to avoid circular imports and keep startup light
-    from src.credit.training_data import generate_training_dataset, split_features_labels
+    from src.credit.training_data import (
+        generate_training_dataset,
+        split_features_labels,
+    )
 
     logger.info(
         "Retraining ML model with n_samples=%d seed=%d",

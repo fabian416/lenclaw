@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime, timedelta
 
 from siwe import SiweMessage
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.common.config import AuthSettings
 from src.common.exceptions import UnauthorizedError
@@ -22,7 +21,7 @@ class AuthService:
 
     async def create_nonce(self, session: AsyncSession) -> str:
         nonce = secrets.token_hex(16)
-        expires_at = datetime.now(timezone.utc) + timedelta(
+        expires_at = datetime.now(UTC) + timedelta(
             minutes=self.settings.nonce_expire_minutes
         )
         db_nonce = SiweNonce(nonce=nonce, expires_at=expires_at)
@@ -48,7 +47,7 @@ class AuthService:
             raise UnauthorizedError("Missing nonce in SIWE message")
 
         # Validate nonce in DB
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = await session.execute(
             select(SiweNonce).where(
                 SiweNonce.nonce == nonce_value,
@@ -83,7 +82,7 @@ class AuthService:
 
     async def validate_token(self, session: AsyncSession, token: str) -> str:
         """Validate an access token and return the wallet address."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = await session.execute(
             select(AccessToken).where(
                 AccessToken.token == token,
@@ -114,26 +113,22 @@ class AuthService:
             raise UnauthorizedError("Token revoked")
 
         grace_minutes = 15
-        if (
-            record.expires_at
-            and record.expires_at + timedelta(minutes=grace_minutes)
-            < datetime.now(timezone.utc)
-        ):
+        if record.expires_at and record.expires_at + timedelta(
+            minutes=grace_minutes
+        ) < datetime.now(UTC):
             raise UnauthorizedError("Token expired beyond refresh window")
 
         # Revoke old token
-        record.revoked_at = datetime.now(timezone.utc)
+        record.revoked_at = datetime.now(UTC)
         await session.flush()
 
         # Issue new token
         new_token = await self._create_access_token(session, record.wallet_address)
         return {"wallet": record.wallet_address, "access_token": new_token}
 
-    async def _create_access_token(
-        self, session: AsyncSession, wallet: str
-    ) -> str:
+    async def _create_access_token(self, session: AsyncSession, wallet: str) -> str:
         token = secrets.token_hex(24)
-        expires_at = datetime.now(timezone.utc) + timedelta(
+        expires_at = datetime.now(UTC) + timedelta(
             minutes=self.settings.access_token_expire_minutes
         )
         db_token = AccessToken(

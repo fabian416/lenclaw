@@ -22,7 +22,8 @@ contract AgentRegistryTest is Test {
     // ── registerAgent ───────────────────────────────────────────
 
     function test_registerAgent_success() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0), address(0));
 
         assertEq(agentId, 1);
         assertEq(registry.ownerOf(agentId), agent1);
@@ -30,7 +31,8 @@ contract AgentRegistryTest is Test {
     }
 
     function test_registerAgent_setsCorrectProfile() public {
-        uint256 agentId = registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            registry.registerAgent(agent1, codeHash1, "Agent 1 metadata", address(0), 0, bytes32(0), address(0));
 
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
         assertEq(profile.wallet, agent1);

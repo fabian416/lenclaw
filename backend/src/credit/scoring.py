@@ -46,29 +46,29 @@ VERIFICATION_WEIGHT = Decimal("0.10")
 
 # Credit line multipliers based on score tiers
 TIER_MULTIPLIERS = [
-    (800, Decimal("3.0")),   # Excellent: 3x monthly revenue
-    (600, Decimal("2.0")),   # Good: 2x
-    (400, Decimal("1.0")),   # Fair: 1x
-    (200, Decimal("0.5")),   # Poor: 0.5x
-    (0, Decimal("0.0")),     # No credit
+    (800, Decimal("3.0")),  # Excellent: 3x monthly revenue
+    (600, Decimal("2.0")),  # Good: 2x
+    (400, Decimal("1.0")),  # Fair: 1x
+    (200, Decimal("0.5")),  # Poor: 0.5x
+    (0, Decimal("0.0")),  # No credit
 ]
 
 # Interest rate tiers (bps) -- lower score = higher rate
 RATE_TIERS = [
-    (800, 500),    # 5%
-    (600, 800),    # 8%
-    (400, 1200),   # 12%
-    (200, 1800),   # 18%
-    (0, 2500),     # 25%
+    (800, 500),  # 5%
+    (600, 800),  # 8%
+    (400, 1200),  # 12%
+    (200, 1800),  # 18%
+    (0, 2500),  # 25%
 ]
 
 # Repayment rate tiers (bps of revenue auto-captured)
 REPAYMENT_TIERS = [
-    (800, 3000),   # 30%
-    (600, 4000),   # 40%
-    (400, 5000),   # 50%
-    (200, 6000),   # 60%
-    (0, 7500),     # 75%
+    (800, 3000),  # 30%
+    (600, 4000),  # 40%
+    (400, 5000),  # 50%
+    (200, 6000),  # 60%
+    (0, 7500),  # 75%
 ]
 
 # Minimum revenue (30d) to qualify for any credit

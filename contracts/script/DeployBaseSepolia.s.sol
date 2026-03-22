@@ -58,8 +58,7 @@ contract DeployBaseSepolia is Script {
         console.log("CreditScorer:", address(scorer));
 
         // 5. Deploy AgentCreditLine
-        AgentCreditLine creditLine =
-            new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
+        AgentCreditLine creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
         console.log("AgentCreditLine:", address(creditLine));
 
         // 6. Deploy DutchAuction
@@ -67,9 +66,8 @@ contract DeployBaseSepolia is Script {
         console.log("DutchAuction:", address(dutchAuction));
 
         // 7. Deploy RecoveryManager
-        RecoveryManager recoveryManager = new RecoveryManager(
-            address(usdc), address(dutchAuction), address(registry), address(factory), owner
-        );
+        RecoveryManager recoveryManager =
+            new RecoveryManager(address(usdc), address(dutchAuction), address(registry), address(factory), owner);
         console.log("RecoveryManager:", address(recoveryManager));
 
         // 8. Deploy LiquidationKeeper

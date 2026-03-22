@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Any
 
 import httpx
 from fastapi import FastAPI, Request, Response
@@ -21,7 +21,7 @@ from src.x402.protocol import (
     decode_payment_header,
     verify_payment_signature,
 )
-from src.x402.schemas import PaymentReceipt, PaymentStatus, PaywallConfig
+from src.x402.schemas import PaywallConfig
 from src.x402.service import X402Service
 
 logger = logging.getLogger(__name__)
@@ -225,7 +225,9 @@ class X402Middleware(BaseHTTPMiddleware):
                 return None
 
         except httpx.HTTPError:
-            logger.exception("Failed to connect to facilitator at %s", self.facilitator_url)
+            logger.exception(
+                "Failed to connect to facilitator at %s", self.facilitator_url
+            )
             return None
 
 

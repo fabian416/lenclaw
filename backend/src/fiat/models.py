@@ -47,10 +47,10 @@ class FiatTransaction(Base):
     user_address: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     type: Mapped[FiatRampType] = mapped_column(Enum(FiatRampType), nullable=False)
     amount_fiat: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-    amount_crypto: Mapped[Decimal | None] = mapped_column(
-        Numeric(18, 6), nullable=True
+    amount_crypto: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    fiat_currency: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="USD"
     )
-    fiat_currency: Mapped[str] = mapped_column(String(10), nullable=False, default="USD")
     crypto_currency: Mapped[str] = mapped_column(
         String(10), nullable=False, default="USDC"
     )

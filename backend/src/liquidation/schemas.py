@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 
 from src.liquidation.models import AuctionStatus, LiquidationStatus
 
-
 # ---------- Auction Schemas ---------- #
 
 

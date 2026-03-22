@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from src.common.config import load_settings
-
 
 class RedisSettings(BaseModel):
     url: str = "redis://localhost:6379/0"
@@ -26,10 +24,10 @@ class QueueSettings(BaseModel):
 class ScheduleSettings(BaseModel):
     """Intervals in seconds for periodic tasks."""
 
-    revenue_sync_interval: int = 300       # 5 minutes
-    credit_scoring_interval: int = 3600    # 1 hour
-    monitoring_interval: int = 900         # 15 minutes
-    chain_sync_interval: int = 60          # 1 minute
+    revenue_sync_interval: int = 300  # 5 minutes
+    credit_scoring_interval: int = 3600  # 1 hour
+    monitoring_interval: int = 900  # 15 minutes
+    chain_sync_interval: int = 60  # 1 minute
 
 
 class ConcurrencySettings(BaseModel):
@@ -53,8 +51,8 @@ class RetrySettings(BaseModel):
 
 
 class RateLimiterSettings(BaseModel):
-    rpc_rate: float = 10.0       # tokens per second
-    rpc_burst: int = 20          # max burst
+    rpc_rate: float = 10.0  # tokens per second
+    rpc_burst: int = 20  # max burst
     api_rate: float = 50.0
     api_burst: int = 100
 
@@ -76,7 +74,7 @@ def load_worker_settings() -> WorkerSettings:
     Looks for a [workers] section in config.toml. Falls back to defaults
     if the section is missing.
     """
-    from src.common.config import CONFIG_DIR, get_current_env, _load_toml
+    from src.common.config import CONFIG_DIR, _load_toml, get_current_env
 
     env = get_current_env()
     config_path = CONFIG_DIR / env / "config.toml"

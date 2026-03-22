@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -61,7 +61,9 @@ class AgentService:
         )
         session.add(agent)
         await session.flush()
-        logger.info("Created agent id=%s name=%s owner=%s", agent.id, agent.name, owner_address)
+        logger.info(
+            "Created agent id=%s name=%s owner=%s", agent.id, agent.name, owner_address
+        )
         return agent
 
     async def update_agent(
@@ -110,7 +112,7 @@ class AgentService:
         agent = await self.get_agent(session, agent_id)
 
         # Revenue last 30 days
-        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        thirty_days_ago = datetime.now(UTC) - timedelta(days=30)
         rev_result = await session.execute(
             select(func.coalesce(func.sum(RevenueRecord.amount), 0)).where(
                 RevenueRecord.agent_id == agent_id,
@@ -127,9 +129,7 @@ class AgentService:
 
         max_credit = credit_line.max_amount if credit_line else Decimal(0)
         used_credit = credit_line.used_amount if credit_line else Decimal(0)
-        utilization = (
-            (used_credit / max_credit * 100) if max_credit > 0 else Decimal(0)
-        )
+        utilization = (used_credit / max_credit * 100) if max_credit > 0 else Decimal(0)
 
         return {
             "id": agent.id,

@@ -57,9 +57,7 @@ contract WDKWalletFactory is Ownable {
         bytes32 salt = _computeSalt(agentId);
 
         // Deploy via CREATE2 for deterministic address
-        bytes memory bytecode = _getCreationBytecode(
-            profile.wallet, profile.lockbox, agentId, defaultRepaymentRateBps
-        );
+        bytes memory bytecode = _getCreationBytecode(profile.wallet, profile.lockbox, agentId, defaultRepaymentRateBps);
 
         wallet = Create2.deploy(0, salt, bytecode);
 
@@ -90,9 +88,7 @@ contract WDKWalletFactory is Ownable {
         require(profile.lockbox == agentLockbox, "lockbox mismatch");
 
         bytes32 salt = _computeSalt(agentId);
-        bytes memory bytecode = _getCreationBytecode(
-            agentWallet, agentLockbox, agentId, defaultRepaymentRateBps
-        );
+        bytes memory bytecode = _getCreationBytecode(agentWallet, agentLockbox, agentId, defaultRepaymentRateBps);
         return Create2.computeAddress(salt, keccak256(bytecode));
     }
 

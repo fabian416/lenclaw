@@ -56,7 +56,7 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => uint256) public lastPaymentTimestamp;
 
     // Credit history for scoring: tracks actual borrowing behavior
-    mapping(uint256 => uint256) public loansRepaid;         // fully repaid loan cycles
+    mapping(uint256 => uint256) public loansRepaid; // fully repaid loan cycles
     mapping(uint256 => uint256) public totalAmountBorrowed; // lifetime amount borrowed
 
     event Drawdown(uint256 indexed agentId, uint256 amount);
@@ -69,9 +69,7 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     uint256 public constant MIN_DRAWDOWN_6DEC = 10e6; // 10 USDC/USDT
     uint256 public constant MIN_DRAWDOWN_18DEC = 1e16; // 0.01 ETH
 
-    constructor(address _registry, address _scorer, address _vaultFactory, address _owner)
-        Ownable(_owner)
-    {
+    constructor(address _registry, address _scorer, address _vaultFactory, address _owner) Ownable(_owner) {
         require(_registry != address(0), "AgentCreditLine: zero registry");
         require(_scorer != address(0), "AgentCreditLine: zero scorer");
         require(_vaultFactory != address(0), "AgentCreditLine: zero vaultFactory");
@@ -162,10 +160,7 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
 
         // Allow drawdown from operator wallet or SmartWallet
-        require(
-            msg.sender == profile.wallet || msg.sender == profile.smartWallet,
-            "AgentCreditLine: not agent owner"
-        );
+        require(msg.sender == profile.wallet || msg.sender == profile.smartWallet, "AgentCreditLine: not agent owner");
 
         // SmartWallet enforcement: agent must have a SmartWallet deployed
         if (requireSmartWallet) {
@@ -174,9 +169,8 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
 
         // Optional ZK proof gate: if enabled, agent must have a valid proof
         if (requireZKProof && zkVerifier != address(0)) {
-            (bool ok, bytes memory data) = zkVerifier.staticcall(
-                abi.encodeWithSignature("isProofValid(uint256)", agentId)
-            );
+            (bool ok, bytes memory data) =
+                zkVerifier.staticcall(abi.encodeWithSignature("isProofValid(uint256)", agentId));
             require(ok && data.length >= 32 && abi.decode(data, (bool)), "AgentCreditLine: ZK proof required");
         }
 
@@ -250,11 +244,8 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
 
         // Only reset timer if authorized caller makes meaningful payment (>= 5% of outstanding or fully paid off)
         IAgentRegistry.AgentProfile memory profile = registry.getAgent(agentId);
-        bool isAuthorizedRepayer = (
-            msg.sender == profile.wallet ||
-            msg.sender == profile.smartWallet ||
-            msg.sender == profile.lockbox
-        );
+        bool isAuthorizedRepayer =
+            (msg.sender == profile.wallet || msg.sender == profile.smartWallet || msg.sender == profile.lockbox);
         if (totalAfterRepay == 0 || (isAuthorizedRepayer && amount >= totalOutstanding / 20)) {
             lastPaymentTimestamp[agentId] = block.timestamp;
             // If was delinquent and meaningful payment made, revert to active
@@ -279,10 +270,7 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     /// @notice Write down debt after recovery/liquidation without requiring token transfer.
     ///         Called by RecoveryManager after distributing auction proceeds.
     function writeDown(uint256 agentId, uint256 amount) external {
-        require(
-            msg.sender == recoveryManager || msg.sender == owner(),
-            "AgentCreditLine: not authorized"
-        );
+        require(msg.sender == recoveryManager || msg.sender == owner(), "AgentCreditLine: not authorized");
         require(amount > 0, "AgentCreditLine: zero amount");
 
         _accrueInterest(agentId);

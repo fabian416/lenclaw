@@ -33,7 +33,9 @@ contract AgentSmartWalletTest is Test {
         registry.setVaultFactory(address(vaultFactory));
 
         // Register agent (auto-deploys vault + lockbox)
-        agentId = registry.registerAgent(agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdc));
+        agentId = registry.registerAgent(
+            agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdc)
+        );
         vaultAddr = vaultFactory.getVault(agentId);
         lockboxAddr = vaultFactory.getLockbox(agentId);
 

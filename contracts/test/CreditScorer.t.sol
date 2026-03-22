@@ -27,9 +27,7 @@ contract CreditScorerTest is Test {
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
         factory.setAllowedAsset(address(usdc), true);
-        creditLine = new AgentCreditLine(
-            address(registry), address(scorer), address(factory), owner
-        );
+        creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
         registry.setVaultFactory(address(factory));
         scorer.setCreditLine(address(creditLine));
 
@@ -37,10 +35,7 @@ contract CreditScorerTest is Test {
         creditLine.setRequireSmartWallet(false);
     }
 
-    function _registerAgent(address wallet, uint256 revenue)
-        internal
-        returns (uint256 agentId)
-    {
+    function _registerAgent(address wallet, uint256 revenue) internal returns (uint256 agentId) {
         bytes32 codeHash = keccak256(abi.encodePacked("code", wallet));
         agentId = registry.registerAgent(wallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdc));
 
@@ -72,7 +67,8 @@ contract CreditScorerTest is Test {
         // Register agent on a fresh registry WITHOUT factory linked, so no auto-deploy
         AgentRegistry reg2 = new AgentRegistry(owner);
         CreditScorer scorer2 = new CreditScorer(address(reg2), owner);
-        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("CreditScorer: no lockbox");
         scorer2.calculateCreditLine(agentId);
@@ -264,8 +260,8 @@ contract CreditScorerTest is Test {
         // Verify consistency: credit line from calculateCreditLine should match
         // the formula: minCreditLine + (compositeScore * range) / 100
         (uint256 creditLimit,) = scorer.calculateCreditLine(agentId);
-        uint256 expectedLimit = scorer.minCreditLine()
-            + (compositeScore * (scorer.maxCreditLine() - scorer.minCreditLine())) / 100;
+        uint256 expectedLimit =
+            scorer.minCreditLine() + (compositeScore * (scorer.maxCreditLine() - scorer.minCreditLine())) / 100;
         // Clamp expected
         if (expectedLimit < scorer.minCreditLine()) expectedLimit = scorer.minCreditLine();
         if (expectedLimit > scorer.maxCreditLine()) expectedLimit = scorer.maxCreditLine();
@@ -275,7 +271,8 @@ contract CreditScorerTest is Test {
     function test_getCompositeScore_revertsWithoutLockbox() public {
         AgentRegistry reg2 = new AgentRegistry(owner);
         CreditScorer scorer2 = new CreditScorer(address(reg2), owner);
-        uint256 agentId = reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0), address(0));
+        uint256 agentId =
+            reg2.registerAgent(agentWallet, keccak256("code"), "Test Agent", address(0), 0, bytes32(0), address(0));
 
         vm.expectRevert("CreditScorer: no lockbox");
         scorer2.getCompositeScore(agentId);

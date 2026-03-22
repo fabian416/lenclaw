@@ -44,8 +44,7 @@ contract DeployPolygon is Script {
         console.log("CreditScorer:", address(scorer));
 
         // 4. Deploy AgentCreditLine
-        AgentCreditLine creditLine =
-            new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
+        AgentCreditLine creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
         console.log("AgentCreditLine:", address(creditLine));
 
         // 5. Deploy DutchAuction (owner as placeholder recoveryManager, updated below)
@@ -53,15 +52,13 @@ contract DeployPolygon is Script {
         console.log("DutchAuction:", address(dutchAuction));
 
         // 6. Deploy RecoveryManager
-        RecoveryManager recoveryManager = new RecoveryManager(
-            USDC, address(dutchAuction), address(registry), address(factory), owner
-        );
+        RecoveryManager recoveryManager =
+            new RecoveryManager(USDC, address(dutchAuction), address(registry), address(factory), owner);
         console.log("RecoveryManager:", address(recoveryManager));
 
         // 7. Deploy LiquidationKeeper
-        LiquidationKeeper keeper = new LiquidationKeeper(
-            address(creditLine), address(registry), USDC, address(recoveryManager), owner
-        );
+        LiquidationKeeper keeper =
+            new LiquidationKeeper(address(creditLine), address(registry), USDC, address(recoveryManager), owner);
         console.log("LiquidationKeeper:", address(keeper));
 
         // 8. Wire everything

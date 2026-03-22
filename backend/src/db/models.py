@@ -24,7 +24,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base
 
-
 # ---------- Enums ---------- #
 
 
@@ -65,7 +64,9 @@ class SiweNonce(Base):
     )
     nonce: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     used: Mapped[bool] = mapped_column(Boolean, default=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -79,7 +80,9 @@ class AccessToken(Base):
     )
     token: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     wallet_address: Mapped[str] = mapped_column(Text, nullable=False, index=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -141,9 +144,7 @@ class Agent(Base):
         back_populates="agent", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (
-        Index("ix_agents_owner_status", "owner_address", "status"),
-    )
+    __table_args__ = (Index("ix_agents_owner_status", "owner_address", "status"),)
 
 
 # ---------- Revenue ---------- #
@@ -172,9 +173,7 @@ class RevenueRecord(Base):
 
     agent: Mapped[Agent] = relationship(back_populates="revenue_records")
 
-    __table_args__ = (
-        Index("ix_revenue_agent_recorded", "agent_id", "recorded_at"),
-    )
+    __table_args__ = (Index("ix_revenue_agent_recorded", "agent_id", "recorded_at"),)
 
 
 # ---------- Credit ---------- #
@@ -238,9 +237,7 @@ class CreditDraw(Base):
 
     agent: Mapped[Agent] = relationship(back_populates="credit_draws")
 
-    __table_args__ = (
-        Index("ix_credit_draws_agent_status", "agent_id", "status"),
-    )
+    __table_args__ = (Index("ix_credit_draws_agent_status", "agent_id", "status"),)
 
 
 # ---------- Pool ---------- #
@@ -269,6 +266,7 @@ class PoolDeposit(Base):
 
 class PoolSnapshot(Base):
     """Periodic snapshot of pool stats for historical tracking."""
+
     __tablename__ = "pool_snapshots"
 
     id: Mapped[uuid.UUID] = mapped_column(

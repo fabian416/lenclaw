@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -11,7 +10,7 @@ import pytest
 from src.agent.service import AgentService
 from src.common.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from src.db.models import AgentStatus
-from tests.conftest import VALID_WALLET, make_agent, make_credit_line
+from tests.conftest import VALID_WALLET, make_agent
 
 
 @pytest.fixture
@@ -121,7 +120,7 @@ class TestCreateAgent:
             "code_hash": "0x" + "d" * 64,
         }
 
-        agent = await agent_service.create_agent(mock_session, VALID_WALLET, data)
+        await agent_service.create_agent(mock_session, VALID_WALLET, data)
 
         mock_session.add.assert_called_once()
         mock_session.flush.assert_awaited_once()
@@ -194,7 +193,10 @@ class TestUpdateAgent:
         mock_session.execute.return_value = result_mock
 
         await agent_service.update_agent(
-            mock_session, agent.id, VALID_WALLET, {"name": None, "description": "New desc"}
+            mock_session,
+            agent.id,
+            VALID_WALLET,
+            {"name": None, "description": "New desc"},
         )
 
         assert agent.name == original_name

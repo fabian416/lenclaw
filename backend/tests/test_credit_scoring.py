@@ -2,9 +2,7 @@
 
 from decimal import Decimal
 
-import pytest
-
-from src.credit.scoring import CreditScoreInput, CreditScoreResult, compute_credit_score
+from src.credit.scoring import CreditScoreInput, compute_credit_score
 
 
 class TestCreditScoring:
@@ -78,12 +76,8 @@ class TestCreditScoring:
             "reputation_score": 500,
         }
 
-        unverified = compute_credit_score(
-            CreditScoreInput(code_verified=False, **base)
-        )
-        verified = compute_credit_score(
-            CreditScoreInput(code_verified=True, **base)
-        )
+        unverified = compute_credit_score(CreditScoreInput(code_verified=False, **base))
+        verified = compute_credit_score(CreditScoreInput(code_verified=True, **base))
 
         assert verified.credit_score > unverified.credit_score
 

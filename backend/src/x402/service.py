@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import httpx
@@ -77,7 +77,7 @@ class X402Service:
         Returns:
             The recorded PaymentReceipt.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         status = PaymentStatus.SETTLED if tx_hash else PaymentStatus.VERIFIED
 
         receipt = PaymentReceipt(
@@ -211,7 +211,7 @@ class X402Service:
         # In production, query the RPC node to verify the transaction
         # For now, trust the facilitator's response
         receipt.status = PaymentStatus.SETTLED
-        receipt.settled_at = datetime.now(timezone.utc)
+        receipt.settled_at = datetime.now(UTC)
         return True
 
     async def verify_payment_receipt(
@@ -354,17 +354,14 @@ class X402Service:
         """Get total settled revenue, optionally filtered by payee."""
         total = Decimal(0)
         for receipt in self._payments.values():
-            if receipt.status == PaymentStatus.SETTLED:
-                if payee is None or receipt.payee == payee.lower():
-                    total += receipt.amount
+            if receipt.status == PaymentStatus.SETTLED and (
+                payee is None or receipt.payee == payee.lower()
+            ):
+                total += receipt.amount
         return total
 
-    async def get_payment_count(
-        self, status: PaymentStatus | None = None
-    ) -> int:
+    async def get_payment_count(self, status: PaymentStatus | None = None) -> int:
         """Get count of payments, optionally filtered by status."""
         if status is None:
             return len(self._payments)
-        return sum(
-            1 for r in self._payments.values() if r.status == status
-        )
+        return sum(1 for r in self._payments.values() if r.status == status)

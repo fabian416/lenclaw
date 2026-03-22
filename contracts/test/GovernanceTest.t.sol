@@ -104,9 +104,7 @@ contract GovernanceTest is Test {
     function test_tokenMintExceedsMaxSupply() public {
         vm.startPrank(deployer);
         // Already minted 10M, try to mint 91M more (would exceed 100M cap)
-        vm.expectRevert(
-            abi.encodeWithSelector(LenclawToken.MaxSupplyExceeded.selector, 91_000_000e18, 90_000_000e18)
-        );
+        vm.expectRevert(abi.encodeWithSelector(LenclawToken.MaxSupplyExceeded.selector, 91_000_000e18, 90_000_000e18));
         token.mint(deployer, 91_000_000e18);
         vm.stopPrank();
     }

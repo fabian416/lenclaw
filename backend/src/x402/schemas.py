@@ -125,9 +125,7 @@ class PaymentConfig(BaseModel):
     )
     network: str = Field(default="base-mainnet")
     chain_id: int = Field(default=8453)
-    recipient: str = Field(
-        ..., description="Default payment recipient (server wallet)"
-    )
+    recipient: str = Field(..., description="Default payment recipient (server wallet)")
     lockbox_address: str | None = Field(
         default=None, description="RevenueLockbox contract for revenue routing"
     )
@@ -144,9 +142,7 @@ class PaymentConfig(BaseModel):
 class PaymentVerifyRequest(BaseModel):
     """Request body for POST /api/v1/x402/verify."""
 
-    payment_header: str = Field(
-        ..., description="Base64-encoded payment header JSON"
-    )
+    payment_header: str = Field(..., description="Base64-encoded payment header JSON")
     resource: str = Field(..., description="The resource URL being paid for")
 
 

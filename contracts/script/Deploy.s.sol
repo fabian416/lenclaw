@@ -28,7 +28,8 @@ contract MockUSDC is ERC20 {
 
 contract DeployLenclaw is Script {
     function run() external {
-        uint256 deployerKey = vm.envOr("PRIVATE_KEY", uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80));
+        uint256 deployerKey =
+            vm.envOr("PRIVATE_KEY", uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80));
         address deployer = vm.addr(deployerKey);
 
         vm.startBroadcast(deployerKey);
@@ -53,8 +54,7 @@ contract DeployLenclaw is Script {
         console.log("CreditScorer deployed at:", address(scorer));
 
         // 5. Deploy AgentCreditLine (now takes factory instead of vault)
-        AgentCreditLine creditLine =
-            new AgentCreditLine(address(registry), address(scorer), address(factory), deployer);
+        AgentCreditLine creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), deployer);
         console.log("AgentCreditLine deployed at:", address(creditLine));
 
         // 6. Deploy DutchAuction (deployer as placeholder recoveryManager, updated below)
@@ -62,9 +62,8 @@ contract DeployLenclaw is Script {
         console.log("DutchAuction deployed at:", address(dutchAuction));
 
         // 7. Deploy RecoveryManager
-        RecoveryManager recoveryManager = new RecoveryManager(
-            address(usdc), address(dutchAuction), address(registry), address(factory), deployer
-        );
+        RecoveryManager recoveryManager =
+            new RecoveryManager(address(usdc), address(dutchAuction), address(registry), address(factory), deployer);
         console.log("RecoveryManager deployed at:", address(recoveryManager));
 
         // 8. Deploy LiquidationKeeper

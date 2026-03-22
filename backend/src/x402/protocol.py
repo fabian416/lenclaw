@@ -264,7 +264,11 @@ def verify_payment_signature(
 
     # Verify EIP-712 signature recovers to claimed sender
     try:
-        nonce_bytes = bytes.fromhex(payload.nonce[2:]) if payload.nonce.startswith("0x") else bytes.fromhex(payload.nonce)
+        nonce_bytes = (
+            bytes.fromhex(payload.nonce[2:])
+            if payload.nonce.startswith("0x")
+            else bytes.fromhex(payload.nonce)
+        )
 
         domain = {
             "name": "x402",

@@ -17,11 +17,11 @@ contract MockLzEndpointSuccess {
     }
 
     /// @dev Accepts the send call, pulls tokens from caller, always succeeds
-    function send(
-        USDT0Bridge.SendParam calldata,
-        USDT0Bridge.MessagingFee calldata,
-        address
-    ) external payable returns (bytes memory, bytes memory) {
+    function send(USDT0Bridge.SendParam calldata, USDT0Bridge.MessagingFee calldata, address)
+        external
+        payable
+        returns (bytes memory, bytes memory)
+    {
         // Pull the approved tokens (simulates OFT burning/locking)
         uint256 allowance = token.allowance(msg.sender, address(this));
         if (allowance > 0) {
@@ -31,38 +31,29 @@ contract MockLzEndpointSuccess {
     }
 
     /// @dev Returns a fixed fee for quoteSend
-    function quoteSend(
-        USDT0Bridge.SendParam calldata,
-        bool
-    ) external pure returns (uint256 nativeFee, uint256 lzTokenFee) {
+    function quoteSend(USDT0Bridge.SendParam calldata, bool)
+        external
+        pure
+        returns (uint256 nativeFee, uint256 lzTokenFee)
+    {
         return (0.01 ether, 0);
     }
 }
 
 /// @dev Mock LZ endpoint that always reverts on send()
 contract MockLzEndpointFail {
-    function send(
-        USDT0Bridge.SendParam calldata,
-        USDT0Bridge.MessagingFee calldata,
-        address
-    ) external payable {
+    function send(USDT0Bridge.SendParam calldata, USDT0Bridge.MessagingFee calldata, address) external payable {
         revert("LZ send failed");
     }
 
-    function quoteSend(
-        USDT0Bridge.SendParam calldata,
-        bool
-    ) external pure returns (uint256, uint256) {
+    function quoteSend(USDT0Bridge.SendParam calldata, bool) external pure returns (uint256, uint256) {
         return (0, 0);
     }
 }
 
 /// @dev Mock LZ endpoint that reverts on quoteSend (simulates failure)
 contract MockLzEndpointQuoteFail {
-    function quoteSend(
-        USDT0Bridge.SendParam calldata,
-        bool
-    ) external pure {
+    function quoteSend(USDT0Bridge.SendParam calldata, bool) external pure {
         revert("quote failed");
     }
 }
@@ -100,13 +91,7 @@ contract USDT0BridgeTest is Test {
 
         // Register agent (auto-deploys vault + lockbox)
         agentId = registry.registerAgent(
-            agentWallet,
-            keccak256("code"),
-            "TestAgent",
-            address(0),
-            0,
-            bytes32(0),
-            address(usdt0)
+            agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdt0)
         );
         lockboxAddr = vaultFactory.getLockbox(agentId);
 
@@ -115,12 +100,7 @@ contract USDT0BridgeTest is Test {
         lzEndpointFail = new MockLzEndpointFail();
 
         // Deploy bridge with the success endpoint
-        bridge = new USDT0Bridge(
-            address(usdt0),
-            address(registry),
-            address(lzEndpoint),
-            protocolOwner
-        );
+        bridge = new USDT0Bridge(address(usdt0), address(registry), address(lzEndpoint), protocolOwner);
 
         // Enable destination chain
         bridge.setSupportedChain(DST_EID_ETHEREUM, true);
@@ -288,12 +268,7 @@ contract USDT0BridgeTest is Test {
 
     function test_bridgeOut_successWithoutLzEndpoint() public {
         // Deploy bridge with no LZ endpoint
-        USDT0Bridge bridgeNoLz = new USDT0Bridge(
-            address(usdt0),
-            address(registry),
-            address(0),
-            protocolOwner
-        );
+        USDT0Bridge bridgeNoLz = new USDT0Bridge(address(usdt0), address(registry), address(0), protocolOwner);
         bridgeNoLz.setSupportedChain(DST_EID_ETHEREUM, true);
 
         uint256 amount = 1000e6;
@@ -314,12 +289,8 @@ contract USDT0BridgeTest is Test {
 
     function test_bridgeOut_lzCallFails_returnsFunds() public {
         // Deploy bridge with failing LZ endpoint
-        USDT0Bridge bridgeFail = new USDT0Bridge(
-            address(usdt0),
-            address(registry),
-            address(lzEndpointFail),
-            protocolOwner
-        );
+        USDT0Bridge bridgeFail =
+            new USDT0Bridge(address(usdt0), address(registry), address(lzEndpointFail), protocolOwner);
         bridgeFail.setSupportedChain(DST_EID_ETHEREUM, true);
 
         uint256 amount = 1000e6;
@@ -344,12 +315,8 @@ contract USDT0BridgeTest is Test {
     }
 
     function test_bridgeOut_lzCallFails_emitsBridgeFailed() public {
-        USDT0Bridge bridgeFail = new USDT0Bridge(
-            address(usdt0),
-            address(registry),
-            address(lzEndpointFail),
-            protocolOwner
-        );
+        USDT0Bridge bridgeFail =
+            new USDT0Bridge(address(usdt0), address(registry), address(lzEndpointFail), protocolOwner);
         bridgeFail.setSupportedChain(DST_EID_ETHEREUM, true);
 
         uint256 amount = 500e6;
@@ -440,9 +407,8 @@ contract USDT0BridgeTest is Test {
     function test_routeBridgedRevenue_revertNoLockbox() public {
         // Register agent without vault/lockbox (no asset)
         address agentWallet2 = makeAddr("agentWallet2");
-        uint256 newAgentId = registry.registerAgent(
-            agentWallet2, keccak256("code2"), "Agent2", address(0), 0, bytes32(0), address(0)
-        );
+        uint256 newAgentId =
+            registry.registerAgent(agentWallet2, keccak256("code2"), "Agent2", address(0), 0, bytes32(0), address(0));
 
         usdt0.mint(address(bridge), 1000e6);
 
@@ -491,12 +457,7 @@ contract USDT0BridgeTest is Test {
     // ═══════════════════════════════════════════════════════════════════
 
     function test_estimateBridgeFee_returnsZeroNoEndpoint() public {
-        USDT0Bridge bridgeNoLz = new USDT0Bridge(
-            address(usdt0),
-            address(registry),
-            address(0),
-            protocolOwner
-        );
+        USDT0Bridge bridgeNoLz = new USDT0Bridge(address(usdt0), address(registry), address(0), protocolOwner);
 
         (uint256 fee, bool available) = bridgeNoLz.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
         assertEq(fee, 0);
@@ -511,12 +472,8 @@ contract USDT0BridgeTest is Test {
 
     function test_estimateBridgeFee_handlesEndpointFailure() public {
         MockLzEndpointQuoteFail failQuote = new MockLzEndpointQuoteFail();
-        USDT0Bridge bridgeFailQuote = new USDT0Bridge(
-            address(usdt0),
-            address(registry),
-            address(failQuote),
-            protocolOwner
-        );
+        USDT0Bridge bridgeFailQuote =
+            new USDT0Bridge(address(usdt0), address(registry), address(failQuote), protocolOwner);
 
         // Should return 0 gracefully when quoteSend reverts
         (uint256 fee, bool available) = bridgeFailQuote.estimateBridgeFee(DST_EID_ETHEREUM, 1000e6);
@@ -678,12 +635,8 @@ contract USDT0BridgeTest is Test {
 
     function test_bridgeOut_consecutiveNoncesAfterFailure() public {
         // First bridge with failing endpoint
-        USDT0Bridge bridgeFail = new USDT0Bridge(
-            address(usdt0),
-            address(registry),
-            address(lzEndpointFail),
-            protocolOwner
-        );
+        USDT0Bridge bridgeFail =
+            new USDT0Bridge(address(usdt0), address(registry), address(lzEndpointFail), protocolOwner);
         bridgeFail.setSupportedChain(DST_EID_ETHEREUM, true);
 
         uint256 amount = 100e6;

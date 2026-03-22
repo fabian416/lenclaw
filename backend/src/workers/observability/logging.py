@@ -12,7 +12,9 @@ from typing import Any
 import structlog
 
 
-def configure_worker_logging(*, json_output: bool = True, log_level: str = "INFO") -> None:
+def configure_worker_logging(
+    *, json_output: bool = True, log_level: str = "INFO"
+) -> None:
     """Configure structlog for worker processes.
 
     Args:
@@ -85,7 +87,9 @@ def log_task_success(
     **extra: Any,
 ) -> None:
     """Log successful task completion."""
-    logger.info("task_completed", task_id=task_id, duration_ms=round(duration_ms, 2), **extra)
+    logger.info(
+        "task_completed", task_id=task_id, duration_ms=round(duration_ms, 2), **extra
+    )
 
 
 def log_task_failure(

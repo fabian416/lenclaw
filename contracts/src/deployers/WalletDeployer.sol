@@ -15,8 +15,7 @@ library WalletDeployer {
         uint256 agentId,
         uint256 repaymentRateBps
     ) external returns (address) {
-        AgentSmartWallet wallet =
-            new AgentSmartWallet(owner, protocol, lockbox, asset, agentId, repaymentRateBps);
+        AgentSmartWallet wallet = new AgentSmartWallet(owner, protocol, lockbox, asset, agentId, repaymentRateBps);
         return address(wallet);
     }
 }

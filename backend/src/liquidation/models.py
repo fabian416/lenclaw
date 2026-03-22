@@ -23,18 +23,17 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base
 
-
 # ---------- Enums ---------- #
 
 
 class LiquidationStatus(str, enum.Enum):
     """Tracks the lifecycle of a liquidation event."""
 
-    PENDING = "pending"            # Detected but not yet triggered
+    PENDING = "pending"  # Detected but not yet triggered
     AUCTION_ACTIVE = "auction_active"  # Dutch auction is running
-    SETTLED = "settled"            # Auction settled, proceeds distributed
-    EXPIRED = "expired"            # Auction expired with no bidder
-    WRITE_OFF = "write_off"        # Full write-off, no recovery
+    SETTLED = "settled"  # Auction settled, proceeds distributed
+    EXPIRED = "expired"  # Auction expired with no bidder
+    WRITE_OFF = "write_off"  # Full write-off, no recovery
 
 
 class AuctionStatus(str, enum.Enum):
@@ -66,25 +65,17 @@ class Liquidation(Base):
     on_chain_agent_id: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="On-chain agent NFT ID"
     )
-    outstanding_debt: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6), nullable=False
-    )
+    outstanding_debt: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     recovered_amount: Mapped[Decimal] = mapped_column(
         Numeric(18, 6), default=Decimal("0")
     )
-    loss_amount: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6), default=Decimal("0")
-    )
+    loss_amount: Mapped[Decimal] = mapped_column(Numeric(18, 6), default=Decimal("0"))
     recovery_rate_bps: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[LiquidationStatus] = mapped_column(
         Enum(LiquidationStatus), default=LiquidationStatus.PENDING
     )
-    trigger_tx_hash: Mapped[str | None] = mapped_column(
-        String(66), nullable=True
-    )
-    settle_tx_hash: Mapped[str | None] = mapped_column(
-        String(66), nullable=True
-    )
+    trigger_tx_hash: Mapped[str | None] = mapped_column(String(66), nullable=True)
+    settle_tx_hash: Mapped[str | None] = mapped_column(String(66), nullable=True)
     triggered_by: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Keeper wallet address"
     )
@@ -129,24 +120,16 @@ class LiquidationAuction(Base):
         unique=True,
         nullable=False,
     )
-    on_chain_auction_id: Mapped[int | None] = mapped_column(
-        Integer, nullable=True
-    )
-    start_price: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6), nullable=False
-    )
-    min_price: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6), nullable=False
-    )
-    settled_price: Mapped[Decimal | None] = mapped_column(
-        Numeric(18, 6), nullable=True
-    )
+    on_chain_auction_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    start_price: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    min_price: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    settled_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
     duration_seconds: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=21600  # 6 hours
+        Integer,
+        nullable=False,
+        default=21600,  # 6 hours
     )
-    buyer_address: Mapped[str | None] = mapped_column(
-        String(42), nullable=True
-    )
+    buyer_address: Mapped[str | None] = mapped_column(String(42), nullable=True)
     status: Mapped[AuctionStatus] = mapped_column(
         Enum(AuctionStatus), default=AuctionStatus.ACTIVE
     )
@@ -160,6 +143,4 @@ class LiquidationAuction(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    liquidation: Mapped[Liquidation] = relationship(
-        back_populates="auction"
-    )
+    liquidation: Mapped[Liquidation] = relationship(back_populates="auction")

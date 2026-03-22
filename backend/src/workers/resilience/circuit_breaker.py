@@ -31,8 +31,7 @@ class CircuitBreakerOpenError(Exception):
     def __init__(self, name: str, recovery_at: float) -> None:
         remaining = max(0, recovery_at - time.monotonic())
         super().__init__(
-            f"Circuit breaker '{name}' is OPEN. "
-            f"Recovery in {remaining:.1f}s."
+            f"Circuit breaker '{name}' is OPEN. Recovery in {remaining:.1f}s."
         )
         self.name = name
         self.recovery_at = recovery_at
@@ -168,10 +167,7 @@ class CircuitBreaker:
             self._failure_count = 0
             self._success_count = 0
             self._half_open_calls = 0
-        elif new_state == CircuitState.OPEN:
-            self._success_count = 0
-            self._half_open_calls = 0
-        elif new_state == CircuitState.HALF_OPEN:
+        elif new_state == CircuitState.OPEN or new_state == CircuitState.HALF_OPEN:
             self._success_count = 0
             self._half_open_calls = 0
         self._update_gauge()
@@ -182,9 +178,7 @@ class CircuitBreaker:
             CircuitState.OPEN: 1,
             CircuitState.HALF_OPEN: 2,
         }
-        metrics.circuit_breaker_state.labels(name=self.name).set(
-            state_val[self._state]
-        )
+        metrics.circuit_breaker_state.labels(name=self.name).set(state_val[self._state])
 
     # ------------------------------------------------------------------
     # Manual controls (useful for admin endpoints)

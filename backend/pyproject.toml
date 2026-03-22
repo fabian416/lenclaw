@@ -66,7 +66,16 @@ select = [
 ]
 ignore = [
     "N818", "UP015",
+    "B008",  # Depends() in defaults — standard FastAPI pattern
+    "E501",  # line too long — formatter handles what it can
+    "B007",  # unused loop variable — common in test loops
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["N803", "N806", "B017"]
+"src/x402/*" = ["N806"]
+"src/market/*" = ["N806"]
+"src/credit/*" = ["N806", "N803"]  # ML convention: X_train, X_val
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

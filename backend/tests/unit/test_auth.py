@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,11 +12,12 @@ try:
 except ImportError:
     AuthService = None  # type: ignore[assignment,misc]
 
-from src.common.config import AuthSettings
 from src.common.exceptions import UnauthorizedError
-from tests.conftest import make_access_token, make_nonce
+from tests.conftest import make_access_token
 
-pytestmark = pytest.mark.skipif(AuthService is None, reason="siwe package not installed")
+pytestmark = pytest.mark.skipif(
+    AuthService is None, reason="siwe package not installed"
+)
 
 
 class TestCreateNonce:
@@ -105,9 +106,7 @@ class TestRefreshToken:
         self, auth_service: AuthService, mock_session: AsyncMock
     ):
         wallet = "0x742d35cc6634c0532925a3b844bc9e7595f2bd1e"
-        revoked_token = make_access_token(
-            wallet, {"revoked_at": datetime.now(timezone.utc)}
-        )
+        revoked_token = make_access_token(wallet, {"revoked_at": datetime.now(UTC)})
 
         result_mock = MagicMock()
         result_mock.scalar_one_or_none.return_value = revoked_token
@@ -123,7 +122,7 @@ class TestRefreshToken:
         expired_token = make_access_token(
             wallet,
             {
-                "expires_at": datetime.now(timezone.utc) - timedelta(hours=2),
+                "expires_at": datetime.now(UTC) - timedelta(hours=2),
                 "revoked_at": None,
             },
         )
@@ -132,7 +131,9 @@ class TestRefreshToken:
         result_mock.scalar_one_or_none.return_value = expired_token
         mock_session.execute.return_value = result_mock
 
-        with pytest.raises(UnauthorizedError, match="Token expired beyond refresh window"):
+        with pytest.raises(
+            UnauthorizedError, match="Token expired beyond refresh window"
+        ):
             await auth_service.refresh_token(mock_session, expired_token.token)
 
 

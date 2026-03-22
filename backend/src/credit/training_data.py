@@ -20,8 +20,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -58,9 +57,7 @@ BASE_DEFAULT_RATES = {
 # ---------------------------------------------------------------------------
 
 
-def _generate_steady(
-    rng: np.random.Generator, n_days: int = 90
-) -> np.ndarray:
+def _generate_steady(rng: np.random.Generator, n_days: int = 90) -> np.ndarray:
     """Steady earner: constant base with small Gaussian noise.
 
     Mean daily revenue ~50-500 USDC; CV < 0.2.
@@ -71,9 +68,7 @@ def _generate_steady(
     return np.maximum(revenues, 0.0)
 
 
-def _generate_volatile(
-    rng: np.random.Generator, n_days: int = 90
-) -> np.ndarray:
+def _generate_volatile(rng: np.random.Generator, n_days: int = 90) -> np.ndarray:
     """Volatile earner: high variance, occasional zero-revenue days.
 
     Uses a log-normal distribution to create fat-tailed spikes.
@@ -87,9 +82,7 @@ def _generate_volatile(
     return revenues
 
 
-def _generate_declining(
-    rng: np.random.Generator, n_days: int = 90
-) -> np.ndarray:
+def _generate_declining(rng: np.random.Generator, n_days: int = 90) -> np.ndarray:
     """Declining earner: starts strong, linearly/exponentially falls.
 
     Models agents losing market share or running out of tasks.
@@ -108,9 +101,7 @@ def _generate_declining(
     return np.maximum(trend + noise, 0.0)
 
 
-def _generate_growing(
-    rng: np.random.Generator, n_days: int = 90
-) -> np.ndarray:
+def _generate_growing(rng: np.random.Generator, n_days: int = 90) -> np.ndarray:
     """Growing earner: revenue trending upward over time.
 
     Models agents gaining adoption, compounding earnings.
@@ -130,9 +121,7 @@ def _generate_growing(
     return np.maximum(trend + noise, 0.0)
 
 
-def _generate_seasonal(
-    rng: np.random.Generator, n_days: int = 90
-) -> np.ndarray:
+def _generate_seasonal(rng: np.random.Generator, n_days: int = 90) -> np.ndarray:
     """Seasonal earner: cyclical pattern with a weekly or monthly period.
 
     Models agents whose workload follows DeFi activity cycles (e.g.
@@ -318,7 +307,7 @@ def generate_training_dataset(
     """
     n_samples = max(n_samples, 1000)
     rng = np.random.default_rng(seed)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     archetypes = list(ARCHETYPE_WEIGHTS.keys())
     weights = [ARCHETYPE_WEIGHTS[a] for a in archetypes]
