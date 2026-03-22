@@ -119,7 +119,7 @@ export interface BorrowerData {
   interestRate: number
   /** On-chain: RevenueLockbox.totalRevenueCapture */
   lockboxRevenue: number
-  /** On-chain: USDC.balanceOf(lockbox) */
+  /** On-chain: USDT.balanceOf(lockbox) */
   lockboxBalance: number
   /** Computed client-side: not tracked on-chain */
   nextPayment: { amount: number; dueDate: number }
@@ -164,7 +164,7 @@ export type AgentBadge =
  *
  * On-chain reads:
  *   agentId()            -> uint256
- *   totalAssets()         -> uint256 (USDC balance + totalBorrowed - fees)
+ *   totalAssets()         -> uint256 (USDT balance + totalBorrowed - fees)
  *   totalBorrowed()       -> uint256
  *   depositCap()          -> uint256
  *   utilizationRate()     -> uint256 (basis points)
@@ -181,7 +181,7 @@ export interface AgentVault {
   agentId: number
   /** On-chain: address of the deployed AgentVault contract */
   vaultAddress: string
-  /** On-chain: AgentVault.totalAssets() (USDC balance + borrows - fees) */
+  /** On-chain: AgentVault.totalAssets() (USDT balance + borrows - fees) */
   totalBacked: number
   /** Computed client-side: depositCap - totalAssets */
   availableCapacity: number

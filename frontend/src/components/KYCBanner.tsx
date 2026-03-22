@@ -66,7 +66,7 @@ export function KYCBanner({
             Identity Verification Required
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-            To buy or sell USDC using fiat currency, you need to complete identity
+            To buy or sell USDT using fiat currency, you need to complete identity
             verification (KYC) with {provider}. This is a one-time process that
             typically takes a few minutes.
           </p>

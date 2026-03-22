@@ -114,7 +114,7 @@ export function FiatRampWidget({
         body: JSON.stringify({
           fiat_currency: fiatCurrency,
           fiat_amount: parsedAmount,
-          crypto_currency: "USDC",
+          crypto_currency: "USDT",
           wallet_address: walletAddress,
           network: "base",
         }),
@@ -155,7 +155,7 @@ export function FiatRampWidget({
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-semibold mono-text">
-              {mode === "buy" ? "Buy USDC" : "Sell USDC"}
+              {mode === "buy" ? "Buy USDT" : "Sell USDT"}
             </h2>
           </div>
           <button
@@ -212,7 +212,7 @@ export function FiatRampWidget({
                       : "bg-muted text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Buy USDC
+                  Buy USDT
                 </button>
                 <button
                   onClick={() => setMode("sell")}
@@ -222,7 +222,7 @@ export function FiatRampWidget({
                       : "bg-muted text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Sell USDC
+                  Sell USDT
                 </button>
               </div>
 
@@ -297,7 +297,7 @@ export function FiatRampWidget({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Est. receive</span>
                   <span className="text-primary font-semibold">
-                    ~{(parseFloat(amount || "0") * 0.985).toFixed(2)} USDC
+                    ~{(parseFloat(amount || "0") * 0.985).toFixed(2)} USDT
                   </span>
                 </div>
               </div>
@@ -324,7 +324,7 @@ export function FiatRampWidget({
                 ) : (
                   <span className="flex items-center gap-2">
                     <ArrowRightLeft className="w-4 h-4" />
-                    {mode === "buy" ? "Buy USDC" : "Sell USDC"}
+                    {mode === "buy" ? "Buy USDT" : "Sell USDT"}
                   </span>
                 )}
               </Button>

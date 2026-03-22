@@ -15,7 +15,7 @@ const STORAGE_KEY = "lenclaw_wdk_seed"
 const WDK_API_BASE = import.meta.env.VITE_WDK_API_URL || ""
 
 /** USDT on Base */
-const USDC_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+const USDT_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
 const BASE_CHAIN_ID = 8453
 const BASE_RPC = "https://mainnet.base.org"
 
@@ -30,7 +30,7 @@ export interface WDKWalletState {
 export interface WDKAccountInfo {
   address: string
   ethBalance: bigint
-  usdcBalance: bigint
+  usdtBalance: bigint
 }
 
 // ── API helpers ─────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ export async function getWDKAccountInfo(_wdk?: unknown, _index?: number): Promis
   const seedPhrase = getStoredSeedPhrase()
   if (!seedPhrase) throw new Error("No wallet connected")
 
-  const data = await wdkFetch<{ address: string; ethBalance: string; usdcBalance: string }>(
+  const data = await wdkFetch<{ address: string; ethBalance: string; usdtBalance: string }>(
     "/api/wdk/balance",
     { seedPhrase }
   )
@@ -125,7 +125,7 @@ export async function getWDKAccountInfo(_wdk?: unknown, _index?: number): Promis
   return {
     address: data.address,
     ethBalance: BigInt(data.ethBalance),
-    usdcBalance: BigInt(data.usdcBalance),
+    usdtBalance: BigInt(data.usdtBalance),
   }
 }
 
@@ -143,7 +143,7 @@ export function disposeWDK(): void {
 
 // ── Balance formatting ──────────────────────────────────────────────────────
 
-export function formatUSDCBalance(balance: bigint): string {
+export function formatUSDTBalance(balance: bigint): string {
   const whole = balance / 1_000_000n
   const fraction = balance % 1_000_000n
   const fractionStr = fraction.toString().padStart(6, "0").slice(0, 2)
@@ -156,4 +156,4 @@ export function formatETHBalance(balance: bigint): string {
   return `${whole}.${fraction.toString().padStart(3, "0")}`
 }
 
-export { USDC_ADDRESS, BASE_CHAIN_ID, BASE_RPC }
+export { USDT_ADDRESS, BASE_CHAIN_ID, BASE_RPC }

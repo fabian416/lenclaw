@@ -34,7 +34,7 @@ export default function LendPage() {
     >
       <div className="mb-8 md:mb-10">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1 text-foreground">Lend</h1>
-        <p className="text-muted-foreground text-sm">Deposit USDC into the lending pool to earn yield from AI agent repayments</p>
+        <p className="text-muted-foreground text-sm">Deposit USDT into the lending pool to earn yield from AI agent repayments</p>
       </div>
 
       {/* Overview Stats */}
@@ -56,7 +56,7 @@ export default function LendPage() {
             <h3 className="text-sm font-medium mb-5 text-foreground">Your Position</h3>
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-muted">
-                <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">lcUSDC Shares</div>
+                <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">lcUSDT Shares</div>
                 <div className="text-lg font-semibold mono-text text-foreground">{formatUSD(userPosition.shares)}</div>
               </div>
               <div className="p-3 rounded-lg bg-muted">
@@ -101,7 +101,7 @@ export default function LendPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">
-                  {action === "deposit" ? "Amount (USDC)" : "Shares to withdraw"}
+                  {action === "deposit" ? "Amount (USDT)" : "Shares to withdraw"}
                 </label>
                 <div className="relative">
                   <Input
@@ -148,7 +148,7 @@ export default function LendPage() {
                     {action === "deposit" ? (
                       <span className="flex items-center justify-center gap-2">
                         <ArrowDownToLine className="w-4 h-4" />
-                        Deposit USDC
+                        Deposit USDT
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2">
@@ -234,7 +234,7 @@ export default function LendPage() {
 
                   <div>
                     <label className="text-[10px] text-muted-foreground mb-2 block uppercase tracking-wider">
-                      {action === "deposit" ? "Amount (USDC)" : "Shares to withdraw"}
+                      {action === "deposit" ? "Amount (USDT)" : "Shares to withdraw"}
                     </label>
                     <div className="relative">
                       <Input
@@ -274,7 +274,7 @@ export default function LendPage() {
                       {action === "deposit" ? (
                         <span className="flex items-center gap-2">
                           <ArrowDownToLine className="w-5 h-5" />
-                          Deposit USDC
+                          Deposit USDT
                         </span>
                       ) : (
                         <span className="flex items-center gap-2">

@@ -33,6 +33,7 @@ import { useWDK } from "@/providers/WDKProvider"
 import { WDKWalletButton } from "@/components/wallet/WDKWalletButton"
 import { WDKBadge } from "@/components/wallet/WDKBadge"
 import { useRegisterAgent } from "@/hooks/useAgentRegistry"
+import { addNewAgent } from "@/hooks/useNewAgents"
 
 // ── Ecosystem card icons ────────────────────────────────────────────────────
 
@@ -129,6 +130,22 @@ export default function AgentOnboarding() {
       setDeployTxHash(result.txHash)
       setDeployedAgentId(result.agentId)
       setDeployed(true)
+
+      // Add to in-memory store so it appears in marketplace immediately
+      if (result.agentId) {
+        addNewAgent({
+          id: result.agentId,
+          name: form.name,
+          description: form.description,
+          walletAddress: activeAddress,
+          agentCategory: form.agentCategory,
+          ecosystem: form.ecosystem,
+          registeredAt: Math.floor(Date.now() / 1000),
+          txHash: result.txHash,
+          reputationScore: 500,
+          hasSmartWallet: form.deploySmartWallet,
+        })
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Deployment failed"
       // Provide user-friendly error messages
@@ -406,7 +423,7 @@ export default function AgentOnboarding() {
                             ? "Auto-routes x402 payments and Bankr fees to your Lockbox for trustless repayment."
                             : form.ecosystem === "mateos"
                               ? "Auto-routes trading fee revenue to your Lockbox. Maximum credit terms."
-                              : "Auto-routes all USDC revenue to your Lockbox. Essential for building trust as an independent agent."}
+                              : "Auto-routes all USDT revenue to your Lockbox. Essential for building trust as an independent agent."}
                       </p>
                       {form.deploySmartWallet ? (
                         <button
@@ -447,7 +464,7 @@ export default function AgentOnboarding() {
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-teal-500 flex-shrink-0 mt-0.5" />
-                        <span>Automatic USDC revenue routing to Lockbox</span>
+                        <span>Automatic USDT revenue routing to Lockbox</span>
                       </li>
                     </ul>
                   </div>

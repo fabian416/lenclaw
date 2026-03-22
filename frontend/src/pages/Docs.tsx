@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { BookOpen, Code, Layers, Calculator, Rocket, ChevronRight, Copy, Check, ExternalLink } from "lucide-react"
 
-const USDC_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+const USDT_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -60,9 +60,9 @@ function Overview() {
         <div className="space-y-3">
           {[
             ["Register", "One call to AgentRegistry. Factory deploys your vault + lockbox + smart wallet atomically."],
-            ["Route revenue", "Transfer USDC to your lockbox. Call processRevenue(). Lockbox splits: repayment → vault, remainder → you."],
+            ["Route revenue", "Transfer USDT to your lockbox. Call processRevenue(). Lockbox splits: repayment → vault, remainder → you."],
             ["Build credit", "CreditScorer evaluates your on-chain behavior. Credit line grows with consistent revenue."],
-            ["Borrow", "Drawdown from your vault up to your credit limit. 100–100K USDC at 3–25% APR."],
+            ["Borrow", "Drawdown from your vault up to your credit limit. 100–100K USDT at 3–25% APR."],
             ["Repay automatically", "Every revenue deposit auto-deducts repayment. No manual action needed."],
           ].map(([step, desc], i) => (
             <div key={i} className="flex gap-3 items-start">
@@ -86,7 +86,7 @@ function Integrate() {
 import { base } from 'viem/chains'
 
 const REGISTRY = '0x...' // AgentRegistry address
-const USDC = '${USDC_ADDRESS}'
+const USDT = '${USDT_ADDRESS}'
 
 // 1. Register your agent (deploys vault + lockbox atomically)
 const agentId = await walletClient.writeContract({
@@ -100,7 +100,7 @@ const agentId = await walletClient.writeContract({
     '0x0000000000000000000000000000000000000000',
     0n,
     keccak256(toBytes('Trading')),
-    USDC
+    USDT
   ]
 })`
 
@@ -117,10 +117,10 @@ const vault = profile.vault       // ERC-4626 AgentVault address`
 
   const revenueCode = `// 3. Route revenue (do this every time you earn)
 await walletClient.writeContract({
-  address: USDC,
+  address: USDT,
   abi: erc20Abi,
   functionName: 'transfer',
-  args: [lockbox, revenueAmount]  // send USDC to lockbox
+  args: [lockbox, revenueAmount]  // send USDT to lockbox
 })
 
 // 4. Process revenue (splits: repayment → vault, rest → you)
@@ -138,7 +138,7 @@ const [creditLimit] = await publicClient.readContract({
   args: [agentId]
 })
 
-// Drawdown (min 10 USDC)
+// Drawdown (min 10 USDT)
 await walletClient.writeContract({
   address: CREDIT_LINE,
   abi: creditLineAbi,
@@ -157,7 +157,7 @@ await walletClient.writeContract({
 
       <div className="p-4 rounded-lg border border-amber-500/20 bg-amber-500/5">
         <p className="text-sm text-amber-400">
-          <strong>Prerequisites:</strong> Agent with USDC revenue on Base. Operator wallet with ETH for gas.
+          <strong>Prerequisites:</strong> Agent with USDT revenue on Base. Operator wallet with ETH for gas.
         </p>
       </div>
 
@@ -221,10 +221,10 @@ function Concepts() {
             Every agent gets its own ERC-4626 vault. Backers choose which agents to fund. If Agent A defaults, Agent B's backers are unaffected. No shared pool. No socialized losses.
           </p>
           <CodeBlock lang="solidity" code={`// Factory deploys one vault per agent
-AgentVault vault = new AgentVault(usdc, agentId, agentWallet);
+AgentVault vault = new AgentVault(usdt, agentId, agentWallet);
 // Backers deposit into THIS agent's vault
 vault.deposit(1000e6, backerAddress);  // ERC-4626 standard
-// Shares are agent-specific: lcA{id}USDC`} />
+// Shares are agent-specific: lcA{id}USDT`} />
           <p className="text-xs text-zinc-600 mt-2">
             Adopt this when: you need per-actor risk isolation (insurance, bonds, reputation markets).
           </p>
@@ -271,7 +271,7 @@ function processRevenue() external {
             </table>
           </div>
           <p className="text-xs text-zinc-600 mt-3">
-            Output: Credit line 100–100K USDC. Interest rate 3–25% APR (inversely proportional to score).
+            Output: Credit line 100–100K USDT. Interest rate 3–25% APR (inversely proportional to score).
           </p>
         </div>
       </div>
@@ -296,7 +296,7 @@ function APIReference() {
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Contract Reference</h2>
         <p className="text-zinc-400 text-sm">
-          All contracts deploy on Base (chain ID 8453). USDC: <code className="text-xs bg-zinc-800 px-1.5 py-0.5 rounded">{USDC_ADDRESS}</code>
+          All contracts deploy on Base (chain ID 8453). USDT: <code className="text-xs bg-zinc-800 px-1.5 py-0.5 rounded">{USDT_ADDRESS}</code>
         </p>
       </div>
 

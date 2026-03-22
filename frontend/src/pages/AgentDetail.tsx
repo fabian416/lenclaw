@@ -436,7 +436,7 @@ export default function AgentDetail() {
               </div>
 
               <div>
-                <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Amount (USDC)</label>
+                <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider">Amount (USDT)</label>
                 <div className="relative">
                   <Input
                     type="number"
@@ -630,7 +630,7 @@ export default function AgentDetail() {
                   </div>
 
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block uppercase tracking-wider">Amount (USDC)</label>
+                    <label className="text-xs text-muted-foreground mb-2 block uppercase tracking-wider">Amount (USDT)</label>
                     <div className="relative">
                       <Input
                         type="number"

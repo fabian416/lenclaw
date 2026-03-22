@@ -8,7 +8,7 @@ import {
   clearStoredSeedPhrase,
   getWDKInstance,
   getWDKAccountInfo,
-  formatUSDCBalance,
+  formatUSDTBalance,
   formatETHBalance,
 } from "@/lib/wdk"
 
@@ -27,7 +27,7 @@ interface WDKContextValue {
   seedPhrase: string | null
   /** Balances */
   accountInfo: WDKAccountInfo | null
-  usdcDisplay: string
+  usdtDisplay: string
   ethDisplay: string
   /** Actions */
   createWallet: () => Promise<void>
@@ -176,7 +176,7 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     address: walletState?.address ?? null,
     seedPhrase: walletState?.seedPhrase ?? null,
     accountInfo,
-    usdcDisplay: accountInfo ? formatUSDCBalance(accountInfo.usdcBalance) : "0.00",
+    usdtDisplay: accountInfo ? formatUSDTBalance(accountInfo.usdtBalance) : "0.00",
     ethDisplay: accountInfo ? formatETHBalance(accountInfo.ethBalance) : "0.000",
     createWallet,
     restoreWallet,

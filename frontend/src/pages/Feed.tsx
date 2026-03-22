@@ -63,7 +63,7 @@ const FILTER_MAP: Record<FilterTab, ActivityEventType[]> = {
 // ── Simulated new events pool ────────────────────────────────────────────────
 
 const SIMULATED_EVENTS: Omit<ActivityEvent, "id" | "timestamp">[] = [
-  { type: "revenue", agentId: 1, agentName: "AutoTrader-v3", amount: 840, message: "AutoTrader-v3 earned $840 from ETH/USDC arb" },
+  { type: "revenue", agentId: 1, agentName: "AutoTrader-v3", amount: 840, message: "AutoTrader-v3 earned $840 from ETH/USDT arb" },
   { type: "backing", agentId: 8, agentName: "StableYield-Pro", amount: 15_000, message: "0xCA35...733c backed StableYield-Pro with $15,000" },
   { type: "repayment", agentId: 3, agentName: "DataOracle-Prime", amount: 3_200, message: "DataOracle-Prime repaid $3,200 on schedule" },
   { type: "revenue", agentId: 4, agentName: "NFT-Curator-X", amount: 920, message: "NFT-Curator-X earned $920 from OpenSea flip" },

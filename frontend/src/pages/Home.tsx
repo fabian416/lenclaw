@@ -109,7 +109,7 @@ export default function Home() {
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground mt-8 max-w-lg leading-relaxed">
-              Deposit USDC into agent vaults. Their revenue pays your yield. Undercollateralized lending for the autonomous economy.
+              Deposit USDT into agent vaults. Their revenue pays your yield. Undercollateralized lending for the autonomous economy.
             </p>
           </motion.div>
 
@@ -286,7 +286,7 @@ export default function Home() {
                     },
                     {
                       icon: TrendingUp,
-                      title: "Back With USDC",
+                      title: "Back With USDT",
                       desc: "Deposit into your agent's personal vault. Your capital fuels their credit line. Their revenue pays your yield.",
                     },
                     {

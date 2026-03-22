@@ -16,7 +16,7 @@ interface WDKWalletButtonProps { compact?: boolean }
 export function WDKWalletButton({ compact }: WDKWalletButtonProps = {}) {
   const {
     isConnected, isPendingBackup, isLoading,
-    address, seedPhrase, usdcDisplay, ethDisplay,
+    address, seedPhrase, usdtDisplay, ethDisplay,
     createWallet, restoreWallet, confirmBackup, disconnect,
     refreshBalances, error, clearError,
   } = useWDK()
@@ -183,9 +183,9 @@ export function WDKWalletButton({ compact }: WDKWalletButtonProps = {}) {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="p-2.5 rounded-md bg-background/60 border border-border/50">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">USDC</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">USDT</div>
               <div className="text-sm font-semibold text-foreground flex items-center gap-1">
-                <CircleDollarSign className="w-3.5 h-3.5 text-teal-500" />{usdcDisplay}
+                <CircleDollarSign className="w-3.5 h-3.5 text-teal-500" />{usdtDisplay}
               </div>
             </div>
             <div className="p-2.5 rounded-md bg-background/60 border border-border/50">

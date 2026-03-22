@@ -8,6 +8,8 @@ import { NumberTicker } from "@/components/reactbits/NumberTicker"
 import { formatUSD, shortenAddress } from "@/lib/utils"
 import { ReputationRing } from "@/components/shared/ReputationRing"
 import { MOCK_AGENTS_WITH_VAULT } from "@/lib/constants"
+import { useNewAgents } from "@/hooks/useNewAgents"
+import type { AgentWithVault } from "@/lib/types"
 import type { RiskLevel } from "@/lib/types"
 import { Bot, Search, Users, TrendingUp, ArrowRight, Flame, Clock, ChevronDown, ShieldCheck } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -83,6 +85,7 @@ const RISK_FILTERS: { value: RiskFilter; label: string }[] = [
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function AgentMarketplace() {
+  const newAgents = useNewAgents()
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all")
@@ -105,7 +108,48 @@ export default function AgentMarketplace() {
   }, [showSortDropdown])
 
   const filtered = useMemo(() => {
-    let agents = MOCK_AGENTS_WITH_VAULT
+    // Merge mock agents with newly registered agents from this session
+    const newAgentCards: AgentWithVault[] = newAgents.map((a) => ({
+      id: a.id,
+      name: a.name,
+      erc8004Id: `8004-${String(a.id).padStart(4, "0")}`,
+      reputationScore: a.reputationScore,
+      revenue30d: 0,
+      creditLine: 0,
+      utilization: 0,
+      status: "active" as const,
+      walletAddress: a.walletAddress,
+      description: a.description,
+      registeredAt: a.registeredAt,
+      agentCategory: a.agentCategory as "Trading",
+      externalToken: "0x0000000000000000000000000000000000000000",
+      externalProtocolId: 0,
+      hasSmartWallet: a.hasSmartWallet,
+      vault: {
+        agentId: a.id,
+        vaultAddress: "0x0000000000000000000000000000000000000000",
+        totalBacked: 0,
+        availableCapacity: 5_000,
+        cap: 5_000,
+        apy: 0,
+        backersCount: 0,
+        revenueHistory: new Array(30).fill(0),
+        utilization: 0,
+        totalBorrowed: 0,
+        totalRevenueReceived: 0,
+        frozen: false,
+        availableLiquidity: 0,
+        protocolFeeBps: 1000,
+        withdrawalDelay: 86400,
+        creditLineAddress: "0x0000000000000000000000000000000000000000",
+      },
+      riskLevel: "safe" as const,
+      badges: ["newcomer"],
+      category: a.agentCategory,
+      avatarColor: "#ea580c",
+    }))
+
+    let agents = [...newAgentCards, ...MOCK_AGENTS_WITH_VAULT]
 
     // Search
     if (search) {
@@ -144,7 +188,7 @@ export default function AgentMarketplace() {
     })
 
     return agents
-  }, [search, riskFilter, sortBy, smartWalletOnly])
+  }, [search, riskFilter, sortBy, smartWalletOnly, newAgents])
 
   const currentSort = SORT_OPTIONS.find((s) => s.value === sortBy)!
 
