@@ -182,13 +182,13 @@ export default function Dashboard() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delinquent Agents</span>
                     <span className="text-warning font-medium">
-                      {MOCK_AGENTS.filter((a) => a.status === "delinquent").length}
+                      {MOCK_AGENTS.filter((a) => (a.status as string) === "delinquent").length}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Defaulted Agents</span>
                     <span className="text-destructive font-medium">
-                      {MOCK_AGENTS.filter((a) => a.status === "default").length}
+                      {MOCK_AGENTS.filter((a) => (a.status as string) === "default").length}
                     </span>
                   </div>
                 </div>

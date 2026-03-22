@@ -3,7 +3,7 @@
  * After registration, agents appear immediately in the marketplace.
  */
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 
 export interface NewAgent {
   id: number
