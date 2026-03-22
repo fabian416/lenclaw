@@ -25,7 +25,7 @@ class RegisterAgentRequest(BaseModel):
     externalToken: str = "0x" + "0" * 40
     externalProtocolId: int = 0
     agentCategory: str = "0x" + "0" * 64  # default
-    asset: str = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"  # USDT on Base
+    asset: str = "0x0000000000000000000000000000000000000000"  # zero = skip auto vault deploy
 
 
 @router.get("/health")

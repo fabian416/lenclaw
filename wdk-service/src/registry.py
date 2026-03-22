@@ -75,7 +75,7 @@ def register_agent_onchain(
     ).build_transaction({
         "from": account.address,
         "nonce": w3.eth.get_transaction_count(account.address),
-        "gas": 3_000_000,  # generous gas limit for vault+lockbox deployment
+        "gas": 8_000_000,  # vault+lockbox+smartwallet atomic deploy needs ~6M+
         "maxFeePerGas": w3.eth.gas_price * 2,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "chainId": settings.chain_id,
