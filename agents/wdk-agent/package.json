@@ -1,0 +1,29 @@
+{
+  "name": "@lenclaw/wdk-agent",
+  "version": "0.1.0",
+  "description": "Autonomous AI agent using Tether WDK for self-custodial wallet management and revenue routing to Lenclaw RevenueLockbox",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tetherto/wdk": "^1.0.0",
+    "@tetherto/wdk-wallet-evm": "^1.0.0",
+    "@tetherto/wdk-protocol-bridge-usdt0-evm": "^1.0.0",
+    "viem": "^2.21.0",
+    "ethers": "^6.13.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "private": true
+}

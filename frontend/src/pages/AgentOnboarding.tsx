@@ -30,6 +30,9 @@ import { ECOSYSTEM_CONFIG, AGENT_CATEGORIES } from "@/lib/constants"
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent"
 import { ClickSpark } from "@/components/reactbits/ClickSpark"
 import { BorderBeam } from "@/components/reactbits/BorderBeam"
+import { useWDK } from "@/providers/WDKProvider"
+import { WDKWalletButton } from "@/components/wallet/WDKWalletButton"
+import { WDKBadge } from "@/components/wallet/WDKBadge"
 
 // ── Ecosystem card icons ────────────────────────────────────────────────────
 
@@ -55,6 +58,14 @@ export default function AgentOnboarding() {
   const navigate = useNavigate()
   const { address, isConnected } = useAccount()
   const { connect } = useConnect()
+  const wdk = useWDK()
+
+  // Track whether user chose WDK for this agent's smart wallet
+  const [useWDKForAgent, setUseWDKForAgent] = useState(false)
+
+  // Either wagmi or WDK counts as "connected" for onboarding purposes
+  const anyWalletConnected = isConnected || wdk.isConnected
+  const activeAddress = isConnected ? address : wdk.address
 
   const [form, setForm] = useState<OnboardingFormData>({
     ecosystem: "independent",
@@ -90,7 +101,7 @@ export default function AgentOnboarding() {
   const canProceed = () => {
     switch (step) {
       case 1:
-        return isConnected
+        return anyWalletConnected
       case 2: {
         const hasBasicInfo = form.name.length > 0 && form.description.length > 0
         if (needsToken) return hasBasicInfo && form.externalTokenAddress.length > 0
@@ -185,29 +196,65 @@ export default function AgentOnboarding() {
             {step === 1 && (
               <div className="space-y-5">
                 {/* Wallet connect */}
-                {isConnected ? (
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/[0.06] border border-primary/20">
-                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-foreground">Wallet Connected</div>
-                      <div className="text-xs text-muted-foreground mono-text truncate">{shortenAddress(address!, 8)}</div>
-                    </div>
+                {anyWalletConnected ? (
+                  <div className="space-y-2">
+                    {/* Wagmi (MetaMask/injected) connected */}
+                    {isConnected && (
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/[0.06] border border-primary/20">
+                        <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground">Browser Wallet Connected</div>
+                          <div className="text-xs text-muted-foreground mono-text truncate">{shortenAddress(address!, 8)}</div>
+                        </div>
+                      </div>
+                    )}
+                    {/* WDK connected */}
+                    {wdk.isConnected && (
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-teal-500/[0.06] border border-teal-500/20">
+                        <CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-foreground flex items-center gap-2">
+                            WDK Wallet Connected
+                            <WDKBadge compact />
+                          </div>
+                          <div className="text-xs text-muted-foreground mono-text truncate">{shortenAddress(wdk.address!, 8)}</div>
+                        </div>
+                      </div>
+                    )}
+                    {/* If only one is connected, offer the other */}
+                    {!wdk.isConnected && (
+                      <div className="pt-1">
+                        <WDKWalletButton />
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <Wallet className="w-10 h-10 text-muted-foreground/40 mx-auto mb-4" />
-                    <p className="text-sm text-muted-foreground mb-4">Connect the wallet that operates this agent</p>
-                    <Button
-                      onClick={() => connect({ connector: injected() })}
-                      className="min-h-[48px] w-full md:w-auto font-semibold"
-                    >
-                      <Wallet className="w-4 h-4 mr-2" /> Connect Wallet
-                    </Button>
+                  <div className="space-y-4 py-4">
+                    <Wallet className="w-10 h-10 text-muted-foreground/40 mx-auto" />
+                    <p className="text-sm text-muted-foreground text-center">Connect the wallet that operates this agent</p>
+
+                    {/* Two wallet options */}
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => connect({ connector: injected() })}
+                        className="min-h-[48px] w-full font-semibold"
+                      >
+                        <Wallet className="w-4 h-4 mr-2" /> Connect Browser Wallet
+                      </Button>
+
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-border" />
+                        <span className="text-xs text-muted-foreground">or</span>
+                        <div className="h-px flex-1 bg-border" />
+                      </div>
+
+                      <WDKWalletButton />
+                    </div>
                   </div>
                 )}
 
                 {/* Ecosystem selection */}
-                {isConnected && (
+                {anyWalletConnected && (
                   <div className="space-y-3">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Where does your agent come from?</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -386,6 +433,97 @@ export default function AgentOnboarding() {
                   </div>
                 </div>
 
+                {/* WDK Smart Wallet option — shown when smart wallet is enabled */}
+                {form.deploySmartWallet && (
+                  <div className="space-y-2">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Wallet Provider</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {/* Default smart wallet */}
+                      <button
+                        onClick={() => setUseWDKForAgent(false)}
+                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                          !useWDKForAgent
+                            ? "border-sky-400 bg-sky-500/[0.04]"
+                            : "border-border hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ShieldCheck className={`w-4 h-4 flex-shrink-0 ${!useWDKForAgent ? "text-sky-500" : "text-muted-foreground"}`} />
+                          <div>
+                            <div className="text-xs font-semibold text-foreground">Default Smart Wallet</div>
+                            <div className="text-[10px] text-muted-foreground">ERC-4337 account abstraction</div>
+                          </div>
+                          {!useWDKForAgent && <CheckCircle2 className="w-4 h-4 text-sky-500 ml-auto flex-shrink-0" />}
+                        </div>
+                      </button>
+
+                      {/* Tether WDK option */}
+                      <button
+                        onClick={() => {
+                          setUseWDKForAgent(true)
+                          if (!wdk.isConnected) {
+                            // Will prompt user to create WDK wallet
+                          }
+                        }}
+                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                          useWDKForAgent
+                            ? "border-teal-400 bg-teal-500/[0.04]"
+                            : "border-border hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Shield className={`w-4 h-4 flex-shrink-0 ${useWDKForAgent ? "text-teal-500" : "text-muted-foreground"}`} />
+                          <div>
+                            <div className="text-xs font-semibold text-foreground">Tether WDK</div>
+                            <div className="text-[10px] text-muted-foreground">Self-custodial, multi-chain</div>
+                          </div>
+                          {useWDKForAgent && <CheckCircle2 className="w-4 h-4 text-teal-500 ml-auto flex-shrink-0" />}
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* WDK benefits & wallet creation prompt */}
+                    {useWDKForAgent && (
+                      <div className="space-y-2 mt-1">
+                        <div className="p-3 rounded-lg bg-teal-500/[0.06] border border-teal-500/15">
+                          <div className="text-[10px] text-teal-600 dark:text-teal-400 uppercase tracking-wider font-medium mb-2">
+                            Tether WDK Benefits
+                          </div>
+                          <ul className="space-y-1.5 text-xs text-muted-foreground">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-500 flex-shrink-0 mt-0.5" />
+                              <span>Self-custodial -- agent keys never leave the device</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-500 flex-shrink-0 mt-0.5" />
+                              <span>BIP39 seed phrase recovery for full wallet portability</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-500 flex-shrink-0 mt-0.5" />
+                              <span>ERC-7702 delegation support for smart account features</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-500 flex-shrink-0 mt-0.5" />
+                              <span>Automatic USDC revenue routing to Lockbox</span>
+                            </li>
+                          </ul>
+                        </div>
+                        {!wdk.isConnected && (
+                          <div className="pt-1">
+                            <WDKWalletButton />
+                          </div>
+                        )}
+                        {wdk.isConnected && (
+                          <div className="flex items-center gap-2 p-2.5 rounded-md bg-teal-500/[0.06] border border-teal-500/20">
+                            <CheckCircle2 className="w-4 h-4 text-teal-500 flex-shrink-0" />
+                            <span className="text-xs text-foreground font-medium">WDK wallet ready: {shortenAddress(wdk.address!, 6)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Advanced section — Code Hash & TEE (collapsed) */}
                 <div>
                   <button
@@ -506,7 +644,7 @@ export default function AgentOnboarding() {
                         { label: "Ecosystem", value: ecoConfig.name, color: ecoConfig.color },
                         { label: "Agent Name", value: form.name },
                         { label: "Category", value: form.agentCategory },
-                        { label: "Operator", value: address ? shortenAddress(address, 6) : "---" },
+                        { label: "Operator", value: activeAddress ? shortenAddress(activeAddress, 6) : "---" },
                         ...(needsToken && form.externalTokenAddress
                           ? [{ label: "Token", value: shortenAddress(form.externalTokenAddress, 6) }]
                           : []),
@@ -514,13 +652,18 @@ export default function AgentOnboarding() {
                           ? [{ label: "Agent ID", value: form.externalAgentId }]
                           : []),
                         { label: "Smart Wallet", value: form.deploySmartWallet ? "Enabled" : "Disabled" },
+                        ...(form.deploySmartWallet && useWDKForAgent
+                          ? [{ label: "Wallet Provider", value: "Tether WDK" }]
+                          : []),
                       ].map((item) => (
                         <div key={item.label} className="flex justify-between text-sm px-4 py-3">
                           <span className="text-muted-foreground">{item.label}</span>
                           <span className={`font-medium truncate ml-4 min-w-0 ${
                             item.label === "Smart Wallet" && form.deploySmartWallet
                               ? "text-sky-600 dark:text-sky-400"
-                              : "text-foreground"
+                              : item.label === "Wallet Provider"
+                                ? "text-teal-600 dark:text-teal-400"
+                                : "text-foreground"
                           }`} style={item.label === "Ecosystem" && "color" in item ? { color: item.color as string } : undefined}>
                             {item.label === "Smart Wallet" && form.deploySmartWallet && (
                               <ShieldCheck className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
@@ -547,14 +690,28 @@ export default function AgentOnboarding() {
                           <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                           AgentVault (ERC-4626)
                         </div>
-                        {form.deploySmartWallet && (
+                        {form.deploySmartWallet && !useWDKForAgent && (
                           <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
                             <div className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-                            Smart Wallet
+                            Smart Wallet (ERC-4337)
+                          </div>
+                        )}
+                        {form.deploySmartWallet && useWDKForAgent && (
+                          <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400">
+                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                            <span className="flex items-center gap-1.5">
+                              Tether WDK Wallet
+                              <Shield className="w-3 h-3" />
+                            </span>
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {/* WDK badge in deploy step */}
+                    {useWDKForAgent && form.deploySmartWallet && (
+                      <WDKBadge />
+                    )}
 
                     <ClickSpark>
                       <Button

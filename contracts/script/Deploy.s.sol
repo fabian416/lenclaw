@@ -10,6 +10,8 @@ import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {DutchAuction} from "../src/DutchAuction.sol";
 import {RecoveryManager} from "../src/RecoveryManager.sol";
 import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
+import {WDKWalletFactory} from "../src/WDKWalletFactory.sol";
+import {USDT0Bridge} from "../src/USDT0Bridge.sol";
 
 /// @notice Mock USDC for local testing
 contract MockUSDC is ERC20 {
@@ -82,7 +84,22 @@ contract DeployLenclaw is Script {
         // 10. Configure: link registry to factory for auto vault deployment
         registry.setVaultFactory(address(factory));
 
-        // 11. Mint some test USDC to deployer
+        // 11. Deploy WDKWalletFactory
+        // Use a placeholder EntryPoint for local testing; replace with real ERC-4337 EntryPoint on mainnet
+        address entryPointPlaceholder = address(0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789); // ERC-4337 v0.6 EntryPoint
+        WDKWalletFactory wdkFactory =
+            new WDKWalletFactory(address(usdc), address(registry), entryPointPlaceholder, deployer);
+        console.log("WDKWalletFactory deployed at:", address(wdkFactory));
+
+        // 12. Deploy USDT0Bridge
+        // Use mock USDC as USDT0 stand-in for local testing; replace with real USDT0 on mainnet
+        USDT0Bridge bridge = new USDT0Bridge(address(usdc), address(registry), address(0), deployer);
+        console.log("USDT0Bridge deployed at:", address(bridge));
+
+        // 12b. Configure bridge: enable Base Sepolia as supported chain (EID 40245)
+        bridge.setSupportedChain(40245, true);
+
+        // 13. Mint some test USDC to deployer
         usdc.mint(deployer, 1_000_000e6); // 1M USDC
 
         vm.stopBroadcast();

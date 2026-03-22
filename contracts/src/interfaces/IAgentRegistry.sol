@@ -35,4 +35,8 @@ interface IAgentRegistry {
     function getAgent(uint256 agentId) external view returns (AgentProfile memory);
     function getAgentIdByWallet(address wallet) external view returns (uint256);
     function isRegistered(uint256 agentId) external view returns (bool);
+    function setWDKWallet(uint256 agentId, bool _isWDK) external;
+    function setAuthorizedFactory(address _factory, bool _authorized) external;
+    function agentUsesWDKWallet(uint256 agentId) external view returns (bool);
+    function isWDKWallet(uint256 agentId) external view returns (bool);
 }

@@ -23,18 +23,27 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
     mapping(uint256 => AgentProfile) private _agents;
     mapping(address => uint256) private _walletToAgent;
 
+    /// @notice Tracks whether an agent's smart wallet is a WDK (ERC-4337) wallet
+    mapping(uint256 => bool) public isWDKWallet;
+
+    event WDKWalletFlagSet(uint256 indexed agentId, bool isWDK);
+
     address public protocol;
     IAgentVaultFactory public vaultFactory;
+
+    /// @notice Additional authorized factories (e.g. WDKWalletFactory)
+    mapping(address => bool) public authorizedFactories;
 
     modifier onlyProtocol() {
         require(msg.sender == protocol || msg.sender == owner(), "AgentRegistry: not protocol");
         _;
     }
 
-    /// @dev Only the owner, protocol, or vault factory can call
+    /// @dev Only the owner, protocol, vault factory, or an authorized factory can call
     modifier onlyAuthorized() {
         require(
-            msg.sender == owner() || msg.sender == protocol || msg.sender == address(vaultFactory),
+            msg.sender == owner() || msg.sender == protocol || msg.sender == address(vaultFactory)
+                || authorizedFactories[msg.sender],
             "AgentRegistry: not authorized"
         );
         _;
@@ -51,6 +60,12 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
     function setVaultFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "AgentRegistry: zero factory");
         vaultFactory = IAgentVaultFactory(_factory);
+    }
+
+    /// @notice Authorize or deauthorize an additional factory (e.g. WDKWalletFactory)
+    function setAuthorizedFactory(address _factory, bool _authorized) external onlyOwner {
+        require(_factory != address(0), "AgentRegistry: zero factory");
+        authorizedFactories[_factory] = _authorized;
     }
 
     function registerAgent(
@@ -136,6 +151,19 @@ contract AgentRegistry is ERC721, Ownable, IAgentRegistry {
         _agents[agentId].smartWallet = _smartWallet;
 
         emit SmartWalletSet(agentId, _smartWallet);
+    }
+
+    /// @notice Mark an agent's smart wallet as a WDK (ERC-4337) wallet.
+    ///         Called by the WDKWalletFactory or protocol after WDK wallet deployment.
+    function setWDKWallet(uint256 agentId, bool _isWDK) external onlyAuthorized {
+        require(_ownerOf(agentId) != address(0), "AgentRegistry: agent not found");
+        isWDKWallet[agentId] = _isWDK;
+        emit WDKWalletFlagSet(agentId, _isWDK);
+    }
+
+    /// @notice Check if an agent uses a WDK (ERC-4337) wallet
+    function agentUsesWDKWallet(uint256 agentId) external view returns (bool) {
+        return isWDKWallet[agentId];
     }
 
     function setLockbox(uint256 agentId, address lockbox) external onlyProtocol {
