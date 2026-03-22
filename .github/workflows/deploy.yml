@@ -7,8 +7,8 @@ name: Build & Deploy
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BACKEND: ghcr.io/lucholeonel/lenclaw/backend
-  IMAGE_FRONTEND: ghcr.io/lucholeonel/lenclaw/frontend
+  IMAGE_BACKEND: ghcr.io/fabian416/lenclaw/backend
+  IMAGE_FRONTEND: ghcr.io/fabian416/lenclaw/frontend
 
 on:
   push:

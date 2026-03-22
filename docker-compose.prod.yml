@@ -11,7 +11,7 @@ services:
   # Frontend - React SPA (nginx)
   # ---------------------------------------------------------------------------
   lenclaw-frontend:
-    image: ghcr.io/lucholeonel/lenclaw/frontend:latest
+    image: ghcr.io/fabian416/lenclaw/frontend:latest
     container_name: lenclaw-frontend
     restart: unless-stopped
     expose:
@@ -32,7 +32,7 @@ services:
   # Backend - FastAPI + Gunicorn/Uvicorn
   # ---------------------------------------------------------------------------
   lenclaw-backend:
-    image: ghcr.io/lucholeonel/lenclaw/backend:latest
+    image: ghcr.io/fabian416/lenclaw/backend:latest
     container_name: lenclaw-backend
     restart: unless-stopped
     expose:
