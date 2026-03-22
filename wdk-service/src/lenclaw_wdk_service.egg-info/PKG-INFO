@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: lenclaw-wdk-service
+Version: 0.1.0
+Requires-Python: >=3.12
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.34.0
+Requires-Dist: mnemonic>=0.21
+Requires-Dist: eth-account>=0.13.0
+Requires-Dist: web3>=7.0.0
+Requires-Dist: httpx>=0.28.0
+Requires-Dist: celery[redis]>=5.4.0
+Requires-Dist: pydantic-settings>=2.7.0
+Requires-Dist: python-dotenv>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.24.0; extra == "dev"
