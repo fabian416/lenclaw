@@ -48,6 +48,10 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     /// @notice SmartWallet enforcement: require agents to have a SmartWallet for drawdowns
     bool public requireSmartWallet = true;
 
+    /// @notice Optional ZK verifier: if set, drawdowns require a valid ZK proof
+    address public zkVerifier;
+    bool public requireZKProof = false;
+
     mapping(uint256 => CreditFacility) public facilities;
     mapping(uint256 => uint256) public lastPaymentTimestamp;
 
@@ -108,6 +112,14 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
         requireSmartWallet = _require;
     }
 
+    function setZKVerifier(address _verifier) external onlyOwner {
+        zkVerifier = _verifier;
+    }
+
+    function setRequireZKProof(bool _require) external onlyOwner {
+        requireZKProof = _require;
+    }
+
     function pause() external onlyOwner {
         _pause();
     }
@@ -158,6 +170,14 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
         // SmartWallet enforcement: agent must have a SmartWallet deployed
         if (requireSmartWallet) {
             require(profile.smartWallet != address(0), "AgentCreditLine: must have SmartWallet");
+        }
+
+        // Optional ZK proof gate: if enabled, agent must have a valid proof
+        if (requireZKProof && zkVerifier != address(0)) {
+            (bool ok, bytes memory data) = zkVerifier.staticcall(
+                abi.encodeWithSignature("isProofValid(uint256)", agentId)
+            );
+            require(ok && data.length >= 32 && abi.decode(data, (bool)), "AgentCreditLine: ZK proof required");
         }
 
         // Lazy status check - detect delinquency/default before allowing new borrows

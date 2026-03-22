@@ -15,48 +15,45 @@ import {
 // ── Context types ───────────────────────────────────────────────────────────
 
 interface WDKContextValue {
-  /** Whether WDK wallet is connected */
+  /** Wallet is fully ready (created/restored AND backup confirmed or auto-restored) */
   isConnected: boolean
-  /** Whether WDK is currently initializing (auto-restore on mount) */
+  /** Wallet exists but backup not yet confirmed (first-time creation) */
+  isPendingBackup: boolean
+  /** Loading on mount (auto-restore attempt) */
   isLoading: boolean
-  /** Wallet address if connected */
+  /** Wallet address */
   address: string | null
-  /** Seed phrase (visible only during creation flow) */
+  /** Seed phrase — only available right after creation, cleared after backup confirm */
   seedPhrase: string | null
-  /** Account info with balances */
+  /** Balances */
   accountInfo: WDKAccountInfo | null
-  /** Human-readable USDC balance */
   usdcDisplay: string
-  /** Human-readable ETH balance */
   ethDisplay: string
-  /** Create a brand-new WDK wallet */
+  /** Actions */
   createWallet: () => Promise<void>
-  /** Restore wallet from an existing seed phrase */
   restoreWallet: (seed: string) => Promise<void>
-  /** Disconnect and wipe local state */
+  confirmBackup: () => void
   disconnect: () => void
-  /** Refresh balances */
   refreshBalances: () => Promise<void>
-  /** Error message if something went wrong */
   error: string | null
-  /** Clear error */
   clearError: () => void
 }
 
 const WDKContext = createContext<WDKContextValue | null>(null)
 
-// ── Provider component ──────────────────────────────────────────────────────
+// ── Provider ────────────────────────────────────────────────────────────────
 
 export function WDKProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [walletState, setWalletState] = useState<WDKWalletState | null>(null)
   const [accountInfo, setAccountInfo] = useState<WDKAccountInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Track if this is a fresh creation that needs backup confirmation
+  const [pendingBackup, setPendingBackup] = useState(false)
 
-  // Guard against race conditions between auto-restore and manual create/restore
   const operationInProgress = useRef(false)
 
-  // Auto-restore on mount
+  // Auto-restore on mount — if seed exists in localStorage, silently connect
   useEffect(() => {
     let cancelled = false
 
@@ -70,19 +67,21 @@ export function WDKProvider({ children }: { children: ReactNode }) {
         const restored = await tryAutoRestore()
         if (!cancelled && restored) {
           setWalletState(restored)
-          // Fetch balances in background
+          // Auto-restored = user already backed up seed before, no backup needed
+          setPendingBackup(false)
+          // Fetch balances silently
           const wdk = getWDKInstance()
           if (wdk) {
             try {
               const info = await getWDKAccountInfo(wdk)
               if (!cancelled) setAccountInfo(info)
             } catch {
-              // Balance fetch can fail silently on initial load
+              // non-critical
             }
           }
         }
       } catch {
-        // Auto-restore failure is not critical
+        // auto-restore failure is not critical
       } finally {
         operationInProgress.current = false
         if (!cancelled) setIsLoading(false)
@@ -90,11 +89,7 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     }
 
     autoRestore()
-    return () => {
-      cancelled = true
-      // Cleanup WDK on unmount
-      disposeWDK()
-    }
+    return () => { cancelled = true }
   }, [])
 
   const createWallet = useCallback(async () => {
@@ -104,15 +99,15 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     try {
       const state = await createWDKWallet()
       setWalletState(state)
-
+      // Mark as pending backup — user must confirm they saved the seed
+      setPendingBackup(true)
+      // Try to fetch balances
       const wdk = getWDKInstance()
       if (wdk) {
         try {
           const info = await getWDKAccountInfo(wdk)
           setAccountInfo(info)
-        } catch {
-          // Balance fetch failure is non-critical
-        }
+        } catch { /* non-critical */ }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to create wallet"
@@ -129,15 +124,14 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     try {
       const state = await restoreWDKWallet(seed)
       setWalletState(state)
-
+      // Restored = user already has seed backed up, no backup needed
+      setPendingBackup(false)
       const wdk = getWDKInstance()
       if (wdk) {
         try {
           const info = await getWDKAccountInfo(wdk)
           setAccountInfo(info)
-        } catch {
-          // Balance fetch failure is non-critical
-        }
+        } catch { /* non-critical */ }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to restore wallet"
@@ -147,31 +141,37 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const confirmBackup = useCallback(() => {
+    setPendingBackup(false)
+  }, [])
+
   const disconnect = useCallback(() => {
     disposeWDK()
     clearStoredSeedPhrase()
     setWalletState(null)
     setAccountInfo(null)
     setError(null)
+    setPendingBackup(false)
   }, [])
 
   const refreshBalances = useCallback(async () => {
     const wdk = getWDKInstance()
     if (!wdk) return
-
     try {
       const info = await getWDKAccountInfo(wdk)
       setAccountInfo(info)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to refresh balances"
-      setError(msg)
+      setError(err instanceof Error ? err.message : "Failed to refresh")
     }
   }, [])
 
   const clearError = useCallback(() => setError(null), [])
 
+  const hasWallet = walletState?.isInitialized ?? false
+
   const value: WDKContextValue = {
-    isConnected: walletState?.isInitialized ?? false,
+    isConnected: hasWallet && !pendingBackup,
+    isPendingBackup: hasWallet && pendingBackup,
     isLoading,
     address: walletState?.address ?? null,
     seedPhrase: walletState?.seedPhrase ?? null,
@@ -180,6 +180,7 @@ export function WDKProvider({ children }: { children: ReactNode }) {
     ethDisplay: accountInfo ? formatETHBalance(accountInfo.ethBalance) : "0.000",
     createWallet,
     restoreWallet,
+    confirmBackup,
     disconnect,
     refreshBalances,
     error,
@@ -193,8 +194,6 @@ export function WDKProvider({ children }: { children: ReactNode }) {
 
 export function useWDK(): WDKContextValue {
   const ctx = useContext(WDKContext)
-  if (!ctx) {
-    throw new Error("useWDK must be used within a <WDKProvider>")
-  }
+  if (!ctx) throw new Error("useWDK must be used within <WDKProvider>")
   return ctx
 }

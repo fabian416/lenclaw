@@ -28,18 +28,12 @@ use crate::reputation_minimum;
 /// The composite credit proof struct containing all verification results.
 /// This is returned to provide structured output from the circuit.
 pub struct CreditProofResult {
-    /// Whether revenue meets the threshold
-    revenue_ok: bool,
-    /// Whether code integrity is verified
-    code_ok: bool,
-    /// Whether reputation meets the minimum
-    reputation_ok: bool,
-    /// Revenue tier (0-4) - disclosed without revealing exact amount
-    revenue_tier: u8,
-    /// Reputation band (0-3) - disclosed without revealing exact score
-    reputation_band: u8,
-    /// Overall eligibility
-    eligible: bool,
+    pub revenue_ok: bool,
+    pub code_ok: bool,
+    pub reputation_ok: bool,
+    pub revenue_tier: u8,
+    pub reputation_band: u8,
+    pub eligible: bool,
 }
 
 /// Generate a composite credit proof that verifies all three conditions.

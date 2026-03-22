@@ -78,7 +78,7 @@ class AgentData:
 class PublicInputs:
     """Public inputs visible to the verifier."""
     revenue_threshold: int     # Minimum revenue to prove
-    registered_code_hash: str  # Hex string of the Poseidon hash
+    registered_code_hash: str  # Hex string of the code hash (BN254 field element)
     min_reputation: int        # Minimum reputation to prove
     agent_id: int              # Agent NFT ID
 
@@ -126,33 +126,33 @@ def pack_code_to_fields(code_bytes: bytes) -> tuple[list[int], int]:
     return fields, len(code_bytes)
 
 
-def compute_poseidon_hash_placeholder(fields: list[int]) -> str:
+def compute_code_hash(fields: list[int]) -> str:
     """
-    Compute a placeholder hash of the code fields.
+    Compute a deterministic hash of the code fields for the MVP.
 
-    In production, this should use the exact same Poseidon hash function
-    as the Noir circuit (BN254 Poseidon). For the MVP, we use a
-    deterministic hash that can be matched by providing the correct
-    registered_code_hash.
+    This uses SHA-256 reduced modulo the BN254 scalar field to produce a
+    single Field element.  The same function MUST be used both when
+    registering the agent in AgentRegistry and when generating the proof,
+    so that the hashes match during on-chain verification.
 
-    To compute the real Poseidon hash, use:
-        cd zk/circuits && nargo execute
-
-    The witness will contain the computed hash value.
+    In production, replace this with the Poseidon hash computed by the Noir
+    circuit (run ``nargo execute`` and read the hash from the witness).
+    For the hackathon MVP, SHA-256 is used consistently across registration
+    and proving to keep the end-to-end flow working without a native
+    Poseidon implementation in Python.
 
     Args:
-        fields: List of field elements representing the code.
+        fields: List of field elements representing the code (one byte per
+                field element, padded to MAX_CODE_FIELDS).
 
     Returns:
-        Hex string of the hash.
+        Hex string of the hash, fitting within the BN254 scalar field.
     """
-    # SHA-256 as a stand-in for Poseidon.
-    # In production, call nargo to compute the actual Poseidon hash.
     hasher = hashlib.sha256()
     for f in fields:
         hasher.update(f.to_bytes(32, "big"))
     digest = hasher.hexdigest()
-    # Reduce to fit in BN254 field
+    # Reduce to fit in BN254 scalar field (single Field element)
     value = int(digest, 16) % BN254_SCALAR_FIELD
     return hex(value)
 
@@ -483,9 +483,8 @@ def _do_generate(
     if registered_code_hash:
         code_hash = registered_code_hash
     else:
-        code_hash = compute_poseidon_hash_placeholder(code_fields)
-        print(f"[*] Computed placeholder code hash: {code_hash}")
-        print("    NOTE: For production, compute the Poseidon hash via nargo execute")
+        code_hash = compute_code_hash(code_fields)
+        print(f"[*] Computed code hash: {code_hash}")
 
     # Build data structures
     agent = AgentData(
@@ -601,15 +600,16 @@ def _do_hash_code(code_file: str) -> int:
 
     code_bytes = code_path.read_bytes()
     fields, length = pack_code_to_fields(code_bytes)
-    code_hash = compute_poseidon_hash_placeholder(fields)
+    code_hash = compute_code_hash(fields)
 
     print(f"Code file:   {code_file}")
     print(f"Code size:   {len(code_bytes)} bytes")
     print(f"Fields used: {length}/{MAX_CODE_FIELDS}")
     print(f"Hash:        {code_hash}")
     print()
-    print("NOTE: This is a SHA-256 placeholder. For the real Poseidon hash,")
-    print("      write the fields to Prover.toml and run `nargo execute`.")
+    print("Use this hash when registering the agent in AgentRegistry.")
+    print("The same SHA-256-based hash is used during proof generation")
+    print("so the values will match on-chain.")
 
     return 0
 

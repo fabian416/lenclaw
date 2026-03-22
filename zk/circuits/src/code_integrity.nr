@@ -9,23 +9,17 @@
 /// Output:
 ///   - bool: true if hash(code_bytes) == registered_hash
 
-use std::hash::poseidon;
+use std::hash::poseidon2::Poseidon2;
 
 /// Maximum code size in field elements for the circuit.
 /// Each field element can hold ~254 bits. We pack code bytes into field elements.
 /// 256 field elements * 31 bytes each = ~7.9 KB of code.
 global MAX_CODE_FIELDS: u32 = 256;
 
-/// Hash a fixed-size array of field elements representing code bytes using Poseidon.
-/// Poseidon is ZK-friendly and much cheaper in-circuit than Keccak.
-///
-/// We use a two-stage Poseidon approach:
-///   1. Hash chunks of the code array
-///   2. Hash the chunk hashes together for the final digest
+/// Hash a fixed-size array of field elements representing code bytes using Poseidon2.
+/// Poseidon2 is ZK-friendly and the standard hash in Noir 1.0+.
 fn hash_code(code_fields: [Field; MAX_CODE_FIELDS]) -> Field {
-    // Poseidon hash over the full array.
-    // Noir's std::hash::poseidon works on fixed-size arrays.
-    poseidon::bn254::hash_256(code_fields)
+    Poseidon2::hash(code_fields, MAX_CODE_FIELDS)
 }
 
 /// Verify that the hash of private code bytes matches a public registered hash.

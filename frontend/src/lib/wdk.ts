@@ -88,7 +88,7 @@ export async function isValidSeedPhrase(seed: string): Promise<boolean> {
 }
 
 export async function createWDKWallet(): Promise<WDKWalletState> {
-  const { address, seedPhrase } = await wdkFetch<{ address: string; seedPhrase: string }>("/api/wdk/create")
+  const { address, seedPhrase } = await wdkFetch<{ address: string; seedPhrase: string }>("/api/wdk/create", {})
   storeSeedPhrase(seedPhrase)
   return { address, seedPhrase, isInitialized: true }
 }

@@ -29,6 +29,9 @@ contract CreditScorer is Ownable, ICreditScorer {
     // Credit line contract for reading borrowing history
     address public creditLine;
 
+    // Optional ZK verifier for proof-based credit boost
+    address public zkVerifier;
+
     // Scoring weights (out of 100) — all based on observable on-chain data
     uint256 public constant WEIGHT_REVENUE = 30;       // How much they generate
     uint256 public constant WEIGHT_CONSISTENCY = 25;    // How steadily they generate it
@@ -45,6 +48,10 @@ contract CreditScorer is Ownable, ICreditScorer {
 
     function setCreditLine(address _creditLine) external onlyOwner {
         creditLine = _creditLine;
+    }
+
+    function setZKVerifier(address _verifier) external onlyOwner {
+        zkVerifier = _verifier;
     }
 
     function setParameters(
@@ -89,6 +96,16 @@ contract CreditScorer is Ownable, ICreditScorer {
 
         // --- Credit limit from composite score ---
         creditLimit = minCreditLine + (compositeScore * (maxCreditLine - minCreditLine)) / 100;
+
+        // --- Optional ZK proof bonus: 1.25x credit limit ---
+        if (zkVerifier != address(0)) {
+            (bool ok, bytes memory data) = zkVerifier.staticcall(
+                abi.encodeWithSignature("isProofValid(uint256)", agentId)
+            );
+            if (ok && data.length >= 32 && abi.decode(data, (bool))) {
+                creditLimit = (creditLimit * 125) / 100;
+            }
+        }
 
         // Clamp credit limit
         if (creditLimit < minCreditLine) creditLimit = minCreditLine;
