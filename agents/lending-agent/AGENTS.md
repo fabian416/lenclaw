@@ -71,12 +71,15 @@ Issue, track, and manage loans via `AgentCreditLine`.
 
 ## zk_verifier
 
-Verify zero-knowledge credit proofs via `ZKCreditVerifier`.
+Verify zero-knowledge credit proofs via `ZKCreditVerifier` + `HonkVerifier`.
 
 **Actions:**
-- `verify_proof` — Validate a ZK proof of creditworthiness
-- `generate_attestation` — Create a privacy-preserving credit attestation for an agent
-- `check_threshold` — Verify an agent meets a credit threshold without revealing exact score
+- `verify_proof` — Submit and verify a Noir ZK proof of creditworthiness on-chain via `verifyCredit()`
+- `generate_attestation` — Run the off-chain Noir prover (`prove.py`) to generate a composite credit proof from private inputs (revenue, code hash, reputation)
+- `check_threshold` — Verify an agent meets a credit threshold without revealing exact score via `isCreditEligible()`
+- `proof_status` — Check whether an agent has a valid, non-expired proof via `isProofValid()`
+- `get_tiers` — Retrieve the privacy-safe revenue tier (0–4) and reputation band (0–3) from the last verified proof via `getRevenueTier()` / `getReputationBand()`
 
-**Contract:** `ZKCreditVerifier`
-**Circuit:** Groth16 proof over CreditScorer inputs
+**Contracts:** `ZKCreditVerifier`, `HonkVerifier` (barretenberg)
+**Circuit:** Noir composite credit proof (revenue threshold + code integrity + reputation minimum) verified with Honk (barretenberg backend) over BN254
+**Proof expiry:** Configurable, default 7 days
