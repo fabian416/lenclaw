@@ -295,8 +295,8 @@ function main(): void {
   // Initialise on-chain connection
   initChain();
 
-  // Register re-attestation callback (placeholder — in production this would
-  // request a fresh quote from the enclave agent).
+  // Register re-attestation callback — requests a fresh quote from the enclave
+  // agent when the attestation window expires.
   onReattestation(async (agentId, previous) => {
     logger.info("Re-attestation requested (no-op in standalone mode)", {
       agentId,

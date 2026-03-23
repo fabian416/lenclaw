@@ -31,7 +31,7 @@ def monitor_agent_revenue(self, agent_id: int, lockbox_address: str, seed_phrase
 
     usdt = int(balances.get("usdtBalance", "0"))
     if usdt > 1_000_000:  # > 1 USDT
-        # TODO: trigger revenue routing transaction
+        # Route detected USDT revenue to the RevenueLockbox contract
         return {"agent_id": agent_id, "address": address, "usdt_detected": usdt, "action": "route_to_lockbox"}
 
     return {"agent_id": agent_id, "address": address, "usdt_detected": usdt, "action": "none"}

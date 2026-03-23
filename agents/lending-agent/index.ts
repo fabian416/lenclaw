@@ -12,12 +12,10 @@ import { WalletManagerEvm } from '@tetherto/wdk-wallet-evm'
 import {
   type Address,
   createPublicClient,
-  createWalletClient,
   http,
   encodeFunctionData,
   formatUnits,
 } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
 import { base } from 'viem/chains'
 
 // ---------------------------------------------------------------------------
@@ -956,13 +954,13 @@ async function initAgent(wallet: AgentWallet) {
             // Prepare transaction data (not broadcasting — returns for WDK execution)
             const withdrawData = encodeFunctionData({
               abi: AGENT_VAULT_ABI,
-              functionName: 'withdraw' as any,
+              functionName: 'withdraw',
               args: [amount, wallet.address, wallet.address],
             })
 
             const depositData = encodeFunctionData({
               abi: AGENT_VAULT_ABI,
-              functionName: 'deposit' as any,
+              functionName: 'deposit',
               args: [amount, wallet.address],
             })
 
@@ -1051,8 +1049,8 @@ async function initAgent(wallet: AgentWallet) {
               verifiedAt: timestamp.toString(),
               attestation: isValid
                 ? {
-                    revenueTier: (proofData as any)?.revenueTier,
-                    reputationBand: (proofData as any)?.reputationBand,
+                    revenueTier: proofData?.revenueTier,
+                    reputationBand: proofData?.reputationBand,
                     proofExpiry: 'Valid for 7 days from verification',
                   }
                 : null,

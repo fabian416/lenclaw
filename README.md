@@ -4,7 +4,7 @@
 
 AI agents are becoming independent economic actors -- running arbitrage, solving intents, managing yield. They generate verifiable on-chain revenue. But they can't access credit. Banks won't lend to code. DeFi pools require overcollateralization that agents don't have. No institution is designed to assess a non-human borrower.
 
-Lenclaw solves this by replacing legal enforcement with **architectural guarantees**: an immutable lockbox that captures agent revenue and auto-splits repayments before the agent touches a single USDT. No collateral. No human intervention. No legal contracts. Pure smart contract credit.
+Lenclaw solves this by replacing legal enforcement with **architectural guarantees**: an immutable lockbox that captures agent revenue and auto-splits repayments before the agent touches a single USD₮. No collateral. No human intervention. No legal contracts. Pure smart contract credit.
 
 **Built for the [Lending Bot](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01) track.** Deployed on Base mainnet with [Tether WDK](https://wdk.tether.io/).
 
@@ -16,7 +16,7 @@ In traditional finance, a borrower repays because:
 1. **Legal contracts** force them to (threat of courts)
 2. **Collateral** can be seized (real assets back the loan)
 
-Agents have neither. An agent is code. You can't sue it. You can't seize its assets without its cooperation. And existing DeFi (Aave, Compound, Maker) requires overcollateralization -- if an agent had 150K USDT to deposit as collateral, it wouldn't need to borrow 100K.
+Agents have neither. An agent is code. You can't sue it. You can't seize its assets without its cooperation. And existing DeFi (Aave, Compound, Maker) requires overcollateralization -- if an agent had 150K USD₮ to deposit as collateral, it wouldn't need to borrow 100K.
 
 **Lenclaw introduces a third paradigm: architectural enforcement.**
 
@@ -32,7 +32,7 @@ This is the key insight: **trust in the agentic economy must be coded, not contr
 |-------------------|---------------------|----------|
 | **Agents issue loans autonomously** | LenBot (OpenClaw) autonomously scores borrowers and approves drawdowns using 5-factor CreditScorer -- zero human approval | `agents/lending-agent/`, `CreditScorer.sol` |
 | **How do trust and risk evolve?** | Trust shifts from legal enforcement to architectural guarantees; risk is vault-isolated per agent | `RevenueLockbox.sol` (immutable), vault-per-agent model |
-| **USD₮ settlement on-chain** | All transactions settle in USDT on Base mainnet -- WDK is the sole wallet infrastructure | Deployed contracts, `WDKSmartWallet.sol` |
+| **USD₮ settlement on-chain** | All transactions settle in USD₮ on Base mainnet -- WDK is the sole wallet infrastructure | Deployed contracts, `WDKSmartWallet.sol` |
 | **Autonomous repayment collection** | RevenueLockbox auto-deducts repayments every 30s; WDK agent monitors and routes revenue | `agents/wdk-agent/`, `RevenueLockbox.sol` |
 | **Credit-scoring systems** | 5-factor on-chain behavioral scoring: revenue (30%), consistency (25%), history (20%), time (15%), debt ratio (10%) | `CreditScorer.sol` |
 | **Undercollateralized lending** | Zero collateral -- agents borrow against future revenue, enforced by immutable lockbox | `AgentCreditLine.sol`, `RevenueLockbox.sol` |
@@ -52,9 +52,9 @@ Traditional lending relies on one of two things:
 
 Lenclaw introduces **architectural enforcement**:
 
-The RevenueLockbox is immutable -- deployed once per agent, forever unchangeable. It captures all revenue and auto-splits repayments before the agent receives a single USDT. The agent can change its code, migrate providers, update strategies -- but every transaction passes through the lockbox first. This makes undercollateralized lending possible for non-human borrowers.
+The RevenueLockbox is immutable -- deployed once per agent, forever unchangeable. It captures all revenue and auto-splits repayments before the agent receives a single USD₮. The agent can change its code, migrate providers, update strategies -- but every transaction passes through the lockbox first. This makes undercollateralized lending possible for non-human borrowers.
 
-**Result**: Agents can borrow up to 100K USDT against verifiable on-chain revenue. No human intervention. No legal contracts. No collateral. Pure smart contract certainty.
+**Result**: Agents can borrow up to 100K USD₮ against verifiable on-chain revenue. No human intervention. No legal contracts. No collateral. Pure smart contract certainty.
 
 ```
   Agent earns revenue --> RevenueLockbox (immutable) --> auto-split
@@ -71,7 +71,7 @@ The RevenueLockbox is immutable -- deployed once per agent, forever unchangeable
 ## How It Works
 
 1. **Agent registers** via AgentRegistry (ERC-721 / ERC-8004 identity). A personal AgentVault + RevenueLockbox + WDK SmartWallet are deployed atomically
-2. **Backers deposit** USDT into a specific agent's vault. They receive agent-specific shares -- not pooled exposure
+2. **Backers deposit** USD₮ into a specific agent's vault. They receive agent-specific shares -- not pooled exposure
 3. **Credit line** is calculated autonomously by CreditScorer (5 on-chain factors, no human input)
 4. **Agent borrows** from its own vault. Repayments are auto-deducted by the lockbox
 5. **Default path**: Vault freezes -> Dutch auction -> RecoveryManager distributes proceeds to backers
@@ -166,7 +166,7 @@ Fully autonomous, on-chain behavioral scoring -- no human intervention:
 | Time in protocol | 15% | AgentRegistry.registeredAt |
 | Debt-to-revenue ratio | 10% | Outstanding debt vs revenue flow |
 
-**Output**: Credit line 100-100K USDT at 3-25% APR (inversely proportional to composite score).
+**Output**: Credit line 100-100K USD₮ at 3-25% APR (inversely proportional to composite score).
 
 ---
 
@@ -198,7 +198,7 @@ Fully autonomous, on-chain behavioral scoring -- no human intervention:
 |----------|-------------|
 | `DutchAuction` | Price decays 150% -> 30% of debt over 6 hours |
 | `RecoveryManager` | Distributes auction proceeds to vault, writes down losses |
-| `LiquidationKeeper` | Automated default monitoring with keeper bounty (1%, max 1K USDT) |
+| `LiquidationKeeper` | Automated default monitoring with keeper bounty (1%, max 1K USD₮) |
 
 ### Governance
 
@@ -265,18 +265,18 @@ cd backend && pytest          # backend tests
 
 | Suite | Tests | Coverage |
 |-------|-------|----------|
-| AgentVault | 8 | Deposits, withdrawals, timelock, freeze |
+| AgentVault | 21 | Deposits, withdrawals, borrow, repayment, protocol fees, deposit cap, utilization, yield accrual, access control, pause |
 | AgentVaultFactory | 13 | Atomic deployment, multi-vault |
 | AgentRegistry | 27 | Registration, identity, WDK flag |
 | RevenueLockbox | 21 | Revenue split, epoch tracking, credit sync |
-| AgentCreditLine | 14 | Drawdown, repay, status transitions |
+| AgentCreditLine | 21 | Drawdown, repay, interest accrual, status transitions, credit refresh, grace/delinquency/default periods, smart wallet enforcement |
 | CreditScorer | 18 | 5-factor scoring, boundary conditions |
 | AgentSmartWallet | 19 | Revenue routing, target whitelist |
 | WDKSmartWallet | 31 | ERC-4337 validateUserOp, batch execute, nonce |
 | USDT0Bridge | 54 | Bridge out/in, fee estimation, rescue |
-| Liquidation | 14 | Default -> auction -> recovery flow |
-| Integration | 21 | End-to-end workflows |
-| Governance | 8 | Token, governor, timelock |
+| Liquidation | 34 | Dutch auction lifecycle, price decay, bid settlement, keeper bounty, recovery finalization, loss distribution, reputation slash, aggregate stats, full liquidation flow |
+| Integration | 3 | Full lifecycle, delinquency-to-default flow, lockbox revenue accumulation |
+| Governance | 26 | Token minting/supply/delegation, timelock, governor settings, protocol params, governance lifecycle (propose/vote/queue/execute), proposal threshold |
 | Fuzz | 18 | Property-based testing (256+ iterations) |
 
 ---
@@ -350,7 +350,7 @@ Lenclaw is designed as infrastructure others can extend:
 - **New scoring models**: CreditScorer weights are governance-adjustable
 - **New vault strategies**: ERC-4626 standard means composability with DeFi aggregators
 - **New chains**: USDT0Bridge pattern extends to any LayerZero-supported chain
-- **New collateral types**: Architecture supports USDT, USA₮, XAU₮, or any ERC-20
+- **New collateral types**: Architecture supports USD₮, USA₮, XAU₮, or any ERC-20
 
 The vault-per-agent + immutable lockbox pattern is a **new primitive for agentic finance** -- applicable beyond lending to insurance, reputation markets, and agent-to-agent commerce. Today, one agent borrows against its revenue. Tomorrow, agents lend to agents, insurance pools cover agent defaults, and AI economic actors form their own lending marketplaces.
 

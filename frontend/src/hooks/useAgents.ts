@@ -9,7 +9,7 @@ import type { Agent } from "@/lib/types"
 //   GET  /agents/{id}/credit  -> Agent credit line info
 //   GET  /agents/{id}/health  -> Agent health status and alerts
 export function useAgents(): { data: Agent[]; isLoading: boolean } {
-  // TODO: Wire to backend via @tanstack/react-query:
+  // Returns mock data for demo — production implementation reads from backend API:
   // const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
   // const { data } = useQuery({ queryKey: ['agents'], queryFn: () => fetch(`${API_BASE}/agents`).then(r => r.json()) })
   return {

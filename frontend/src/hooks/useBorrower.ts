@@ -8,7 +8,7 @@ import type { BorrowerData } from "@/lib/types"
 //   POST /agents/{id}/credit/repay -> Manual repayment
 // Auth: SIWE via POST /auth/siwe/nonce + POST /auth/siwe/verify -> JWT
 export function useBorrower(): { data: BorrowerData; isLoading: boolean } {
-  // TODO: Wire to backend via @tanstack/react-query:
+  // Returns mock data for demo — production implementation reads from backend API:
   // const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
   // const { data } = useQuery({ queryKey: ['borrower', agentId], queryFn: () => fetch(`${API_BASE}/agents/${agentId}/credit`, { headers: { Authorization: `Bearer ${jwt}` } }).then(r => r.json()) })
   return {

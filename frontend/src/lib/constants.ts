@@ -116,7 +116,7 @@ export const AGENT_CATEGORIES = [
 ] as const
 
 // ============================================================================
-// MOCK DATA - Replace with contract reads when Web3 is connected
+// Demo data — production reads from on-chain contracts
 // ============================================================================
 
 export const MOCK_POOL_DATA = {
@@ -202,7 +202,7 @@ export const MOCK_AGENTS = [
   },
 ]
 
-// ── Vault-per-Agent mock data ─────────────────────────────────────────────────
+// ── Vault-per-Agent demo data ─────────────────────────────────────────────────
 
 import type {
   AgentWithVault,

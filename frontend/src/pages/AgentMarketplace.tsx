@@ -108,7 +108,7 @@ export default function AgentMarketplace() {
   }, [showSortDropdown])
 
   const filtered = useMemo(() => {
-    // Merge mock agents with newly registered agents from this session
+    // Merge demo agents with newly registered agents from this session
     const newAgentCards: AgentWithVault[] = newAgents.map((a) => ({
       id: a.id,
       name: a.name,
