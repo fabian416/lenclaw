@@ -15,15 +15,15 @@ import {ICreditScorer} from "./interfaces/ICreditScorer.sol";
 contract CreditScorer is Ownable, ICreditScorer {
     IAgentRegistry public immutable registry;
 
-    uint256 public minCreditLine = 100e6; // 100 USDC (6 decimals)
-    uint256 public maxCreditLine = 100_000e6; // 100,000 USDC
+    uint256 public minCreditLine = 100e6; // 100 USDT (6 decimals)
+    uint256 public maxCreditLine = 100_000e6; // 100,000 USDT
     uint256 public minRateBps = 300; // 3% APR
     uint256 public maxRateBps = 2500; // 25% APR
 
     // Revenue multiplier: credit line = revenue * multiplier / 100
     uint256 public revenueMultiplier = 300; // 3x revenue
 
-    // Minimum average revenue per epoch to count toward consistency (50 USDC)
+    // Minimum average revenue per epoch to count toward consistency (50 USDT)
     uint256 public minEpochRevenue = 50e6;
 
     // Credit line contract for reading borrowing history
@@ -85,7 +85,7 @@ contract CreditScorer is Ownable, ICreditScorer {
 
     /// @notice Calculate credit line based on observable on-chain behavior
     /// @param agentId The agent's NFT ID
-    /// @return creditLimit Maximum borrow amount in USDC (6 decimals)
+    /// @return creditLimit Maximum borrow amount in USDT (6 decimals)
     /// @return interestRateBps Annual interest rate in basis points
     function calculateCreditLine(uint256 agentId)
         external

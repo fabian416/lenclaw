@@ -7,7 +7,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 /// @title AgentSmartWallet - Revenue-routing smart wallet for AI agents
 /// @notice Agents opt into this wallet to get higher credit lines.
-///         All USDC revenue is auto-split before any outgoing operation.
+///         All USDT revenue is auto-split before any outgoing operation.
 contract AgentSmartWallet is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -19,7 +19,7 @@ contract AgentSmartWallet is ReentrancyGuard {
     uint256 public repaymentRateBps; // e.g., 5000 = 50%
 
     mapping(address => bool) public allowedTargets;
-    uint256 public totalRouted; // Track total USDC routed to lockbox
+    uint256 public totalRouted; // Track total USDT routed to lockbox
 
     event RevenueRouted(uint256 toLockbox, uint256 remaining);
     event Executed(address indexed target, uint256 value, bool success);
@@ -98,7 +98,7 @@ contract AgentSmartWallet is ReentrancyGuard {
         _routePendingRevenue();
     }
 
-    /// @notice Internal: split USDC balance between lockbox and wallet
+    /// @notice Internal: split USDT balance between lockbox and wallet
     function _routePendingRevenue() internal {
         uint256 balance = asset.balanceOf(address(this));
         if (balance == 0) return;

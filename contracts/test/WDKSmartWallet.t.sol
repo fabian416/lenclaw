@@ -15,7 +15,7 @@ contract WDKSmartWalletTest is Test {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
-    ERC20Mock usdc;
+    ERC20Mock usdt;
     AgentRegistry registry;
     AgentVaultFactory vaultFactory;
     WDKWalletFactory wdkFactory;
@@ -33,23 +33,23 @@ contract WDKSmartWalletTest is Test {
     function setUp() public {
         agentWallet = vm.addr(agentOwnerKey);
 
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         registry = new AgentRegistry(protocolOwner);
         vaultFactory = new AgentVaultFactory(address(registry), protocolOwner);
-        vaultFactory.setAllowedAsset(address(usdc), true);
+        vaultFactory.setAllowedAsset(address(usdt), true);
 
         // Link registry to factory
         registry.setVaultFactory(address(vaultFactory));
 
         // Register agent (auto-deploys vault + lockbox + standard smartWallet)
         agentId = registry.registerAgent(
-            agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdc)
+            agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdt)
         );
         vaultAddr = vaultFactory.getVault(agentId);
         lockboxAddr = vaultFactory.getLockbox(agentId);
 
         // Deploy WDK wallet factory
-        wdkFactory = new WDKWalletFactory(address(usdc), address(registry), entryPoint, protocolOwner);
+        wdkFactory = new WDKWalletFactory(address(usdt), address(registry), entryPoint, protocolOwner);
 
         // Authorize the WDK factory in the registry so it can call setSmartWallet
         registry.setAuthorizedFactory(address(wdkFactory), true);
@@ -184,15 +184,15 @@ contract WDKSmartWalletTest is Test {
         WDKSmartWallet wallet = _createWDKWallet();
         address walletAddr = address(wallet);
 
-        // Send USDC to the WDK wallet
-        usdc.mint(walletAddr, 1000e6);
+        // Send USDT to the WDK wallet
+        usdt.mint(walletAddr, 1000e6);
 
         // Route revenue (callable by anyone)
         wallet.routeRevenue();
 
         // 50% to lockbox, 50% remains in wallet
-        assertEq(usdc.balanceOf(lockboxAddr), 500e6, "500 to lockbox");
-        assertEq(usdc.balanceOf(walletAddr), 500e6, "500 remains in wallet");
+        assertEq(usdt.balanceOf(lockboxAddr), 500e6, "500 to lockbox");
+        assertEq(usdt.balanceOf(walletAddr), 500e6, "500 remains in wallet");
         assertEq(wallet.totalRouted(), 500e6);
     }
 
@@ -206,7 +206,7 @@ contract WDKSmartWalletTest is Test {
 
     function test_pendingRevenue() public {
         WDKSmartWallet wallet = _createWDKWallet();
-        usdc.mint(address(wallet), 1000e6);
+        usdt.mint(address(wallet), 1000e6);
 
         (uint256 toLockbox, uint256 toAgent) = wallet.pendingRevenue();
         assertEq(toLockbox, 500e6);
@@ -297,7 +297,7 @@ contract WDKSmartWalletTest is Test {
         wdkFactory.addAllowedTarget(newAgentId, target);
 
         // Fund the wallet
-        usdc.mint(walletAddr, 1000e6);
+        usdt.mint(walletAddr, 1000e6);
 
         // Execute should auto-route revenue first
         vm.prank(agentWallet2);
@@ -326,7 +326,7 @@ contract WDKSmartWalletTest is Test {
         wdkFactory.addAllowedTarget(newAgentId, target2);
 
         // Fund wallet
-        usdc.mint(walletAddr, 500e6);
+        usdt.mint(walletAddr, 500e6);
 
         address[] memory targets = new address[](2);
         targets[0] = target1;
@@ -622,7 +622,7 @@ contract WDKSmartWalletTest is Test {
         wdkFactory.createWallet(newAgentId);
 
         vm.expectRevert("WDKSmartWallet: cannot allow asset token");
-        wdkFactory.addAllowedTarget(newAgentId, address(usdc));
+        wdkFactory.addAllowedTarget(newAgentId, address(usdt));
     }
 
     function test_cannotAllowLockbox() public {
@@ -660,15 +660,15 @@ contract WDKSmartWalletTest is Test {
         wdkFactory.addAllowedTarget(newAgentId, target);
 
         // Send revenue to wallet
-        usdc.mint(walletAddr, 2000e6);
+        usdt.mint(walletAddr, 2000e6);
 
-        uint256 lockboxBalanceBefore = usdc.balanceOf(lockboxAddr);
+        uint256 lockboxBalanceBefore = usdt.balanceOf(lockboxAddr);
 
         // Execute triggers revenue routing
         vm.prank(agentWallet2);
         wallet.execute(target, 0, "");
 
-        uint256 lockboxBalanceAfter = usdc.balanceOf(lockboxAddr);
+        uint256 lockboxBalanceAfter = usdt.balanceOf(lockboxAddr);
         assertEq(lockboxBalanceAfter - lockboxBalanceBefore, 1000e6, "50% of 2000 = 1000 should go to lockbox");
     }
 
@@ -687,9 +687,9 @@ contract WDKSmartWalletTest is Test {
         wdkFactory.addAllowedTarget(newAgentId, target);
 
         // Send revenue
-        usdc.mint(walletAddr, 800e6);
+        usdt.mint(walletAddr, 800e6);
 
-        uint256 lockboxBalanceBefore = usdc.balanceOf(lockboxAddr);
+        uint256 lockboxBalanceBefore = usdt.balanceOf(lockboxAddr);
 
         address[] memory targets = new address[](1);
         targets[0] = target;
@@ -701,7 +701,7 @@ contract WDKSmartWalletTest is Test {
         vm.prank(agentWallet2);
         wallet.executeBatch(targets, values, datas);
 
-        uint256 lockboxBalanceAfter = usdc.balanceOf(lockboxAddr);
+        uint256 lockboxBalanceAfter = usdt.balanceOf(lockboxAddr);
         assertEq(lockboxBalanceAfter - lockboxBalanceBefore, 400e6, "50% of 800 = 400 should go to lockbox");
     }
 

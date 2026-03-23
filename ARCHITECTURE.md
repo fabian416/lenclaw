@@ -2,7 +2,7 @@
 
 ## 1. System Overview
 
-Lenclaw uses a **vault-per-agent** model. Each AI agent gets its own ERC-4626 vault + RevenueLockbox pair, deployed atomically by a factory. Backers choose which agents to back by depositing USDC into the agent's specific vault. Risk is fully isolated — a default in one vault does not affect others.
+Lenclaw uses a **vault-per-agent** model. Each AI agent gets its own ERC-4626 vault + RevenueLockbox pair, deployed atomically by a factory. Backers choose which agents to back by depositing USDT into the agent's specific vault. Risk is fully isolated — a default in one vault does not affect others.
 
 ```
   Backer A --> [AgentVault: AutoTrader-v3]  --> AgentCreditLine --> Agent
@@ -56,8 +56,8 @@ Lenclaw uses a **vault-per-agent** model. Each AI agent gets its own ERC-4626 va
 ```
 
 ### Security features per contract:
-- **AgentVault**: ReentrancyGuard, Pausable, frozen state, withdrawal timelock, MIN_DEPOSIT (100 USDC), deposit cap, ERC-4626 compliant (maxDeposit/maxMint/maxWithdraw/maxRedeem), share transfer resets timelock
-- **AgentCreditLine**: Lazy status check on drawdown, auto-freeze on DEFAULT, MIN_DRAWDOWN (10 USDC), period upper bounds
+- **AgentVault**: ReentrancyGuard, Pausable, frozen state, withdrawal timelock, MIN_DEPOSIT (100 USDT), deposit cap, ERC-4626 compliant (maxDeposit/maxMint/maxWithdraw/maxRedeem), share transfer resets timelock
+- **AgentCreditLine**: Lazy status check on drawdown, auto-freeze on DEFAULT, MIN_DRAWDOWN (10 USDT), period upper bounds
 - **RevenueLockbox**: ReentrancyGuard, MIN_REPAYMENT_RATE enforcement, routes through CreditLine when debt exists
 - **DutchAuction**: minPrice validation, linear price decay
 
@@ -69,17 +69,17 @@ All contracts are in `contracts/src/`. Interfaces in `contracts/src/interfaces/`
 
 | Contract | Description |
 |----------|-------------|
-| `AgentVault.sol` | ERC-4626 vault per agent. Backers deposit USDC, receive `lcA{id}USDC` shares. Includes: deposit caps, withdrawal timelock (1 day default), frozen state, pausable, MIN_DEPOSIT (100 USDC), ERC-4626 compliant overrides. `totalAssets() = balance + totalBorrowed - accumulatedFees` |
+| `AgentVault.sol` | ERC-4626 vault per agent. Backers deposit USDT, receive `lcA{id}USDT` shares. Includes: deposit caps, withdrawal timelock (1 day default), frozen state, pausable, MIN_DEPOSIT (100 USDT), ERC-4626 compliant overrides. `totalAssets() = balance + totalBorrowed - accumulatedFees` |
 | `AgentVaultFactory.sol` | Deploys AgentVault + RevenueLockbox atomically per agent. Manages credit line wiring, protocol fees, treasury routing, vault freezing, loss write-downs |
 | `AgentRegistry.sol` | ERC-721 identity (ERC-8004). Stores: wallet, codeHash, metadata, reputation (0-1000, starts at 500), codeVerified, lockbox, vault, registeredAt, externalToken, agentCategory. Auto-deploys vault+lockbox on registration |
-| `RevenueLockbox.sol` | Immutable per agent. Captures USDC revenue, splits between repayment and agent wallet. Routes through AgentCreditLine when debt exists to keep both accounting systems in sync. MIN_REPAYMENT_RATE = 10% |
-| `AgentCreditLine.sol` | Per-agent credit facility. Status: ACTIVE→DELINQUENT→DEFAULT. Lazy status check on drawdown. Auto-freezes vault on DEFAULT. MIN_DRAWDOWN = 10 USDC. Grace 7d, delinquency 14d, default 30d (all bounded) |
-| `CreditScorer.sol` | On-chain behavioral scoring: 30% revenue level, 25% revenue consistency (epoch-based), 20% credit history (completed loan cycles), 15% time in protocol, 10% debt-to-revenue ratio. Credit lines: 100–100K USDC. Rates: 3–25% APR (inversely proportional to composite score) |
-| `AgentSmartWallet.sol` | Opt-in smart wallet. Auto-routes USDC to lockbox before any `execute()` call. Ensures revenue always flows through the lockbox |
+| `RevenueLockbox.sol` | Immutable per agent. Captures USDT revenue, splits between repayment and agent wallet. Routes through AgentCreditLine when debt exists to keep both accounting systems in sync. MIN_REPAYMENT_RATE = 10% |
+| `AgentCreditLine.sol` | Per-agent credit facility. Status: ACTIVE→DELINQUENT→DEFAULT. Lazy status check on drawdown. Auto-freezes vault on DEFAULT. MIN_DRAWDOWN = 10 USDT. Grace 7d, delinquency 14d, default 30d (all bounded) |
+| `CreditScorer.sol` | On-chain behavioral scoring: 30% revenue level, 25% revenue consistency (epoch-based), 20% credit history (completed loan cycles), 15% time in protocol, 10% debt-to-revenue ratio. Credit lines: 100–100K USDT. Rates: 3–25% APR (inversely proportional to composite score) |
+| `AgentSmartWallet.sol` | Opt-in smart wallet. Auto-routes USDT to lockbox before any `execute()` call. Ensures revenue always flows through the lockbox |
 | `SmartWalletFactory.sol` | Deploys smart wallets per agent. Manages allowed targets and default repayment rates |
 | `DutchAuction.sol` | Dutch auction for defaulted positions. Price decays linearly from 150% to 30% of debt over 6 hours |
 | `RecoveryManager.sol` | Coordinates post-default recovery. Distributes auction proceeds to agent's vault, writes down unrecoverable losses, always unfreezes vault after finalization |
-| `LiquidationKeeper.sol` | Monitors defaults, triggers liquidation via RecoveryManager. Pays keeper bounty (1%, max 1000 USDC) |
+| `LiquidationKeeper.sol` | Monitors defaults, triggers liquidation via RecoveryManager. Pays keeper bounty (1%, max 1000 USDT) |
 
 ---
 
@@ -93,8 +93,8 @@ All contracts are in `contracts/src/`. Interfaces in `contracts/src/interfaces/`
    --> returns agentId
 
 2. Factory.createVault(agentId, agentWallet) is called (by registry or protocol)
-   --> deploys new AgentVault(usdc, agentId, agentWallet, factory)
-   --> deploys new RevenueLockbox(agentWallet, agentVaultAddr, agentId, usdc, 5000)
+   --> deploys new AgentVault(usdt, agentId, agentWallet, factory)
+   --> deploys new RevenueLockbox(agentWallet, agentVaultAddr, agentId, usdt, 5000)
    --> calls registry.setVault(agentId, agentVaultAddr)
    --> calls registry.setLockbox(agentId, lockboxAddr)
    --> emits VaultCreated(agentId, vault, lockbox, wallet)
@@ -104,10 +104,10 @@ All contracts are in `contracts/src/`. Interfaces in `contracts/src/interfaces/`
 
 ```
 1. Lender browses agent marketplace, picks an agent
-2. Lender approves USDC spend to the AgentVault address
-3. Lender calls AgentVault.deposit(usdcAmount, lenderAddress)
+2. Lender approves USDT spend to the AgentVault address
+3. Lender calls AgentVault.deposit(usdtAmount, lenderAddress)
    --> ERC-4626 mints vault shares to lender
-   --> USDC transferred into vault
+   --> USDT transferred into vault
 4. Vault's availableLiquidity() increases
 ```
 
@@ -117,17 +117,17 @@ All contracts are in `contracts/src/`. Interfaces in `contracts/src/interfaces/`
 1. Agent calls AgentCreditLine.drawdown(agentId, amount)
 2. CreditLine looks up profile.vault from registry
 3. CreditLine calls AgentVault.borrow(agentWallet, amount)
-4. AgentVault transfers USDC to agent
+4. AgentVault transfers USDT to agent
 5. totalBorrowed increases, availableLiquidity decreases
 ```
 
 ### 4.4 Revenue + Repayment
 
 ```
-1. Agent earns revenue --> USDC sent to agent's RevenueLockbox
+1. Agent earns revenue --> USDT sent to agent's RevenueLockbox
 2. Anyone calls RevenueLockbox.processRevenue()
 3. Lockbox splits: repaymentRateBps% to AgentVault, rest to agent wallet
-4. AgentVault receives USDC --> totalBorrowed decreases
+4. AgentVault receives USDT --> totalBorrowed decreases
 5. ERC-4626 share value increases (yield for backers)
 ```
 

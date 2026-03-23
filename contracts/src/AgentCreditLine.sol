@@ -15,7 +15,7 @@ import {IAgentVaultFactory} from "./interfaces/IAgentVaultFactory.sol";
 /// @title AgentCreditLine - Per-agent credit facility (vault-per-agent model)
 /// @notice Manages borrowing, repayment, and status tracking for each AI agent.
 ///         Each agent borrows from and repays to their individual AgentVault.
-///         Supports multiple assets (USDC, WETH, USDT) — reads the token from each agent's vault.
+///         Supports multiple assets (USDT, WETH, USDT) — reads the token from each agent's vault.
 contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -66,7 +66,7 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     event DebtWrittenDown(uint256 indexed agentId, uint256 amount);
     event RecoveryManagerUpdated(address indexed recoveryManager);
 
-    uint256 public constant MIN_DRAWDOWN_6DEC = 10e6; // 10 USDC/USDT
+    uint256 public constant MIN_DRAWDOWN_6DEC = 10e6; // 10 USDT/USDT
     uint256 public constant MIN_DRAWDOWN_18DEC = 1e16; // 0.01 ETH
 
     constructor(address _registry, address _scorer, address _vaultFactory, address _owner) Ownable(_owner) {
@@ -256,7 +256,7 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
         }
 
         // Transfer repayment to the agent's individual vault
-        // Read the token from the vault (supports USDC, WETH, USDT, etc.)
+        // Read the token from the vault (supports USDT, WETH, USDT, etc.)
         IERC20 token = _getAgentAsset(agentId);
         address vault = _getAgentVault(agentId);
         token.safeTransferFrom(msg.sender, address(this), amount);
@@ -349,7 +349,7 @@ contract AgentCreditLine is Ownable, Pausable, ReentrancyGuard {
     /// @notice Get minimum drawdown based on the asset's decimals
     function _getMinDrawdown(uint256 agentId) internal view returns (uint256) {
         address asset = vaultFactory.agentAssets(agentId);
-        // Try to read decimals; default to 6 (USDC/USDT) if call fails
+        // Try to read decimals; default to 6 (USDT/USDT) if call fails
         try IERC20Metadata(asset).decimals() returns (uint8 d) {
             if (d >= 18) return MIN_DRAWDOWN_18DEC;
             return MIN_DRAWDOWN_6DEC;

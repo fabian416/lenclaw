@@ -11,9 +11,9 @@ import {DutchAuction} from "../src/DutchAuction.sol";
 import {RecoveryManager} from "../src/RecoveryManager.sol";
 import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 
-/// @notice Mock USDC for testnet (Base Sepolia has no official USDC)
-contract MockUSDC is ERC20 {
-    constructor() ERC20("USD Coin", "USDC") {}
+/// @notice Mock USDT for testnet (Base Sepolia has no official USDT)
+contract MockUSDT is ERC20 {
+    constructor() ERC20("USD Coin", "USDT") {}
 
     function decimals() public pure override returns (uint8) {
         return 6;
@@ -38,9 +38,9 @@ contract DeployBaseSepolia is Script {
 
         vm.startBroadcast(deployerKey);
 
-        // 1. Deploy MockUSDC (no official USDC on Sepolia)
-        MockUSDC usdc = new MockUSDC();
-        console.log("MockUSDC:", address(usdc));
+        // 1. Deploy MockUSDT (no official USDT on Sepolia)
+        MockUSDT usdt = new MockUSDT();
+        console.log("MockUSDT:", address(usdt));
 
         // 2. Deploy AgentRegistry
         AgentRegistry registry = new AgentRegistry(owner);
@@ -50,8 +50,8 @@ contract DeployBaseSepolia is Script {
         AgentVaultFactory factory = new AgentVaultFactory(address(registry), owner);
         console.log("AgentVaultFactory:", address(factory));
 
-        // 3b. Whitelist MockUSDC as allowed asset
-        factory.setAllowedAsset(address(usdc), true);
+        // 3b. Whitelist MockUSDT as allowed asset
+        factory.setAllowedAsset(address(usdt), true);
 
         // 4. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), owner);
@@ -62,17 +62,17 @@ contract DeployBaseSepolia is Script {
         console.log("AgentCreditLine:", address(creditLine));
 
         // 6. Deploy DutchAuction
-        DutchAuction dutchAuction = new DutchAuction(address(usdc), owner, owner);
+        DutchAuction dutchAuction = new DutchAuction(address(usdt), owner, owner);
         console.log("DutchAuction:", address(dutchAuction));
 
         // 7. Deploy RecoveryManager
         RecoveryManager recoveryManager =
-            new RecoveryManager(address(usdc), address(dutchAuction), address(registry), address(factory), owner);
+            new RecoveryManager(address(usdt), address(dutchAuction), address(registry), address(factory), owner);
         console.log("RecoveryManager:", address(recoveryManager));
 
         // 8. Deploy LiquidationKeeper
         LiquidationKeeper keeper = new LiquidationKeeper(
-            address(creditLine), address(registry), address(usdc), address(recoveryManager), owner
+            address(creditLine), address(registry), address(usdt), address(recoveryManager), owner
         );
         console.log("LiquidationKeeper:", address(keeper));
 
@@ -95,13 +95,13 @@ contract DeployBaseSepolia is Script {
         registry.setVaultFactory(address(factory));
         console.log("Registry linked to VaultFactory");
 
-        // 13. Mint test USDC to deployer (1M for testing)
-        usdc.mint(deployer, 1_000_000e6);
-        console.log("Minted 1M USDC to deployer");
+        // 13. Mint test USDT to deployer (1M for testing)
+        usdt.mint(deployer, 1_000_000e6);
+        console.log("Minted 1M USDT to deployer");
 
-        // 14. Fund LiquidationKeeper bounty pool (10K USDC for test bounties)
-        usdc.mint(address(keeper), 10_000e6);
-        console.log("Funded LiquidationKeeper with 10K USDC");
+        // 14. Fund LiquidationKeeper bounty pool (10K USDT for test bounties)
+        usdt.mint(address(keeper), 10_000e6);
+        console.log("Funded LiquidationKeeper with 10K USDT");
 
         vm.stopBroadcast();
 
@@ -109,7 +109,7 @@ contract DeployBaseSepolia is Script {
 
         // Write deployment addresses to JSON
         string memory json = "deployment";
-        vm.serializeAddress(json, "usdc", address(usdc));
+        vm.serializeAddress(json, "usdt", address(usdt));
         vm.serializeAddress(json, "agentRegistry", address(registry));
         vm.serializeAddress(json, "agentVaultFactory", address(factory));
         vm.serializeAddress(json, "creditScorer", address(scorer));

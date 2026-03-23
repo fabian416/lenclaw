@@ -166,7 +166,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
 
     /// @notice Finalize recovery after auction settles or expires.
     ///         Distributes proceeds to the vault and records losses.
-    ///         When a buyer exists, the recovered USDC is deposited into the vault
+    ///         When a buyer exists, the recovered USDT is deposited into the vault
     ///         ON BEHALF of the auction buyer, minting them ERC-4626 vault shares.
     ///         The buyer effectively purchases discounted exposure to the vault.
     ///         Losses are absorbed proportionally by all vault depositors
@@ -209,7 +209,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
             if (!_ok) emit VaultOperationFailed("unfreezeVault", recovery.agentId);
         }
 
-        // 3. Deposit recovered USDC into vault on behalf of the auction buyer (mints shares)
+        // 3. Deposit recovered USDT into vault on behalf of the auction buyer (mints shares)
         if (recoveredAmount > 0) {
             totalAmountRecovered += recoveredAmount;
 
@@ -217,7 +217,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
                 // Check vault's MIN_DEPOSIT threshold
                 uint256 minDeposit = IAgentVault(agentVault).MIN_DEPOSIT();
                 if (recoveredAmount >= minDeposit) {
-                    // Approve vault to pull USDC from RecoveryManager
+                    // Approve vault to pull USDT from RecoveryManager
                     asset.approve(agentVault, recoveredAmount);
                     // Deposit on behalf of buyer — mints vault shares to buyer
                     uint256 sharesMinted = IAgentVault(agentVault).deposit(recoveredAmount, buyer);
@@ -269,7 +269,7 @@ contract RecoveryManager is Ownable, ReentrancyGuard {
         }
 
         // 6. Write down full debt on vault's totalBorrowed (debt is forgiven regardless of recovery %)
-        //    The vault balance already has the recovered USDC, so totalAssets adjusts correctly:
+        //    The vault balance already has the recovered USDT, so totalAssets adjusts correctly:
         //    totalAssets = (balance + recoveredAmount) + (totalBorrowed - debtAmount) - fees
         {
             (bool wdSuccess,) = address(vaultFactory).call(

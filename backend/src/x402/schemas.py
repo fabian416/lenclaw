@@ -21,7 +21,7 @@ class PaymentStatus(StrEnum):
 class SupportedToken(BaseModel):
     """A token accepted for x402 payments."""
 
-    symbol: str = Field(..., description="Token symbol, e.g. USDC")
+    symbol: str = Field(..., description="Token symbol, e.g. USDT")
     address: str = Field(..., description="Token contract address")
     decimals: int = Field(..., description="Token decimal places")
     chain_id: int = Field(..., description="Chain ID where token lives")
@@ -39,7 +39,7 @@ class PaymentRequired(BaseModel):
     recipient: str = Field(..., description="Payment recipient address (payee)")
     token: str = Field(..., description="Token contract address for payment")
     amount: str = Field(
-        ..., description="Payment amount in smallest unit (e.g. USDC has 6 decimals)"
+        ..., description="Payment amount in smallest unit (e.g. USDT has 6 decimals)"
     )
     description: str | None = Field(
         default=None, description="Human-readable payment description"
@@ -98,7 +98,7 @@ class PaymentReceipt(BaseModel):
     payer: str = Field(..., description="Payer wallet address")
     payee: str = Field(..., description="Payee wallet address")
     amount: Decimal = Field(..., description="Amount in human-readable units")
-    token: str = Field(default="USDC", description="Token symbol")
+    token: str = Field(default="USDT", description="Token symbol")
     chain_id: int = Field(default=8453, description="Chain ID")
     tx_hash: str | None = Field(
         default=None, description="On-chain settlement transaction hash"
@@ -167,7 +167,7 @@ class PaywallConfig(BaseModel):
     """Configuration for a paywalled endpoint."""
 
     amount: Decimal = Field(..., description="Payment amount in USD")
-    token: str = Field(default="USDC", description="Token symbol")
+    token: str = Field(default="USDT", description="Token symbol")
     description: str | None = Field(default=None)
     recipient: str | None = Field(
         default=None, description="Override default recipient"

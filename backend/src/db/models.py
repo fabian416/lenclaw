@@ -160,7 +160,7 @@ class RevenueRecord(Base):
         UUID(as_uuid=True), ForeignKey("agents.id"), nullable=False
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
-    currency: Mapped[str] = mapped_column(String(10), default="USDC")
+    currency: Mapped[str] = mapped_column(String(10), default="USDT")
     tx_hash: Mapped[str | None] = mapped_column(String(66), nullable=True)
     block_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str | None] = mapped_column(String(255), nullable=True)

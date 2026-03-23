@@ -31,10 +31,10 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
     uint256 public totalRepaid;
 
     // Epoch-based revenue tracking for credit scoring consistency analysis
-    uint256 public constant MIN_REVENUE_AMOUNT = 1e6; // 1 USDC minimum to count as real revenue
+    uint256 public constant MIN_REVENUE_AMOUNT = 1e6; // 1 USDT minimum to count as real revenue
     uint256 public constant EPOCH_LENGTH = 30 days;
     uint256 public immutable deployedAt;
-    mapping(uint256 => uint256) public revenueByEpoch; // epoch index => USDC captured
+    mapping(uint256 => uint256) public revenueByEpoch; // epoch index => USDT captured
     uint256 public epochsWithRevenue; // count of epochs that had any revenue
 
     address public creditLine; // AgentCreditLine contract address
@@ -174,7 +174,7 @@ contract RevenueLockbox is IRevenueLockbox, ReentrancyGuard {
                 uint256 toVaultDirect = repaymentAmount - toDebt;
 
                 if (toDebt > 0) {
-                    // CreditLine.repay() pulls USDC from us, updates debt, forwards to vault
+                    // CreditLine.repay() pulls USDT from us, updates debt, forwards to vault
                     asset.forceApprove(creditLine, toDebt);
                     IAgentCreditLine(creditLine).repay(agentId, toDebt);
                     asset.forceApprove(creditLine, 0);

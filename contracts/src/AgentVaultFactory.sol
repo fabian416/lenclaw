@@ -13,7 +13,7 @@ import {WalletDeployer} from "./deployers/WalletDeployer.sol";
 /// @title AgentVaultFactory - Deploys individual AgentVault + RevenueLockbox + SmartWallet per AI agent
 /// @notice Factory pattern: when an agent registers, this deploys an ERC-4626 vault,
 ///         a RevenueLockbox, and a MANDATORY SmartWallet atomically.
-///         Supports multiple assets (USDC, WETH, USDT) via an allowlist.
+///         Supports multiple assets (USDT, WETH, USDT) via an allowlist.
 contract AgentVaultFactory is Ownable {
     IAgentRegistry public immutable registry;
 

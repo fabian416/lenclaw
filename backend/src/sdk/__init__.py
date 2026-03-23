@@ -11,7 +11,7 @@ Usage (client):
         response = await client.get("https://api.example.com/data")
 
 Usage (server):
-    @x402_paywall(amount="0.01", token="USDC")
+    @x402_paywall(amount="0.01", token="USDT")
     async def premium_endpoint():
         return {"data": "premium content"}
 """

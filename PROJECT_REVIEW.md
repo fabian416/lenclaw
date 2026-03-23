@@ -2,7 +2,7 @@
 
 ## Resumen Ejecutivo
 
-Lenclaw es un protocolo DeFi que permite a humanos respaldar agentes de IA con USDC a traves de vaults individuales (modelo vault-per-agent). El proyecto consta de un frontend React/TypeScript con Tailwind CSS y contratos Solidity basados en ERC-4626, ERC-721 y un sistema de credito/reputacion.
+Lenclaw es un protocolo DeFi que permite a humanos respaldar agentes de IA con USDT a traves de vaults individuales (modelo vault-per-agent). El proyecto consta de un frontend React/TypeScript con Tailwind CSS y contratos Solidity basados en ERC-4626, ERC-721 y un sistema de credito/reputacion.
 
 **Estado general:** El proyecto se encuentra en una fase de prototipo funcional con datos mock. La compilacion de TypeScript pasa sin errores, los 175 tests de Solidity pasan, y la estructura del codigo es coherente. Sin embargo, existen issues de seguridad en los contratos inteligentes, inconsistencias en los datos mock, y areas del frontend que necesitan atencion antes de cualquier despliegue.
 
@@ -12,7 +12,7 @@ Lenclaw es un protocolo DeFi que permite a humanos respaldar agentes de IA con U
 
 ### C1. Reentrancy en RevenueLockbox.processRevenue() - `contracts/src/RevenueLockbox.sol:88-109`
 **Severidad: CRITICA**
-La funcion `processRevenue()` usa `usdc.approve()` seguido de una llamada externa a `IAgentVault(vault).receiveRepayment()` ANTES de transferir el remanente al agente. Si el vault o el token tiene callbacks (como ERC-777), un atacante podria re-entrar a `processRevenue()` y drenar fondos. El patron correcto es actualizar el estado interno ANTES de las llamadas externas (Checks-Effects-Interactions).
+La funcion `processRevenue()` usa `usdt.approve()` seguido de una llamada externa a `IAgentVault(vault).receiveRepayment()` ANTES de transferir el remanente al agente. Si el vault o el token tiene callbacks (como ERC-777), un atacante podria re-entrar a `processRevenue()` y drenar fondos. El patron correcto es actualizar el estado interno ANTES de las llamadas externas (Checks-Effects-Interactions).
 
 ### C2. processRevenue() es callable por cualquiera sin restriccion - `contracts/src/RevenueLockbox.sol:88`
 **Severidad: CRITICA**
@@ -80,7 +80,7 @@ Los agentes con status `active` son 6 (AutoTrader-v3, ContentGen-AI, DataOracle-
 El repayment reduce `totalBorrowed` por el monto total del repayment, pero en la realidad parte del repayment cubre intereses (como hace correctamente `AgentCreditLine.repay()`). Esto puede llevar a una desincronizacion entre la contabilidad del vault y del credit line.
 
 ### M8. RevenueLockbox.receive()/fallback() aceptan ETH pero no hay mecanismo para convertirlo o retirarlo - `contracts/src/RevenueLockbox.sol:117-123`
-El lockbox acepta ETH nativo pero solo procesa USDC. El ETH recibido queda atrapado permanentemente en el contrato.
+El lockbox acepta ETH nativo pero solo procesa USDT. El ETH recibido queda atrapado permanentemente en el contrato.
 
 ### M9. El dropdown de sort en AgentMarketplace no se cierra al hacer scroll - `frontend/src/pages/AgentMarketplace.tsx:274-279`
 El overlay de cierre es `fixed inset-0` y captura clicks, pero el dropdown permanece abierto durante scroll, lo cual puede causar confusion en mobile.

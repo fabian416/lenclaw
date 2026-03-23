@@ -284,7 +284,7 @@ Todo el sitio usa `mono-text` (JetBrains Mono) como tipografia principal. Labels
 }
 ```
 
-JetBrains Mono esta disenada para **codigo**. Para leer en un IDE. Usarla para "Deposit USDC", "Revenue Lockbox", "Your Position" y cada label en la app es como escribir un contrato legal en Comic Sans. Funciona tecnicamente, pero grita "no pensamos en tipografia".
+JetBrains Mono esta disenada para **codigo**. Para leer en un IDE. Usarla para "Deposit USDT", "Revenue Lockbox", "Your Position" y cada label en la app es como escribir un contrato legal en Comic Sans. Funciona tecnicamente, pero grita "no pensamos en tipografia".
 
 Ademas se importa Inter dos veces:
 - `index.css` linea 1: `@import url('https://fonts.googleapis.com/css2?family=Inter...')`
@@ -478,7 +478,7 @@ Hay un grid violeta sutil animado con `grid-fade` (8 segundos, infinito, `index.
 
 Miren, yo entiendo el contexto. Esto es un MVP. Habia que sacar algo rapido. Probablemente le dijeron a Claude o a Cursor "build me a DeFi lending frontend with dark mode" y salio esto. Y funciona. Tecnicamente funciona. Las rutas rutean, los componentes renderizan, el Tailwind tailwindea.
 
-Pero si la intencion es que alguien deposite USDC real en este protocolo, el frontend tiene que comunicar **seriedad, profesionalismo y confianza**. Ahora mismo comunica "genere esto en 20 minutos y le puse animaciones para que se vea cool". Y la gente que maneja plata en DeFi sabe reconocer eso. Lo ve de lejos.
+Pero si la intencion es que alguien deposite USDT real en este protocolo, el frontend tiene que comunicar **seriedad, profesionalismo y confianza**. Ahora mismo comunica "genere esto en 20 minutos y le puse animaciones para que se vea cool". Y la gente que maneja plata en DeFi sabe reconocer eso. Lo ve de lejos.
 
 El codigo no esta mal escrito. La estructura de componentes es razonable. El uso de Framer Motion es tecnicamente competente. El responsive con bottom sheets para mobile esta bien pensado para PWA. El manejo de safe-area-inset y touch targets de 44px demuestra que alguien (o algo) penso en la experiencia mobile. Hay buena base tecnica.
 

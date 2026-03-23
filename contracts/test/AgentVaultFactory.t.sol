@@ -8,8 +8,8 @@ import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MockUSDCFactory is ERC20 {
-    constructor() ERC20("USD Coin", "USDC") {}
+contract MockUSDTFactory is ERC20 {
+    constructor() ERC20("USD Coin", "USDT") {}
 
     function decimals() public pure override returns (uint8) {
         return 6;
@@ -21,7 +21,7 @@ contract MockUSDCFactory is ERC20 {
 }
 
 contract AgentVaultFactoryTest is Test {
-    MockUSDCFactory usdc;
+    MockUSDTFactory usdt;
     AgentRegistry registry;
     AgentVaultFactory factory;
 
@@ -31,17 +31,17 @@ contract AgentVaultFactoryTest is Test {
     address agent3Wallet = makeAddr("agent3");
 
     function setUp() public {
-        usdc = new MockUSDCFactory();
+        usdt = new MockUSDTFactory();
         registry = new AgentRegistry(owner);
         factory = new AgentVaultFactory(address(registry), owner);
-        factory.setAllowedAsset(address(usdc), true);
+        factory.setAllowedAsset(address(usdt), true);
         registry.setVaultFactory(address(factory));
     }
 
     function test_createVault() public {
         uint256 agentId =
             registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
-        address vaultAddr = factory.createVault(agentId, address(usdc));
+        address vaultAddr = factory.createVault(agentId, address(usdt));
 
         assertTrue(vaultAddr != address(0), "Vault should be deployed");
         assertEq(factory.vaults(agentId), vaultAddr);
@@ -50,7 +50,7 @@ contract AgentVaultFactoryTest is Test {
 
         AgentVault vault = AgentVault(vaultAddr);
         assertEq(vault.agentId(), agentId);
-        assertEq(vault.asset(), address(usdc));
+        assertEq(vault.asset(), address(usdt));
     }
 
     function test_createMultipleVaults() public {
@@ -61,9 +61,9 @@ contract AgentVaultFactoryTest is Test {
         uint256 id3 =
             registry.registerAgent(agent3Wallet, keccak256("code3"), "Agent3", address(0), 0, bytes32(0), address(0));
 
-        address v1 = factory.createVault(id1, address(usdc));
-        address v2 = factory.createVault(id2, address(usdc));
-        address v3 = factory.createVault(id3, address(usdc));
+        address v1 = factory.createVault(id1, address(usdt));
+        address v2 = factory.createVault(id2, address(usdt));
+        address v3 = factory.createVault(id3, address(usdt));
 
         assertTrue(v1 != v2 && v2 != v3, "Vaults should be unique");
         assertEq(factory.totalVaults(), 3);
@@ -77,23 +77,23 @@ contract AgentVaultFactoryTest is Test {
     function test_cannotCreateDuplicateVault() public {
         uint256 agentId =
             registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
-        factory.createVault(agentId, address(usdc));
+        factory.createVault(agentId, address(usdt));
 
         vm.expectRevert(abi.encodeWithSelector(AgentVaultFactory.VaultAlreadyExists.selector, agentId));
-        factory.createVault(agentId, address(usdc));
+        factory.createVault(agentId, address(usdt));
     }
 
     function test_cannotCreateVaultForUnregisteredAgent() public {
         uint256 fakeAgentId = 999;
 
         vm.expectRevert(abi.encodeWithSelector(AgentVaultFactory.AgentNotRegistered.selector, fakeAgentId));
-        factory.createVault(fakeAgentId, address(usdc));
+        factory.createVault(fakeAgentId, address(usdt));
     }
 
     function test_setVaultCreditLine() public {
         uint256 agentId =
             registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
-        factory.createVault(agentId, address(usdc));
+        factory.createVault(agentId, address(usdt));
 
         address creditLine = makeAddr("creditLine");
         factory.setVaultCreditLine(agentId, creditLine);
@@ -105,7 +105,7 @@ contract AgentVaultFactoryTest is Test {
     function test_onlyOwnerCanSetCreditLine() public {
         uint256 agentId =
             registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
-        factory.createVault(agentId, address(usdc));
+        factory.createVault(agentId, address(usdt));
 
         vm.prank(agent1Wallet);
         vm.expectRevert();
@@ -115,7 +115,7 @@ contract AgentVaultFactoryTest is Test {
     function test_setVaultDepositCap() public {
         uint256 agentId =
             registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
-        factory.createVault(agentId, address(usdc));
+        factory.createVault(agentId, address(usdt));
 
         factory.setVaultDepositCap(agentId, 1_000_000e6);
 
@@ -128,7 +128,7 @@ contract AgentVaultFactoryTest is Test {
 
         uint256 agentId =
             registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
-        address vaultAddr = factory.createVault(agentId, address(usdc));
+        address vaultAddr = factory.createVault(agentId, address(usdt));
 
         assertEq(AgentVault(vaultAddr).protocolFeeBps(), 500);
     }
@@ -143,7 +143,7 @@ contract AgentVaultFactoryTest is Test {
 
         uint256 agentId =
             registry.registerAgent(agent1Wallet, keccak256("code"), "Agent1", address(0), 0, bytes32(0), address(0));
-        address vaultAddr = factory.createVault(agentId, address(usdc));
+        address vaultAddr = factory.createVault(agentId, address(usdt));
 
         assertEq(AgentVault(vaultAddr).depositCap(), 1_000_000e6);
     }
@@ -171,7 +171,7 @@ contract AgentVaultFactoryTest is Test {
         // Non-owner/non-registry cannot create vault
         vm.prank(agent1Wallet);
         vm.expectRevert("AgentVaultFactory: not authorized");
-        factory.createVault(agentId, address(usdc));
+        factory.createVault(agentId, address(usdt));
     }
 
     function test_allVaultsEnumeration() public {
@@ -180,8 +180,8 @@ contract AgentVaultFactoryTest is Test {
         uint256 id2 =
             registry.registerAgent(agent2Wallet, keccak256("code2"), "Agent2", address(0), 0, bytes32(0), address(0));
 
-        address v1 = factory.createVault(id1, address(usdc));
-        address v2 = factory.createVault(id2, address(usdc));
+        address v1 = factory.createVault(id1, address(usdt));
+        address v2 = factory.createVault(id2, address(usdt));
 
         assertEq(factory.allVaults(0), v1);
         assertEq(factory.allVaults(1), v2);

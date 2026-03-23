@@ -5,19 +5,19 @@ Autonomous AI agent using Tether WDK for self-custodial wallet management and re
 ## What it does
 
 1. **Self-custodial wallet** -- Creates/restores a WDK-managed EVM wallet on Base. Keys never leave the agent.
-2. **Revenue monitoring** -- Continuously polls for incoming USDC on the agent's wallet.
-3. **Revenue routing** -- When USDC is detected, transfers it to the agent's RevenueLockbox and calls `processRevenue()` to split between debt repayment (to the AgentVault) and the agent's remainder.
+2. **Revenue monitoring** -- Continuously polls for incoming USDT on the agent's wallet.
+3. **Revenue routing** -- When USDT is detected, transfers it to the agent's RevenueLockbox and calls `processRevenue()` to split between debt repayment (to the AgentVault) and the agent's remainder.
 4. **DeFi operations** -- Bridge USDT0 cross-chain and execute token swaps via WDK protocol modules.
 
 ## Architecture
 
 ```
-Revenue Source (USDC)
+Revenue Source (USDT)
         |
         v
   [Agent WDK Wallet]  <-- self-custodial, WDK seed phrase
         |
-        | transfer USDC
+        | transfer USDT
         v
   [RevenueLockbox]  <-- immutable, per-agent
         |
@@ -31,7 +31,7 @@ Revenue Source (USDC)
 - An agent registered in the Lenclaw AgentRegistry on Base
 - The agent's RevenueLockbox and AgentVault deployed
 - ETH on Base for gas fees
-- USDC on Base for revenue
+- USDT on Base for revenue
 
 ## Setup
 
@@ -83,20 +83,20 @@ On first run without a seed phrase, the agent will:
 1. Generate a new 24-word seed phrase
 2. Print it to the console (back it up!)
 3. Derive an EVM wallet address
-4. Begin monitoring for USDC
+4. Begin monitoring for USDT
 
 You must then:
 - Fund the wallet with ETH for gas
 - Ensure the wallet address matches what's registered in the AgentRegistry
-- Send USDC to the wallet to test revenue routing
+- Send USDT to the wallet to test revenue routing
 
 ## Revenue flow
 
 The agent runs a polling loop (default: every 30 seconds):
 
-1. Check USDC balance on the agent's WDK wallet
-2. If balance >= threshold (default: 1 USDC), transfer all USDC to the RevenueLockbox
-3. Check if the lockbox has pending USDC
+1. Check USDT balance on the agent's WDK wallet
+2. If balance >= threshold (default: 1 USDT), transfer all USDT to the RevenueLockbox
+3. Check if the lockbox has pending USDT
 4. Call `processRevenue()` on the lockbox, which splits:
    - `repaymentRateBps` percent to the AgentVault (debt repayment)
    - Remainder back to the agent wallet
@@ -144,7 +144,7 @@ These contracts are deployed per-agent by the Lenclaw protocol:
 | Contract | Purpose |
 |----------|---------|
 | AgentRegistry | ERC-721 identity + metadata for agents |
-| AgentVault | ERC-4626 vault where backers deposit USDC |
+| AgentVault | ERC-4626 vault where backers deposit USDT |
 | RevenueLockbox | Immutable revenue splitter (repayment vs agent) |
 | AgentCreditLine | Credit facility for borrowing from the vault |
 | AgentSmartWallet | Optional revenue-routing smart wallet |
@@ -152,7 +152,7 @@ These contracts are deployed per-agent by the Lenclaw protocol:
 ## Lenclaw contract interfaces
 
 The agent reads from these contracts:
-- `RevenueLockbox.processRevenue()` -- split and route pending USDC
+- `RevenueLockbox.processRevenue()` -- split and route pending USDT
 - `RevenueLockbox.totalRevenueCapture()` -- lifetime revenue captured
 - `RevenueLockbox.repaymentRateBps()` -- current repayment split
 - `AgentRegistry.getAgent(agentId)` -- agent profile (wallet, lockbox, vault)

@@ -40,7 +40,7 @@ TRANSAK_API_URL: str = (
 
 # Supported currencies
 SUPPORTED_FIAT = {"USD", "EUR"}
-SUPPORTED_CRYPTO = {"USDC"}
+SUPPORTED_CRYPTO = {"USDT"}
 SUPPORTED_NETWORKS = {"base"}
 
 # Transak status mapping → internal status

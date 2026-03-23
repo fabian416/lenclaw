@@ -8,7 +8,7 @@ import {AgentVault} from "../src/AgentVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract RevenueLockboxTest is Test {
-    ERC20Mock public usdc;
+    ERC20Mock public usdt;
     AgentVault public agentVault;
     RevenueLockbox public lockbox;
 
@@ -17,11 +17,11 @@ contract RevenueLockboxTest is Test {
     uint256 public repaymentRate = 5000; // 50%
 
     function setUp() public {
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         // Deploy a real AgentVault (the factory is msg.sender)
-        agentVault = new AgentVault(IERC20(address(usdc)), agentId, "Lenclaw Agent 1 USDC", "lcA1USDC", 1000, 500_000e6);
+        agentVault = new AgentVault(IERC20(address(usdt)), agentId, "Lenclaw Agent 1 USDT", "lcA1USDT", 1000, 500_000e6);
         lockbox =
-            new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), repaymentRate, address(0), 0);
+            new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdt), repaymentRate, address(0), 0);
         // Wire lockbox on vault (this test contract is the factory)
         agentVault.setLockbox(address(lockbox));
     }
@@ -32,18 +32,18 @@ contract RevenueLockboxTest is Test {
         assertEq(lockbox.agent(), agentWallet);
         assertEq(lockbox.vault(), address(agentVault));
         assertEq(lockbox.agentId(), agentId);
-        assertEq(address(lockbox.asset()), address(usdc));
+        assertEq(address(lockbox.asset()), address(usdt));
         assertEq(lockbox.repaymentRateBps(), repaymentRate);
     }
 
     function test_constructor_revertsOnZeroAgent() public {
         vm.expectRevert("RevenueLockbox: zero agent");
-        new RevenueLockbox(address(0), address(agentVault), agentId, address(usdc), repaymentRate, address(0), 0);
+        new RevenueLockbox(address(0), address(agentVault), agentId, address(usdt), repaymentRate, address(0), 0);
     }
 
     function test_constructor_revertsOnZeroVault() public {
         vm.expectRevert("RevenueLockbox: zero vault");
-        new RevenueLockbox(agentWallet, address(0), agentId, address(usdc), repaymentRate, address(0), 0);
+        new RevenueLockbox(agentWallet, address(0), agentId, address(usdt), repaymentRate, address(0), 0);
     }
 
     function test_constructor_revertsOnZeroAsset() public {
@@ -53,87 +53,87 @@ contract RevenueLockboxTest is Test {
 
     function test_constructor_revertsOnRateTooHigh() public {
         vm.expectRevert("RevenueLockbox: rate out of bounds");
-        new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), 10001, address(0), 0);
+        new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdt), 10001, address(0), 0);
     }
 
     function test_constructor_revertsOnRateTooLow() public {
         vm.expectRevert("RevenueLockbox: rate out of bounds");
-        new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdc), 500, address(0), 0);
+        new RevenueLockbox(agentWallet, address(agentVault), agentId, address(usdt), 500, address(0), 0);
     }
 
     // ── Revenue processing ──────────────────────────────────────
 
     function test_processRevenue_splits50_50() public {
-        usdc.mint(address(lockbox), 1000e6);
+        usdt.mint(address(lockbox), 1000e6);
 
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
-        assertEq(usdc.balanceOf(address(agentVault)), 500e6, "Vault should get 50%");
-        assertEq(usdc.balanceOf(agentWallet), 500e6, "Agent should get 50%");
+        assertEq(usdt.balanceOf(address(agentVault)), 500e6, "Vault should get 50%");
+        assertEq(usdt.balanceOf(agentWallet), 500e6, "Agent should get 50%");
         assertEq(lockbox.totalRevenueCapture(), 1000e6);
         assertEq(lockbox.totalRepaid(), 500e6);
     }
 
     function test_processRevenue_100PercentRepayment() public {
-        AgentVault v2 = new AgentVault(IERC20(address(usdc)), 2, "Lenclaw Agent 2 USDC", "lcA2USDC", 1000, 500_000e6);
+        AgentVault v2 = new AgentVault(IERC20(address(usdt)), 2, "Lenclaw Agent 2 USDT", "lcA2USDT", 1000, 500_000e6);
         RevenueLockbox fullRepay = new RevenueLockbox(
             agentWallet,
             address(v2),
             agentId,
-            address(usdc),
+            address(usdt),
             10000,
             address(0),
             0 // 100%
         );
         v2.setLockbox(address(fullRepay)); // Wire lockbox on vault
-        usdc.mint(address(fullRepay), 1000e6);
+        usdt.mint(address(fullRepay), 1000e6);
 
         vm.prank(agentWallet);
         fullRepay.processRevenue();
 
-        assertEq(usdc.balanceOf(address(v2)), 1000e6, "Vault should get 100%");
-        assertEq(usdc.balanceOf(agentWallet), 0, "Agent should get 0%");
+        assertEq(usdt.balanceOf(address(v2)), 1000e6, "Vault should get 100%");
+        assertEq(usdt.balanceOf(agentWallet), 0, "Agent should get 0%");
     }
 
     function test_processRevenue_zeroRepaymentRate() public {
-        AgentVault v3 = new AgentVault(IERC20(address(usdc)), 3, "Lenclaw Agent 3 USDC", "lcA3USDC", 1000, 500_000e6);
+        AgentVault v3 = new AgentVault(IERC20(address(usdt)), 3, "Lenclaw Agent 3 USDT", "lcA3USDT", 1000, 500_000e6);
         RevenueLockbox zeroRepay = new RevenueLockbox(
             agentWallet,
             address(v3),
             agentId,
-            address(usdc),
+            address(usdt),
             0,
             address(0),
             0 // 0%
         );
         v3.setLockbox(address(zeroRepay)); // Wire lockbox on vault
-        usdc.mint(address(zeroRepay), 1000e6);
+        usdt.mint(address(zeroRepay), 1000e6);
 
         vm.prank(agentWallet);
         zeroRepay.processRevenue();
 
-        assertEq(usdc.balanceOf(address(v3)), 0, "Vault should get 0%");
-        assertEq(usdc.balanceOf(agentWallet), 1000e6, "Agent should get 100%");
+        assertEq(usdt.balanceOf(address(v3)), 0, "Vault should get 0%");
+        assertEq(usdt.balanceOf(agentWallet), 1000e6, "Agent should get 100%");
     }
 
     function test_processRevenue_multipleProcessings() public {
-        usdc.mint(address(lockbox), 1000e6);
+        usdt.mint(address(lockbox), 1000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
-        usdc.mint(address(lockbox), 2000e6);
+        usdt.mint(address(lockbox), 2000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
         assertEq(lockbox.totalRevenueCapture(), 3000e6);
         assertEq(lockbox.totalRepaid(), 1500e6);
-        assertEq(usdc.balanceOf(address(agentVault)), 1500e6);
-        assertEq(usdc.balanceOf(agentWallet), 1500e6);
+        assertEq(usdt.balanceOf(address(agentVault)), 1500e6);
+        assertEq(usdt.balanceOf(agentWallet), 1500e6);
     }
 
     function test_processRevenue_onlyAgentOrVault() public {
-        usdc.mint(address(lockbox), 1000e6);
+        usdt.mint(address(lockbox), 1000e6);
 
         // Random caller should be blocked
         address randomCaller = makeAddr("randomKeeper");
@@ -145,8 +145,8 @@ contract RevenueLockboxTest is Test {
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
-        assertEq(usdc.balanceOf(address(agentVault)), 500e6, "Vault should get 50%");
-        assertEq(usdc.balanceOf(agentWallet), 500e6, "Agent should get 50%");
+        assertEq(usdt.balanceOf(address(agentVault)), 500e6, "Vault should get 50%");
+        assertEq(usdt.balanceOf(agentWallet), 500e6, "Agent should get 50%");
     }
 
     function test_processRevenue_revertsWhenNoBalance() public {
@@ -158,7 +158,7 @@ contract RevenueLockboxTest is Test {
     // ── Pending repayment ───────────────────────────────────────
 
     function test_pendingRepayment_calculatesCorrectly() public {
-        usdc.mint(address(lockbox), 1000e6);
+        usdt.mint(address(lockbox), 1000e6);
 
         assertEq(lockbox.pendingRepayment(), 500e6);
     }
@@ -219,11 +219,11 @@ contract RevenueLockboxTest is Test {
         rateBps = bound(rateBps, 0, 10000);
         if (rateBps > 0 && rateBps < 1000) rateBps = 1000;
 
-        AgentVault fuzzVault = new AgentVault(IERC20(address(usdc)), 99, "Fuzz Vault", "lcFUZZ", 0, type(uint256).max);
+        AgentVault fuzzVault = new AgentVault(IERC20(address(usdt)), 99, "Fuzz Vault", "lcFUZZ", 0, type(uint256).max);
         RevenueLockbox lb =
-            new RevenueLockbox(agentWallet, address(fuzzVault), agentId, address(usdc), rateBps, address(0), 0);
+            new RevenueLockbox(agentWallet, address(fuzzVault), agentId, address(usdt), rateBps, address(0), 0);
         fuzzVault.setLockbox(address(lb)); // Wire lockbox on vault
-        usdc.mint(address(lb), amount);
+        usdt.mint(address(lb), amount);
 
         vm.prank(agentWallet);
         lb.processRevenue();
@@ -231,21 +231,21 @@ contract RevenueLockboxTest is Test {
         uint256 expectedRepayment = (amount * rateBps) / 10000;
         uint256 expectedAgent = amount - expectedRepayment;
 
-        assertEq(usdc.balanceOf(address(fuzzVault)), expectedRepayment);
-        assertEq(usdc.balanceOf(agentWallet), expectedAgent);
+        assertEq(usdt.balanceOf(address(fuzzVault)), expectedRepayment);
+        assertEq(usdt.balanceOf(agentWallet), expectedAgent);
     }
 
     // ── Revenue cap (wash revenue defense) ───────────────────────
 
     function test_processRevenue_capsAtMax() public {
-        // Deploy lockbox with 100K USDC cap
-        AgentVault capVault = new AgentVault(IERC20(address(usdc)), 10, "Cap Vault", "lcCAP", 1000, 500_000e6);
+        // Deploy lockbox with 100K USDT cap
+        AgentVault capVault = new AgentVault(IERC20(address(usdt)), 10, "Cap Vault", "lcCAP", 1000, 500_000e6);
         RevenueLockbox capLockbox =
-            new RevenueLockbox(agentWallet, address(capVault), 10, address(usdc), repaymentRate, address(0), 100_000e6);
+            new RevenueLockbox(agentWallet, address(capVault), 10, address(usdt), repaymentRate, address(0), 100_000e6);
         capVault.setLockbox(address(capLockbox));
 
         // Mint 200K to lockbox (above 100K cap)
-        usdc.mint(address(capLockbox), 200_000e6);
+        usdt.mint(address(capLockbox), 200_000e6);
 
         vm.prank(agentWallet);
         capLockbox.processRevenue();
@@ -254,17 +254,17 @@ contract RevenueLockboxTest is Test {
         assertEq(capLockbox.totalRevenueCapture(), 100_000e6, "Should only process up to cap");
 
         // 100K remains in lockbox for next call
-        assertEq(usdc.balanceOf(address(capLockbox)), 100_000e6, "Remaining should stay in lockbox");
+        assertEq(usdt.balanceOf(address(capLockbox)), 100_000e6, "Remaining should stay in lockbox");
 
         // 50% of 100K = 50K to vault, 50K to agent (50% repayment rate)
-        assertEq(usdc.balanceOf(address(capVault)), 50_000e6, "Vault gets 50% of capped amount");
-        assertEq(usdc.balanceOf(agentWallet), 50_000e6, "Agent gets 50% of capped amount");
+        assertEq(usdt.balanceOf(address(capVault)), 50_000e6, "Vault gets 50% of capped amount");
+        assertEq(usdt.balanceOf(agentWallet), 50_000e6, "Agent gets 50% of capped amount");
 
         // Process the remaining 100K
         vm.prank(agentWallet);
         capLockbox.processRevenue();
 
         assertEq(capLockbox.totalRevenueCapture(), 200_000e6, "Total should now be 200K after second process");
-        assertEq(usdc.balanceOf(address(capLockbox)), 0, "Lockbox should be empty");
+        assertEq(usdt.balanceOf(address(capLockbox)), 0, "Lockbox should be empty");
     }
 }

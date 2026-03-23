@@ -19,7 +19,7 @@ Lenders → [LenclawVault (ERC-4626)] → AgentCreditLine → Agent usa crédito
 ```
 
 **Contratos existentes:**
-- `LenclawVault.sol` — ERC-4626, pool ÚNICO de USDC. Lenders depositan, reciben lcUSDC shares. Presta a agentes autorizados.
+- `LenclawVault.sol` — ERC-4626, pool ÚNICO de USDT. Lenders depositan, reciben lcUSDT shares. Presta a agentes autorizados.
 - `AgentRegistry.sol` — ERC-721, identidad on-chain de agentes. Reputation score (0-1000), code hash, TEE attestation.
 - `RevenueLockbox.sol` — Uno por agente. Captura revenue y splitea entre repago al vault y remainder al agente.
 - `AgentCreditLine.sol` — Línea de crédito por agente, drawdown y repayments.
@@ -30,7 +30,7 @@ Lenders → [LenclawVault (ERC-4626)] → AgentCreditLine → Agent usa crédito
 **Frontend actual:**
 - Home: landing con stats del pool único, hero con animaciones (Aurora, Squares, TextReveal)
 - Dashboard: métricas del pool (TVL, APY, utilization)
-- Lend: depositar USDC en el pool único
+- Lend: depositar USDT en el pool único
 - Agents: registry de agentes registrados
 - Borrow: vista del agente para hacer drawdown de su crédito
 - Agent Onboarding: wizard de 5 pasos para registrar agente
@@ -42,7 +42,7 @@ Lenders → [LenclawVault (ERC-4626)] → AgentCreditLine → Agent usa crédito
 ## Lo que quiero: Modelo "Vault por Agente" con UX lúdica/de apuestas
 
 ### Concepto core
-En vez de un pool genérico donde depositás USDC y te da un yield promedio, quiero que cada agente tenga su propio vault. El lender ELIGE en qué agente confiar y le pone plata. Es como apostar en una carrera de caballos pero con data real: revenue del agente, reputation score, historial de repagos.
+En vez de un pool genérico donde depositás USDT y te da un yield promedio, quiero que cada agente tenga su propio vault. El lender ELIGE en qué agente confiar y le pone plata. Es como apostar en una carrera de caballos pero con data real: revenue del agente, reputation score, historial de repagos.
 
 ### Arquitectura nueva
 ```
@@ -52,9 +52,9 @@ Lender C → [AgentVault: YieldBot-Alpha] → 25% APY (degen, might default)
 ```
 
 Cada agente tiene:
-- **AgentVault (ERC-4626)**: su propio vault donde lenders depositan USDC
+- **AgentVault (ERC-4626)**: su propio vault donde lenders depositan USDT
 - **RevenueLockbox**: captura revenue del agente, repaga a SU vault (no a un pool genérico)
-- **APY individual**: calculado del revenue real del agente vs USDC depositado
+- **APY individual**: calculado del revenue real del agente vs USDT depositado
 - **Riesgo individual**: si el agente defaultea, solo pierden los que le apostaron
 - **Cap**: máximo que el agente puede tomar prestado (basado en su reputation + revenue history)
 
@@ -65,7 +65,7 @@ AgentVaultFactory.createVault(agentId) → deploya AgentVault + linkea con Reven
 
 ### Flujo
 1. Agente se registra → AgentRegistry minta ERC-721 → Factory deploya AgentVault + Lockbox
-2. Lender browsea agentes → ve stats, revenue, APY, riesgo → elige uno → "Back this Agent" → deposita USDC en el AgentVault
+2. Lender browsea agentes → ve stats, revenue, APY, riesgo → elige uno → "Back this Agent" → deposita USDT en el AgentVault
 3. Agente hace drawdown de SU vault
 4. Agente genera revenue → cae en SU Lockbox → auto-repaga a SU vault → yield fluye a SUS backers
 5. Si el agente defaultea → liquidación afecta solo a los backers de ESE agente
@@ -85,7 +85,7 @@ AgentVaultFactory.createVault(agentId) → deploya AgentVault + linkea con Reven
 ### Pantallas y features
 
 #### 1. Home — "The Arena"
-- Hero: "Pick your agent. Back the future." (no "deposit USDC", eso es aburrido)
+- Hero: "Pick your agent. Back the future." (no "deposit USDT", eso es aburrido)
 - Live ticker/feed de actividad de agentes: "AutoTrader-v3 earned $420 from ETH arb", "YieldBot-Alpha missed a payment ⚠️", "DataOracle-Prime revenue up 23% this week 🔥"
 - Top 3 agentes trending con mini-cards
 - Stats globales: Total Backed, Active Agents, Best Performer, Biggest Default

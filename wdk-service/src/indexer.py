@@ -66,8 +66,8 @@ async def get_eth_balance_rpc(address: str) -> str:
     return "0"
 
 
-async def get_usdc_balance_rpc(address: str) -> str:
-    """Get USDC balance via RPC (fallback)"""
+async def get_usdt_balance_rpc(address: str) -> str:
+    """Get USDT balance via RPC (fallback)"""
     try:
         # balanceOf(address) selector = 0x70a08231
         padded_addr = address[2:].lower().zfill(64)
@@ -78,7 +78,7 @@ async def get_usdc_balance_rpc(address: str) -> str:
                 json={
                     "jsonrpc": "2.0",
                     "method": "eth_call",
-                    "params": [{"to": settings.usdc_address, "data": data}, "latest"],
+                    "params": [{"to": settings.usdt_address, "data": data}, "latest"],
                     "id": 1,
                 },
             )
@@ -86,7 +86,7 @@ async def get_usdc_balance_rpc(address: str) -> str:
                 result = resp.json().get("result", "0x0")
                 return str(int(result, 16))
     except Exception as e:
-        print(f"[RPC] USDC balance error: {e}")
+        print(f"[RPC] USDT balance error: {e}")
     return "0"
 
 
@@ -123,9 +123,9 @@ async def get_balances(address: str) -> dict:
     # Get ETH balance via RPC (most reliable for native token)
     eth_balance = await get_eth_balance_rpc(address)
 
-    # Get USDC balance — try indexer first, fallback to RPC
-    usdc_balance = await get_token_balance(address, "ethereum", "usdt")
-    if usdc_balance == "0":
-        usdc_balance = await get_usdc_balance_rpc(address)
+    # Get USDT balance — try indexer first, fallback to RPC
+    usdt_balance = await get_token_balance(address, "ethereum", "usdt")
+    if usdt_balance == "0":
+        usdt_balance = await get_usdt_balance_rpc(address)
 
-    return {"ethBalance": eth_balance, "usdcBalance": usdc_balance}
+    return {"ethBalance": eth_balance, "usdtBalance": usdt_balance}

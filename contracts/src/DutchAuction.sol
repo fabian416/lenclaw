@@ -144,7 +144,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
         require(currentPrice > 0, "DutchAuction: price is zero");
         require(currentPrice <= maxPrice, "DutchAuction: price slipped");
 
-        // Transfer USDC from bidder to this contract
+        // Transfer USDT from bidder to this contract
         asset.safeTransferFrom(msg.sender, address(this), currentPrice);
 
         // Settle the auction
@@ -180,7 +180,7 @@ contract DutchAuction is Ownable, ReentrancyGuard {
     /// @notice Get the current Dutch auction price. Linearly decays from
     ///         startPrice to minPrice over the auction duration.
     /// @param auctionId The auction to query
-    /// @return price Current price in USDC (6 decimals)
+    /// @return price Current price in USDT (6 decimals)
     function getCurrentPrice(uint256 auctionId) public view returns (uint256 price) {
         Auction memory auction = auctions[auctionId];
         if (auction.status != AuctionStatus.ACTIVE) return 0;

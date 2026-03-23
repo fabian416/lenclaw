@@ -72,7 +72,7 @@ Complete design system analysis of the Lendoor frontend (`/home/lucholeonel/CODE
 | `bg-orange-50`             | Active loan term option bg                          |
 | `border-orange-300`        | Active loan term border, slider thumb border        |
 | `border-orange-200/80`     | Hero CTA border, loan term hover border             |
-| `bg-emerald-500`           | USDC balance dot, progress bar default              |
+| `bg-emerald-500`           | USDT balance dot, progress bar default              |
 | `bg-emerald-50`            | "Early user" badge bg                               |
 | `text-emerald-700`         | "Early user" badge text, "On time" badge text       |
 | `bg-emerald-100`           | "On time" status badge bg                           |
@@ -104,8 +104,8 @@ Complete design system analysis of the Lendoor frontend (`/home/lucholeonel/CODE
 | `#10b981`                  | `.terminal-green` CSS class                         |
 | `#ef4444`                  | `.terminal-red` CSS class                           |
 | `#f59e0b`                  | `.terminal-yellow` CSS class                        |
-| `#3e73c4`                  | USDC icon fill                                      |
-| `#2775CA`                  | USDC icon fill (alternate, in Info page)            |
+| `#3e73c4`                  | USDT icon fill                                      |
+| `#2775CA`                  | USDT icon fill (alternate, in Info page)            |
 | `#3b82f6`                  | Scrollbar thumb color (blue-500)                    |
 | `rgba(168,85,247,0.6/0.8)` | Webkit scrollbar thumb (purple-400)                |
 
@@ -481,7 +481,7 @@ h-8 sm:h-10 w-24 sm:w-full rounded-md border border-primary/20 bg-muted/40 anima
 ### Mobile Navigation
 - No hamburger menu / sidebar
 - Desktop nav is `hidden md:flex` (hidden on mobile)
-- Mobile shows only brand + right area (wallet/USDC pill)
+- Mobile shows only brand + right area (wallet/USDT pill)
 
 ### Tab Navigation (Lend page - deposit/withdraw)
 ```
@@ -521,7 +521,7 @@ min-h-screen flex flex-col
 | `max-w-3xl`     | Page containers (Lend, Stats, Borrow)    |
 | `max-w-md`      | Cards, panels, forms (most common)       |
 | `max-w-sm`      | NotAvailable card, achievement dialog    |
-| `max-w-xs`      | USDC header dialog                       |
+| `max-w-xs`      | USDT header dialog                       |
 
 ### Section Spacing
 
@@ -616,13 +616,13 @@ bg-amber-900/5 px-2.5 py-1 rounded-full
 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-900/80
 ```
 
-**USDC pill (header):**
+**USDT pill (header):**
 ```
 h-8 sm:h-10 px-2 sm:px-3 inline-flex items-center gap-1.5 sm:gap-2
 rounded-md border border-primary/30 bg-muted/30 text-xs sm:text-sm
 ```
 
-**USDC badge (debtor list):**
+**USDT badge (debtor list):**
 ```
 bg-[#2775CA]/10 px-2 py-0.5 text-[11px] rounded-full
 ```
@@ -651,7 +651,7 @@ flex items-center justify-between
     [type badge] [address text-xs text-gray-600]
   Right: flex items-center justify-end gap-3 min-w-[140px]
     [time text-[11px] text-gray-500]
-    [amount text-sm font-semibold text-gray-900] [UsdcIcon]
+    [amount text-sm font-semibold text-gray-900] [UsdtIcon]
 ```
 
 ### Debtor List (Info page)
@@ -776,7 +776,7 @@ All icons come from `lucide-react`. Icons used:
 | `ArrowLeftCircle` | Terms back button              |
 | `Terminal`        | Home lender card               |
 | `Database`        | Home borrower card             |
-| `Plus`            | Header USDC add button         |
+| `Plus`            | Header USDT add button         |
 | `XIcon`           | Dialog close button            |
 | `ChevronRight`    | UserJourneyBadge CTA nudge     |
 | `ChevronDown/Up`  | Collapsible sections           |
@@ -803,9 +803,9 @@ All icons come from `lucide-react`. Icons used:
 
 ### Custom SVG Icons
 
-**UsdcIcon:** Custom SVG of USDC circle logo, fill `#3e73c4`, with dollar sign path in white. Available at sizes 14px (default), 19px.
+**UsdtIcon:** Custom SVG of USDT circle logo, fill `#3e73c4`, with dollar sign path in white. Available at sizes 14px (default), 19px.
 
-**USDCIcon (Info page):** Alternate SVG with fill `#2775CA`.
+**USDTIcon (Info page):** Alternate SVG with fill `#2775CA`.
 
 ---
 

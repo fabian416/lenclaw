@@ -86,7 +86,7 @@ pip install -r requirements.txt
 
 | Input | Visibility | Type | Description |
 |-------|-----------|------|-------------|
-| `actual_revenue` | Private | `u64` | Real revenue in USDC (6 decimals) |
+| `actual_revenue` | Private | `u64` | Real revenue in USDT (6 decimals) |
 | `threshold` | Public | `u64` | Minimum revenue requirement |
 | **Output** | Public | `bool` | True if revenue >= threshold |
 

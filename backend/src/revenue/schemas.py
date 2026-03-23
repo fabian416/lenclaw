@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 class RevenueRecordCreate(BaseModel):
     amount: Decimal = Field(..., gt=0)
-    currency: str = "USDC"
+    currency: str = "USDT"
     tx_hash: str | None = None
     block_number: int | None = None
     source: str | None = None

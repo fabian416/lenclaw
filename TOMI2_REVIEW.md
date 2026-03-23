@@ -298,7 +298,7 @@ Esto esta perfecto.
 
 ### Resumen Ejecutivo
 
-Levantar un protocol entero de "pool unico generico" a "vault por agente" es un refactor nuclear. No es cambiar colores. Es cambiar el MODELO MENTAL del producto. De "deposita USDC y espera" a "elegi tu agente, apostale, segui su revenue en vivo". Y lo hicieron.
+Levantar un protocol entero de "pool unico generico" a "vault por agente" es un refactor nuclear. No es cambiar colores. Es cambiar el MODELO MENTAL del producto. De "deposita USDT y espera" a "elegi tu agente, apostale, segui su revenue en vivo". Y lo hicieron.
 
 Lei cada archivo. Cada pagina nueva. Cada tipo. Cada mock. Cada componente de navegacion. Cada contrato. Aca va.
 

@@ -12,7 +12,7 @@ import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract AgentCreditLineTest is Test {
-    ERC20Mock public usdc;
+    ERC20Mock public usdt;
     AgentRegistry public registry;
     CreditScorer public scorer;
     AgentVaultFactory public factory;
@@ -26,11 +26,11 @@ contract AgentCreditLineTest is Test {
     address public agentVaultAddr;
 
     function setUp() public {
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
-        factory.setAllowedAsset(address(usdc), true);
+        factory.setAllowedAsset(address(usdt), true);
         creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
 
         // Link registry to factory for auto vault deployment
@@ -38,7 +38,7 @@ contract AgentCreditLineTest is Test {
 
         // Register agent (auto-deploys vault via factory)
         bytes32 codeHash = keccak256("agent-code");
-        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdc));
+        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdt));
         agentVaultAddr = factory.getVault(agentId);
 
         // Set credit line on the vault
@@ -48,15 +48,15 @@ contract AgentCreditLineTest is Test {
         address lockboxAddr = factory.getLockbox(agentId);
 
         // Give lockbox some revenue (so credit line is not zero)
-        usdc.mint(lockboxAddr, 50_000e6);
+        usdt.mint(lockboxAddr, 50_000e6);
         vm.prank(agentWallet);
         RevenueLockbox(payable(lockboxAddr)).processRevenue();
 
         // Seed the agent's vault with additional liquidity from depositor
         // (vault has 25K from lockbox revenue, cap is 500K, so deposit up to 400K)
-        usdc.mint(depositor, 400_000e6);
+        usdt.mint(depositor, 400_000e6);
         vm.startPrank(depositor);
-        usdc.approve(agentVaultAddr, 400_000e6);
+        usdt.approve(agentVaultAddr, 400_000e6);
         AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
         vm.stopPrank();
 
@@ -69,12 +69,12 @@ contract AgentCreditLineTest is Test {
     function test_drawdown_success() public {
         creditLine.refreshCreditLine(agentId);
 
-        uint256 balanceBefore = usdc.balanceOf(agentWallet);
+        uint256 balanceBefore = usdt.balanceOf(agentWallet);
 
         vm.prank(agentWallet);
         creditLine.drawdown(agentId, 1000e6);
 
-        assertEq(usdc.balanceOf(agentWallet) - balanceBefore, 1000e6);
+        assertEq(usdt.balanceOf(agentWallet) - balanceBefore, 1000e6);
     }
 
     function test_drawdown_revertsForNonAgent() public {
@@ -102,9 +102,9 @@ contract AgentCreditLineTest is Test {
         creditLine.drawdown(agentId, 5000e6);
 
         // Agent repays
-        usdc.mint(agentWallet, 5000e6);
+        usdt.mint(agentWallet, 5000e6);
         vm.startPrank(agentWallet);
-        usdc.approve(address(creditLine), 5000e6);
+        usdt.approve(address(creditLine), 5000e6);
         creditLine.repay(agentId, 5000e6);
         vm.stopPrank();
 
@@ -125,9 +125,9 @@ contract AgentCreditLineTest is Test {
         assertGt(outstandingBefore, 10_000e6, "Should have accrued interest");
 
         // Partial repayment
-        usdc.mint(agentWallet, 1000e6);
+        usdt.mint(agentWallet, 1000e6);
         vm.startPrank(agentWallet);
-        usdc.approve(address(creditLine), 1000e6);
+        usdt.approve(address(creditLine), 1000e6);
         creditLine.repay(agentId, 1000e6);
         vm.stopPrank();
 
@@ -192,9 +192,9 @@ contract AgentCreditLineTest is Test {
         assertEq(uint8(creditLine.getStatus(agentId)), uint8(AgentCreditLine.Status.DELINQUENT));
 
         // Repay - should revert to active
-        usdc.mint(agentWallet, 500e6);
+        usdt.mint(agentWallet, 500e6);
         vm.startPrank(agentWallet);
-        usdc.approve(address(creditLine), 500e6);
+        usdt.approve(address(creditLine), 500e6);
         creditLine.repay(agentId, 500e6);
         vm.stopPrank();
 

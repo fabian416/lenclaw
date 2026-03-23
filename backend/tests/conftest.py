@@ -115,7 +115,7 @@ def make_revenue_record(
         "id": uuid.uuid4(),
         "agent_id": agent_id,
         "amount": Decimal("1000"),
-        "currency": "USDC",
+        "currency": "USDT",
         "tx_hash": "0x" + "c" * 64,
         "block_number": 12345,
         "source": "lockbox",

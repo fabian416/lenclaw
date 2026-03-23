@@ -13,7 +13,7 @@ Usage:
 
     # Decorator usage
     @app.get("/premium/data")
-    @x402_paywall(amount="0.01", token="USDC")
+    @x402_paywall(amount="0.01", token="USDT")
     async def premium_data(request: Request):
         return {"data": "premium content"}
 
@@ -130,7 +130,7 @@ class X402Server:
         self,
         path: str,
         amount: Decimal | str,
-        token: str = "USDC",
+        token: str = "USDT",
         description: str | None = None,
     ) -> None:
         """Register a path as requiring x402 payment.
@@ -190,7 +190,7 @@ def get_paywall_registry() -> dict[str, PaywallConfig]:
 
 def x402_paywall(
     amount: str | Decimal = "0.01",
-    token: str = "USDC",
+    token: str = "USDT",
     description: str | None = None,
     recipient: str | None = None,
 ) -> Callable:
@@ -204,7 +204,7 @@ def x402_paywall(
 
     Args:
         amount: Payment amount in USD (e.g. "0.01" for one cent).
-        token: Token symbol (default USDC).
+        token: Token symbol (default USDT).
         description: Human-readable description of the payment.
         recipient: Override the default recipient address.
 

@@ -23,8 +23,8 @@ contract LiquidationKeeper is Ownable {
     /// @notice Keeper bounty: percentage of outstanding debt paid as incentive
     uint256 public keeperBountyBps = 100; // 1% of outstanding debt
 
-    /// @notice Maximum bounty cap in USDC (6 decimals)
-    uint256 public maxBountyAmount = 1_000e6; // 1,000 USDC cap
+    /// @notice Maximum bounty cap in USDT (6 decimals)
+    uint256 public maxBountyAmount = 1_000e6; // 1,000 USDT cap
 
     /// @notice Minimum time between liquidation checks for the same agent
     uint256 public cooldownPeriod = 1 hours;
@@ -155,8 +155,8 @@ contract LiquidationKeeper is Ownable {
         emit LiquidationTriggered(agentId, msg.sender, outstandingDebt, bountyPaid);
     }
 
-    /// @notice Fund the keeper contract with USDC for bounty payments
-    /// @param amount Amount of USDC to deposit
+    /// @notice Fund the keeper contract with USDT for bounty payments
+    /// @param amount Amount of USDT to deposit
     function fundBountyPool(uint256 amount) external {
         asset.safeTransferFrom(msg.sender, address(this), amount);
     }

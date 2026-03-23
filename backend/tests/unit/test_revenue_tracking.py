@@ -29,7 +29,7 @@ class TestRecordRevenue:
 
         data = {
             "amount": Decimal("1500.50"),
-            "currency": "USDC",
+            "currency": "USDT",
             "tx_hash": "0x" + "a" * 64,
             "block_number": 12345,
             "source": "lockbox",

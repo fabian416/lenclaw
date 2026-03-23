@@ -8,9 +8,9 @@ import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract MockUSDC6 is IERC20 {
+contract MockUSDT6 is IERC20 {
     string public name = "USD Coin";
-    string public symbol = "USDC";
+    string public symbol = "USDT";
     uint8 public decimals = 6;
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
@@ -44,7 +44,7 @@ contract MockUSDC6 is IERC20 {
 }
 
 contract AgentVaultTest is Test {
-    MockUSDC6 usdc;
+    MockUSDT6 usdt;
     AgentRegistry registry;
     AgentVaultFactory factory;
 
@@ -57,10 +57,10 @@ contract AgentVaultTest is Test {
     AgentVault vault;
 
     function setUp() public {
-        usdc = new MockUSDC6();
+        usdt = new MockUSDT6();
         registry = new AgentRegistry(owner);
         factory = new AgentVaultFactory(address(registry), owner);
-        factory.setAllowedAsset(address(usdc), true);
+        factory.setAllowedAsset(address(usdt), true);
         registry.setVaultFactory(address(factory));
 
         // Register an agent
@@ -69,18 +69,18 @@ contract AgentVaultTest is Test {
         );
 
         // Create vault via factory
-        address vaultAddr = factory.createVault(agentId, address(usdc));
+        address vaultAddr = factory.createVault(agentId, address(usdt));
         vault = AgentVault(vaultAddr);
 
         // Fund backers
-        usdc.mint(backer1, 100_000e6);
-        usdc.mint(backer2, 100_000e6);
+        usdt.mint(backer1, 100_000e6);
+        usdt.mint(backer2, 100_000e6);
     }
 
     function test_vaultCreation() public view {
         assertEq(vault.agentId(), agentId);
         assertEq(vault.factory(), address(factory));
-        assertEq(vault.asset(), address(usdc));
+        assertEq(vault.asset(), address(usdt));
         assertEq(vault.totalAssets(), 0);
         assertEq(vault.depositCap(), 500_000e6);
     }
@@ -94,7 +94,7 @@ contract AgentVaultTest is Test {
         uint256 depositAmount = 10_000e6;
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), depositAmount);
+        usdt.approve(address(vault), depositAmount);
         uint256 shares = vault.deposit(depositAmount, backer1);
         vm.stopPrank();
 
@@ -107,7 +107,7 @@ contract AgentVaultTest is Test {
         uint256 depositAmount = 10_000e6;
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), depositAmount);
+        usdt.approve(address(vault), depositAmount);
         uint256 shares = vault.deposit(depositAmount, backer1);
         vault.approve(address(vault), shares);
 
@@ -119,17 +119,17 @@ contract AgentVaultTest is Test {
         vm.stopPrank();
 
         assertEq(assets, depositAmount, "Should get back full deposit");
-        assertEq(usdc.balanceOf(backer1), 100_000e6, "USDC balance restored");
+        assertEq(usdt.balanceOf(backer1), 100_000e6, "USDT balance restored");
     }
 
     function test_multipleBackers() public {
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 5_000e6);
+        usdt.approve(address(vault), 5_000e6);
         vault.deposit(5_000e6, backer1);
         vm.stopPrank();
 
         vm.startPrank(backer2);
-        usdc.approve(address(vault), 15_000e6);
+        usdt.approve(address(vault), 15_000e6);
         vault.deposit(15_000e6, backer2);
         vm.stopPrank();
 
@@ -139,7 +139,7 @@ contract AgentVaultTest is Test {
     function test_borrowOnlyCreditLine() public {
         // Deposit first
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
@@ -155,7 +155,7 @@ contract AgentVaultTest is Test {
 
         // Deposit
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
@@ -164,7 +164,7 @@ contract AgentVaultTest is Test {
         vault.borrow(agentWallet, 3_000e6);
 
         assertEq(vault.totalBorrowed(), 3_000e6);
-        assertEq(usdc.balanceOf(agentWallet), 3_000e6);
+        assertEq(usdt.balanceOf(agentWallet), 3_000e6);
         assertEq(vault.totalAssets(), 10_000e6); // assets unchanged (balance + borrowed)
     }
 
@@ -173,7 +173,7 @@ contract AgentVaultTest is Test {
         factory.setVaultCreditLine(agentId, creditLine);
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 1_000e6);
+        usdt.approve(address(vault), 1_000e6);
         vault.deposit(1_000e6, backer1);
         vm.stopPrank();
 
@@ -188,7 +188,7 @@ contract AgentVaultTest is Test {
 
         // Deposit and borrow
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
@@ -196,9 +196,9 @@ contract AgentVaultTest is Test {
         vault.borrow(agentWallet, 5_000e6);
 
         // Repay from credit line (authorized caller)
-        usdc.mint(creditLine, 5_000e6);
+        usdt.mint(creditLine, 5_000e6);
         vm.startPrank(creditLine);
-        usdc.approve(address(vault), 5_000e6);
+        usdt.approve(address(vault), 5_000e6);
         vault.receiveRepayment(5_000e6, 0);
         vm.stopPrank();
 
@@ -211,15 +211,15 @@ contract AgentVaultTest is Test {
         factory.setVaultCreditLine(agentId, creditLine);
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
         // Random address cannot call receiveRepayment
         address random = makeAddr("random");
-        usdc.mint(random, 1_000e6);
+        usdt.mint(random, 1_000e6);
         vm.startPrank(random);
-        usdc.approve(address(vault), 1_000e6);
+        usdt.approve(address(vault), 1_000e6);
         vm.expectRevert(AgentVault.NotCreditLineOrLockbox.selector);
         vault.receiveRepayment(1_000e6, 0);
         vm.stopPrank();
@@ -230,28 +230,28 @@ contract AgentVaultTest is Test {
         factory.setVaultCreditLine(agentId, creditLine);
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
         vm.prank(creditLine);
         vault.borrow(agentWallet, 5_000e6);
 
-        // Repay 1000 USDC where 200 is interest
-        // Fee should be 10% of interest only = 20 USDC (not 10% of 1000)
-        usdc.mint(creditLine, 1_000e6);
+        // Repay 1000 USDT where 200 is interest
+        // Fee should be 10% of interest only = 20 USDT (not 10% of 1000)
+        usdt.mint(creditLine, 1_000e6);
         vm.startPrank(creditLine);
-        usdc.approve(address(vault), 1_000e6);
+        usdt.approve(address(vault), 1_000e6);
         vault.receiveRepayment(1_000e6, 200e6);
         vm.stopPrank();
 
-        // 10% fee on 200 interest = 20 USDC
+        // 10% fee on 200 interest = 20 USDT
         assertEq(vault.accumulatedFees(), 20e6);
 
         // Collect fees
         address treasury = makeAddr("treasury");
         factory.collectVaultFees(agentId, treasury);
-        assertEq(usdc.balanceOf(treasury), 20e6);
+        assertEq(usdt.balanceOf(treasury), 20e6);
         assertEq(vault.accumulatedFees(), 0);
     }
 
@@ -260,17 +260,17 @@ contract AgentVaultTest is Test {
         factory.setVaultCreditLine(agentId, creditLine);
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
         vm.prank(creditLine);
         vault.borrow(agentWallet, 5_000e6);
 
-        // Repay 1000 USDC with 0 interest → no fee
-        usdc.mint(creditLine, 1_000e6);
+        // Repay 1000 USDT with 0 interest → no fee
+        usdt.mint(creditLine, 1_000e6);
         vm.startPrank(creditLine);
-        usdc.approve(address(vault), 1_000e6);
+        usdt.approve(address(vault), 1_000e6);
         vault.receiveRepayment(1_000e6, 0);
         vm.stopPrank();
 
@@ -282,7 +282,7 @@ contract AgentVaultTest is Test {
         factory.setVaultDepositCap(agentId, 5_000e6);
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
 
         // First deposit within cap
         vault.deposit(3_000e6, backer1);
@@ -298,7 +298,7 @@ contract AgentVaultTest is Test {
         factory.setVaultCreditLine(agentId, creditLine);
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
@@ -316,7 +316,7 @@ contract AgentVaultTest is Test {
 
         // Backer deposits 10k
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
         uint256 shares = vault.deposit(10_000e6, backer1);
         vm.stopPrank();
 
@@ -325,9 +325,9 @@ contract AgentVaultTest is Test {
         vault.borrow(agentWallet, 5_000e6);
 
         // Agent repays 5500 (5000 principal + 500 interest)
-        usdc.mint(creditLine, 5_500e6);
+        usdt.mint(creditLine, 5_500e6);
         vm.startPrank(creditLine);
-        usdc.approve(address(vault), 5_500e6);
+        usdt.approve(address(vault), 5_500e6);
         vault.receiveRepayment(5_500e6, 500e6);
         vm.stopPrank();
 
@@ -383,7 +383,7 @@ contract AgentVaultTest is Test {
         vault.pause();
 
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
 
         // mint should revert when paused
         uint256 shares = vault.previewDeposit(10_000e6);
@@ -394,7 +394,7 @@ contract AgentVaultTest is Test {
 
     function test_mint_revertsUnderMinDeposit() public {
         vm.startPrank(backer1);
-        usdc.approve(address(vault), 10_000e6);
+        usdt.approve(address(vault), 10_000e6);
 
         // mint(1) should revert because the underlying assets are below MIN_DEPOSIT
         vm.expectRevert(AgentVault.DepositTooSmall.selector);

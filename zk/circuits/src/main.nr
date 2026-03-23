@@ -23,7 +23,7 @@ use crate::composite_credit_proof::CreditProofResult;
 /// Main circuit entry point.
 ///
 /// Private witness inputs (known only to the prover / agent):
-///   - actual_revenue: the agent's real revenue in USDC (6 decimals)
+///   - actual_revenue: the agent's real revenue in USDT (6 decimals)
 ///   - code_fields: the agent's source code packed into 256 field elements
 ///   - code_length: number of valid field elements in code_fields
 ///   - actual_reputation: the agent's real reputation score (0-1000)
@@ -84,11 +84,11 @@ fn test_main_valid_proof() {
 
     // Run the main circuit
     let (rev_tier, rep_band) = main(
-        500_000_000,     // 500 USDC revenue
+        500_000_000,     // 500 USDT revenue
         code,
         5,
         800,             // 800/1000 reputation
-        100_000_000,     // 100 USDC threshold
+        100_000_000,     // 100 USDT threshold
         code_hash,
         600,             // min 600 reputation
         42,              // agent #42

@@ -132,11 +132,11 @@ fn test_composite_credit_eligible() {
     let code_hash = code_integrity::compute_code_hash(code);
 
     let result = verify_composite_credit(
-        100_000_000,    // 100 USDC revenue (6 decimals)
+        100_000_000,    // 100 USDT revenue (6 decimals)
         code,
         5,
         750,            // reputation 750/1000
-        50_000_000,     // threshold: 50 USDC
+        50_000_000,     // threshold: 50 USDT
         code_hash,
         500,            // min reputation: 500
         1,              // agent_id: 1

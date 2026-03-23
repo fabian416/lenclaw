@@ -118,7 +118,7 @@ contract ZKCreditVerifier is Ownable, IZKCreditVerifier {
     }
 
     /// @notice Set global minimum thresholds for credit eligibility
-    /// @param _revenueThreshold Minimum revenue in USDC (6 decimals)
+    /// @param _revenueThreshold Minimum revenue in USDT (6 decimals)
     /// @param _minReputation Minimum reputation score (0-1000)
     function setGlobalThresholds(uint64 _revenueThreshold, uint64 _minReputation) external onlyOwner {
         require(_minReputation <= 1000, "ZKCreditVerifier: reputation out of range");

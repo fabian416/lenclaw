@@ -1,9 +1,9 @@
 /**
  * Revenue monitoring and routing to the Lenclaw RevenueLockbox.
  *
- * The agent continuously monitors its WDK wallet for incoming USDC. When the
+ * The agent continuously monitors its WDK wallet for incoming USDT. When the
  * balance exceeds the configured threshold, it:
- *   1. Transfers USDC to the RevenueLockbox contract
+ *   1. Transfers USDT to the RevenueLockbox contract
  *   2. Calls processRevenue() on the lockbox to split between debt repayment and agent
  *
  * The lockbox's processRevenue() can only be called by the agent address or the vault,
@@ -22,8 +22,8 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
-import { AgentConfig, formatUSDC } from './config';
-import { AgentWallet, getUSDCBalance, getUSDCBalanceOf, formatUSDCBalance } from './wallet';
+import { AgentConfig, formatUSDT } from './config';
+import { AgentWallet, getUSDTBalance, getUSDTBalanceOf, formatUSDTBalance } from './wallet';
 import { ERC20_ABI, REVENUE_LOCKBOX_ABI, AGENT_VAULT_ABI, AGENT_CREDIT_LINE_ABI } from './contracts';
 import { getLogger } from './logger';
 
@@ -38,7 +38,7 @@ export interface RevenueMonitorState {
 }
 
 /**
- * Revenue monitor that watches the agent's wallet and routes USDC to the lockbox.
+ * Revenue monitor that watches the agent's wallet and routes USDT to the lockbox.
  */
 export class RevenueMonitor {
   private config: AgentConfig;
@@ -89,7 +89,7 @@ export class RevenueMonitor {
     log.info('Starting revenue monitor', {
       lockbox: this.config.contracts.revenueLockbox,
       pollInterval: this.config.pollIntervalMs,
-      minThreshold: formatUSDC(this.config.minRevenueThreshold),
+      minThreshold: formatUSDT(this.config.minRevenueThreshold),
     });
 
     // Run immediately, then schedule the next poll
@@ -135,7 +135,7 @@ export class RevenueMonitor {
     }
     this.state.isRunning = false;
     log.info('Revenue monitor stopped', {
-      totalProcessed: formatUSDC(this.state.totalProcessed),
+      totalProcessed: formatUSDT(this.state.totalProcessed),
       processCount: this.state.processCount,
       errors: this.state.errors,
     });
@@ -194,40 +194,40 @@ export class RevenueMonitor {
   }
 
   /**
-   * Check USDC balance and process revenue if above threshold.
+   * Check USDT balance and process revenue if above threshold.
    */
   private async checkAndProcess(): Promise<void> {
-    const usdcAddress = this.config.contracts.usdc as Address;
+    const usdtAddress = this.config.contracts.usdt as Address;
     const lockboxAddress = this.config.contracts.revenueLockbox as Address;
 
-    // Step 1: Check agent wallet USDC balance
-    const agentBalance = await getUSDCBalance(this.wallet, usdcAddress);
-    log.debug('Agent wallet USDC balance', {
-      balance: formatUSDCBalance(agentBalance),
+    // Step 1: Check agent wallet USDT balance
+    const agentBalance = await getUSDTBalance(this.wallet, usdtAddress);
+    log.debug('Agent wallet USDT balance', {
+      balance: formatUSDTBalance(agentBalance),
       address: this.wallet.address,
     });
 
     if (agentBalance >= this.config.minRevenueThreshold) {
       log.info('Revenue detected in agent wallet, transferring to lockbox', {
-        amount: formatUSDCBalance(agentBalance),
+        amount: formatUSDTBalance(agentBalance),
       });
 
       // Nonce management: transactions are serialized (each awaited before the next)
       // to prevent nonce conflicts between transfer and processRevenue calls.
       // WDK handles nonce assignment internally; we ensure ordering by awaiting each tx.
-      await this.transferToLockbox(usdcAddress, lockboxAddress, agentBalance);
+      await this.transferToLockbox(usdtAddress, lockboxAddress, agentBalance);
     }
 
-    // Step 2: Check if lockbox has pending USDC to process
-    const lockboxBalance = await getUSDCBalanceOf(
+    // Step 2: Check if lockbox has pending USDT to process
+    const lockboxBalance = await getUSDTBalanceOf(
       this.wallet,
-      usdcAddress,
+      usdtAddress,
       lockboxAddress,
     );
 
     if (lockboxBalance > 0n) {
       log.info('Lockbox has pending revenue, calling processRevenue()', {
-        lockboxBalance: formatUSDCBalance(lockboxBalance),
+        lockboxBalance: formatUSDTBalance(lockboxBalance),
       });
 
       await this.callProcessRevenue(lockboxAddress, lockboxBalance);
@@ -237,24 +237,24 @@ export class RevenueMonitor {
   }
 
   /**
-   * Transfer USDC from the agent's WDK wallet to the RevenueLockbox.
+   * Transfer USDT from the agent's WDK wallet to the RevenueLockbox.
    *
-   * Uses WDK's built-in transfer capability to send USDC.
+   * Uses WDK's built-in transfer capability to send USDT.
    */
   private async transferToLockbox(
-    usdcAddress: Address,
+    usdtAddress: Address,
     lockboxAddress: Address,
     amount: bigint,
   ): Promise<void> {
     try {
-      log.info('Initiating USDC transfer to lockbox', {
-        amount: formatUSDCBalance(amount),
+      log.info('Initiating USDT transfer to lockbox', {
+        amount: formatUSDTBalance(amount),
         to: lockboxAddress,
       });
 
       // Check gas price before submitting
       if (!(await this.checkGasPrice())) {
-        log.warn('Skipping USDC transfer due to high gas price');
+        log.warn('Skipping USDT transfer due to high gas price');
         return;
       }
 
@@ -269,19 +269,19 @@ export class RevenueMonitor {
       });
 
       // Estimate gas to verify transaction won't revert
-      if (!(await this.estimateGas(usdcAddress, transferData))) {
-        log.warn('Skipping USDC transfer: gas estimation failed');
+      if (!(await this.estimateGas(usdtAddress, transferData))) {
+        log.warn('Skipping USDT transfer: gas estimation failed');
         return;
       }
 
       // Execute the transaction through WDK
       const txResult = await account.sendTransaction({
-        to: usdcAddress,
+        to: usdtAddress,
         data: transferData,
         value: '0x0',
       });
 
-      log.info('USDC transfer submitted', { txHash: txResult.hash });
+      log.info('USDT transfer submitted', { txHash: txResult.hash });
 
       // Wait for confirmation
       const receipt = await this.wallet.publicClient.waitForTransactionReceipt({
@@ -290,17 +290,17 @@ export class RevenueMonitor {
       });
 
       if (receipt.status === 'success') {
-        log.info('USDC transfer confirmed', {
+        log.info('USDT transfer confirmed', {
           txHash: receipt.transactionHash,
           blockNumber: receipt.blockNumber.toString(),
           gasUsed: receipt.gasUsed.toString(),
         });
       } else {
-        log.error('USDC transfer reverted', { txHash: receipt.transactionHash });
+        log.error('USDT transfer reverted', { txHash: receipt.transactionHash });
         this.state.errors++;
       }
     } catch (err) {
-      log.error('Failed to transfer USDC to lockbox', { error: String(err) });
+      log.error('Failed to transfer USDT to lockbox', { error: String(err) });
       this.state.errors++;
       throw err;
     }
@@ -309,7 +309,7 @@ export class RevenueMonitor {
   /**
    * Call processRevenue() on the RevenueLockbox contract.
    *
-   * This splits the USDC between debt repayment (to vault) and agent remainder.
+   * This splits the USDT between debt repayment (to vault) and agent remainder.
    * Only the agent address or vault can call this function.
    */
   private async callProcessRevenue(lockboxAddress: Address, amount: bigint): Promise<void> {
@@ -356,7 +356,7 @@ export class RevenueMonitor {
         log.info('processRevenue() confirmed', {
           txHash: receipt.transactionHash,
           blockNumber: receipt.blockNumber.toString(),
-          totalProcessedLifetime: formatUSDC(this.state.totalProcessed),
+          totalProcessedLifetime: formatUSDT(this.state.totalProcessed),
           processCount: this.state.processCount,
         });
       } else {

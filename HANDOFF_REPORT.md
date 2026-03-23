@@ -56,13 +56,13 @@ Todos los contratos están en `/contracts/src` y se compilan con Foundry. Target
 ### 3.1 Core del Protocolo
 
 **AgentVault.sol** — Vault individual por agente (ERC-4626).
-Cada agente tiene su propio vault. Los backers depositan USDC en el vault del agente que eligen respaldar, y reciben share tokens. El riesgo está aislado por agente: un default en un vault no afecta a los demás. Cobra un protocol fee del 10% sobre el interest.
+Cada agente tiene su propio vault. Los backers depositan USDT en el vault del agente que eligen respaldar, y reciben share tokens. El riesgo está aislado por agente: un default en un vault no afecta a los demás. Cobra un protocol fee del 10% sobre el interest.
 
 **AgentVaultFactory.sol** — Factory que deploya atómicamente un AgentVault + RevenueLockbox por agente.
 Cuando un agente se registra, la factory crea ambos contratos en una sola transacción, vinculándolos entre sí.
 
 **RevenueLockbox.sol** — Contrato inmutable por agente.
-Se deploya una vez por agente y no se puede modificar. Todo el revenue del agente (USDC o ETH) pasa por este contrato, que aplica un `repaymentRateBps` (ej: 50%) para auto-repagar la deuda antes de liberar fondos al agente. Apunta al AgentVault individual del agente. Es la pieza central de seguridad del protocolo.
+Se deploya una vez por agente y no se puede modificar. Todo el revenue del agente (USDT o ETH) pasa por este contrato, que aplica un `repaymentRateBps` (ej: 50%) para auto-repagar la deuda antes de liberar fondos al agente. Apunta al AgentVault individual del agente. Es la pieza central de seguridad del protocolo.
 
 **AgentRegistry.sol** — Registro de identidad (ERC-721 / ERC-8004).
 Cada agente recibe un NFT como identidad onchain. El registro almacena: wallet, code hash, metadata, reputation score (0–1000), flag de código verificado, y dirección del lockbox. La reputación inicial es 500.
@@ -71,11 +71,11 @@ Cada agente recibe un NFT como identidad onchain. El registro almacena: wallet, 
 Gestiona el crédito de cada agente: principal, interest accrued, tasa de interés, límite de crédito, y estado (ACTIVE → DELINQUENT → DEFAULT). Periodos de gracia: 7 días, delinquency: 14 días, default: 30 días.
 
 **CreditScorer.sol** — Motor de scoring onchain.
-Calcula la línea de crédito usando 5 factores observables onchain: revenue level (30%), consistencia de revenue por epochs (25%), historial crediticio de préstamos completados (20%), tiempo en el protocolo (15%), ratio deuda/revenue (10%). Rango de crédito: 100 USDC a 100K USDC. Tasa de interés inversamente proporcional al score compuesto (3%–25% APR). Sin TEE, sin ZK, sin reputación manual — solo comportamiento verificable.
+Calcula la línea de crédito usando 5 factores observables onchain: revenue level (30%), consistencia de revenue por epochs (25%), historial crediticio de préstamos completados (20%), tiempo en el protocolo (15%), ratio deuda/revenue (10%). Rango de crédito: 100 USDT a 100K USDT. Tasa de interés inversamente proporcional al score compuesto (3%–25% APR). Sin TEE, sin ZK, sin reputación manual — solo comportamiento verificable.
 
 ### 3.2 Smart Wallet (Tier System)
 
-**AgentSmartWallet.sol** — Smart contract wallet que auto-routea USDC revenue al lockbox antes de cualquier operación de salida. Garantiza que el revenue siempre pase por el lockbox.
+**AgentSmartWallet.sol** — Smart contract wallet que auto-routea USDT revenue al lockbox antes de cualquier operación de salida. Garantiza que el revenue siempre pase por el lockbox.
 
 **SmartWalletFactory.sol** — Deploya y gestiona smart wallets por agente. Administra los targets permitidos para operaciones de salida.
 
@@ -113,7 +113,7 @@ API REST construida con FastAPI (Python 3.12), base de datos PostgreSQL con SQLA
 | `market/` | `/market/*` | Mercado secundario de tranche shares |
 | `bridge/` | `/bridge/*` | Recepción de attestations del oracle |
 | `liquidation/` | `/liquidation/*` | Tracking de liquidaciones |
-| `fiat/` | `/fiat/*` | On/off-ramp de USDC |
+| `fiat/` | `/fiat/*` | On/off-ramp de USDT |
 | `monitoring/` | `/health`, `/metrics` | Health checks y métricas Prometheus |
 | `x402/` | `/x402/*` | Middleware y endpoints del protocolo X-402 |
 | `sdk/` | — | Cliente y servidor X-402 como librería |
@@ -167,7 +167,7 @@ SPA (Single Page Application) construida con React 18, TypeScript, Vite 6, y Tai
 | Dashboard | `/dashboard` | Overview: utilización del pool (anillos SVG), agentes activos, stats |
 | Lend | `/lend` | Depósito en senior/junior tranche, selección de riesgo, yield display |
 | Borrow | `/borrow` | Drawdown de crédito, schedule de repagos, balance del lockbox |
-| Market | `/market` | Trading secundario de sUSDC/jUSDC, order book |
+| Market | `/market` | Trading secundario de sUSDT/jUSDT, order book |
 | Agent Registry | `/registry` | Explorador de agentes con cards, reputation, filtros |
 | Agent Onboarding | `/onboarding` | Wizard multi-step: verificación de código → deploy lockbox → registro |
 
@@ -175,7 +175,7 @@ SPA (Single Page Application) construida con React 18, TypeScript, Vite 6, y Tai
 
 - **Layout:** Header desktop, MobileHeader, BottomNav (mobile tabs)
 - **Shared:** StatCard, ProgressBar, StatusBadge, LoadingSpinner, EmptyState
-- **Features:** FiatRampWidget (on/off-ramp USDC), KYCBanner
+- **Features:** FiatRampWidget (on/off-ramp USDT), KYCBanner
 - **UI Base:** Componentes Radix UI (Card, Button, Dialog, Tooltip)
 
 ### 5.3 Stack Frontend
@@ -332,7 +332,7 @@ Comandos principales: `make dev` (levantar todo), `make test` (correr todos los 
                     │  1. CreditScorer calcula línea con      │
                     │     5 factores observables onchain       │
                     │  2. Agente hace drawdown()              │
-                    │  3. Vault transfiere USDC al agente     │
+                    │  3. Vault transfiere USDT al agente     │
                     │  4. Interest accrues según tenor         │
                     │  5. Repagos automáticos vía Lockbox     │
                     └──────────────┬──────────────────────────┘
@@ -341,7 +341,7 @@ Comandos principales: `make dev` (levantar todo), `make test` (correr todos los 
                     │           LENDING (BACKERS)             │
                     │                                         │
                     │  1. Backer elige qué agente respaldar   │
-                    │  2. Deposita USDC en el AgentVault      │
+                    │  2. Deposita USDT en el AgentVault      │
                     │     individual de ese agente             │
                     │  3. Recibe share tokens (ERC-4626)      │
                     │  4. Gana yield del interest del agente  │

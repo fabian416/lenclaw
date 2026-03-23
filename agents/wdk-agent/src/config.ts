@@ -21,7 +21,7 @@ export interface AgentConfig {
     revenueLockbox: string;
     agentVault: string;
     agentCreditLine: string;
-    usdc: string;
+    usdt: string;
   };
 
   /** Agent's registered ID in the AgentRegistry */
@@ -30,7 +30,7 @@ export interface AgentConfig {
   /** Polling interval for revenue monitoring (ms) */
   pollIntervalMs: number;
 
-  /** Minimum USDC balance to trigger revenue processing (6 decimals) */
+  /** Minimum USDT balance to trigger revenue processing (6 decimals) */
   minRevenueThreshold: bigint;
 
   /** Maximum gas price in gwei before skipping transactions */
@@ -56,33 +56,33 @@ function optionalEnv(key: string, defaultValue: string): string {
   return value.trim();
 }
 
-/** USDC on Base mainnet */
-export const USDC_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
+/** USDT on Base mainnet */
+export const USDT_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
 
 /** Base chain ID */
 export const BASE_CHAIN_ID = 8453;
 
-/** USDC decimals */
-export const USDC_DECIMALS = 6;
+/** USDT decimals */
+export const USDT_DECIMALS = 6;
 
 /**
- * Parse a human-readable USDC amount (e.g. "1.5") to its 6-decimal raw representation.
+ * Parse a human-readable USDT amount (e.g. "1.5") to its 6-decimal raw representation.
  */
-export function parseUSDC(amount: string): bigint {
+export function parseUSDT(amount: string): bigint {
   const parts = amount.split('.');
-  const whole = BigInt(parts[0] || '0') * BigInt(10 ** USDC_DECIMALS);
+  const whole = BigInt(parts[0] || '0') * BigInt(10 ** USDT_DECIMALS);
   if (parts.length === 1) return whole;
-  const decStr = (parts[1] || '0').padEnd(USDC_DECIMALS, '0').slice(0, USDC_DECIMALS);
+  const decStr = (parts[1] || '0').padEnd(USDT_DECIMALS, '0').slice(0, USDT_DECIMALS);
   return whole + BigInt(decStr);
 }
 
 /**
- * Format a raw USDC amount (6 decimals) to a human-readable string.
+ * Format a raw USDT amount (6 decimals) to a human-readable string.
  */
-export function formatUSDC(raw: bigint): string {
-  const whole = raw / BigInt(10 ** USDC_DECIMALS);
-  const frac = raw % BigInt(10 ** USDC_DECIMALS);
-  const fracStr = frac.toString().padStart(USDC_DECIMALS, '0');
+export function formatUSDT(raw: bigint): string {
+  const whole = raw / BigInt(10 ** USDT_DECIMALS);
+  const frac = raw % BigInt(10 ** USDT_DECIMALS);
+  const fracStr = frac.toString().padStart(USDT_DECIMALS, '0');
   return `${whole}.${fracStr}`;
 }
 
@@ -110,11 +110,11 @@ export function loadConfig(): AgentConfig {
       revenueLockbox: requireEnv('REVENUE_LOCKBOX_ADDRESS'),
       agentVault: requireEnv('AGENT_VAULT_ADDRESS'),
       agentCreditLine: optionalEnv('AGENT_CREDIT_LINE_ADDRESS', ''),
-      usdc: USDC_ADDRESS,
+      usdt: USDT_ADDRESS,
     },
     agentId,
     pollIntervalMs,
-    minRevenueThreshold: parseUSDC(minThresholdStr),
+    minRevenueThreshold: parseUSDT(minThresholdStr),
     maxGasPriceGwei,
     logLevel,
   };

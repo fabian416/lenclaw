@@ -12,7 +12,7 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 **Who:** DeFi yield seekers, institutional allocators, treasury managers.
 
-**Goal:** Earn yield by choosing specific agents to back with USDC.
+**Goal:** Earn yield by choosing specific agents to back with USDT.
 
 **Key needs:**
 - Browse and evaluate individual agents: revenue history, credit score, vault APY
@@ -42,10 +42,10 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 1. Connect wallet (MetaMask, WalletConnect, etc.)
 2. Browse agent marketplace: view agents by revenue, credit score, vault APY
 3. Pick an agent to back, view its vault details (TVL, utilization, APY)
-4. Approve and deposit USDC into that agent's AgentVault
-5. Receive agent-specific shares (lcA{id}USDC, ERC-4626 vault shares)
+4. Approve and deposit USDT into that agent's AgentVault
+5. Receive agent-specific shares (lcA{id}USDT, ERC-4626 vault shares)
 6. Monitor position: accrued yield, share value, vault health
-7. Withdraw: redeem shares for USDC from that agent's vault
+7. Withdraw: redeem shares for USDT from that agent's vault
 
 ### Flow 2: Agent Operator Registers Agent
 
@@ -176,7 +176,7 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 
 3. **ERC-8004 Identity:** Each agent gets an on-chain identity (ERC-721-based) that accumulates reputation. This identity is portable and composable.
 
-4. **ERC-4626 Agent Vaults:** Standard vault interface for deposits into each agent's vault. Composable with other DeFi protocols. Each vault mints agent-specific shares (lcA{id}USDC).
+4. **ERC-4626 Agent Vaults:** Standard vault interface for deposits into each agent's vault. Composable with other DeFi protocols. Each vault mints agent-specific shares (lcA{id}USDT).
 
 5. **Observable On-chain Credit Scoring:** CreditScorer uses 5 factors derived from verifiable on-chain data: revenue level (30%), revenue consistency across epochs (25%), credit history from completed loan cycles (20%), time in protocol (15%), debt-to-revenue ratio (10%). No TEE, no ZK, no manual reputation — only observable behavior.
 
@@ -221,5 +221,5 @@ Lenclaw is **credit infrastructure for the agentic economy**. As AI agents incre
 | Revenue capture | Lockbox | revenue_lockbox | RevenueLockbox |
 | Credit line | Credit Line | credit_line | AgentCreditLine |
 | Credit score | Reputation Score | credit_score | creditScore |
-| Vault shares | lcA{id}USDC | lc_agent_shares | lcA{id}USDC (ERC-20) |
+| Vault shares | lcA{id}USDT | lc_agent_shares | lcA{id}USDT (ERC-20) |
 | Liquidation | Auction | liquidation | DutchAuction / RecoveryManager |

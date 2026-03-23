@@ -111,7 +111,7 @@ class RevenueSyncWorker(BaseWorker):
                 agent.id,
                 {
                     "amount": event["amount"],
-                    "currency": event.get("currency", "USDC"),
+                    "currency": event.get("currency", "USDT"),
                     "tx_hash": event["tx_hash"],
                     "block_number": event["block_number"],
                     "source": "lockbox_sync",

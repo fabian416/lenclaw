@@ -37,7 +37,7 @@ async def create_onramp_session(
     session: AsyncSession = Depends(get_session),
     wallet: str = Depends(get_current_wallet),
 ):
-    """Create a Transak on-ramp session to buy USDC with fiat."""
+    """Create a Transak on-ramp session to buy USDT with fiat."""
     result = await _service.create_onramp_session(
         session=session,
         user_address=wallet,
@@ -60,7 +60,7 @@ async def create_offramp_session(
     session: AsyncSession = Depends(get_session),
     wallet: str = Depends(get_current_wallet),
 ):
-    """Create a Transak off-ramp session to sell USDC for fiat."""
+    """Create a Transak off-ramp session to sell USDT for fiat."""
     result = await _service.create_offramp_session(
         session=session,
         user_address=wallet,
@@ -159,7 +159,7 @@ async def list_transactions(
 @router.get("/rates", response_model=RateQuote)
 async def get_rates(
     fiat_currency: str = Query("USD", pattern=r"^(USD|EUR)$"),
-    crypto_currency: str = Query("USDC"),
+    crypto_currency: str = Query("USDT"),
     fiat_amount: Decimal = Query(Decimal("100"), gt=0),
     network: str = Query("base"),
 ):

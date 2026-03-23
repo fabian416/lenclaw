@@ -10,7 +10,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// @title AgentVault - Individual ERC-4626 vault per AI agent
-/// @notice Each agent gets its own vault where backers deposit USDC and receive agent-specific shares.
+/// @notice Each agent gets its own vault where backers deposit USDT and receive agent-specific shares.
 ///         Revenue from the agent flows back to this vault, generating yield for backers.
 ///         If the agent defaults, only backers of THIS vault are affected.
 contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
@@ -64,7 +64,7 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
     error VaultIsFrozen();
     error DepositTooSmall();
 
-    uint256 public constant MIN_DEPOSIT = 100e6; // 100 USDC minimum to prevent donation attack
+    uint256 public constant MIN_DEPOSIT = 100e6; // 100 USDT minimum to prevent donation attack
 
     modifier onlyFactory() {
         if (msg.sender != factory) revert NotFactory();
@@ -82,13 +82,13 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
     }
 
     constructor(
-        IERC20 _usdc,
+        IERC20 _usdt,
         uint256 _agentId,
         string memory _name,
         string memory _symbol,
         uint256 _protocolFeeBps,
         uint256 _depositCap
-    ) ERC4626(_usdc) ERC20(_name, _symbol) {
+    ) ERC4626(_usdt) ERC20(_name, _symbol) {
         agentId = _agentId;
         factory = msg.sender;
         protocolFeeBps = _protocolFeeBps;
@@ -156,7 +156,7 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
         emit WithdrawalRequested(msg.sender, block.timestamp);
     }
 
-    /// @notice Borrow USDC from the vault (called by AgentCreditLine)
+    /// @notice Borrow USDT from the vault (called by AgentCreditLine)
     function borrow(address to, uint256 amount) external onlyCreditLine nonReentrant whenNotPaused {
         if (amount > availableLiquidity()) revert InsufficientLiquidity();
         totalBorrowed += amount;
@@ -198,7 +198,7 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
         emit FeesCollected(to, fees);
     }
 
-    /// @notice Available liquidity (USDC balance minus reserved fees)
+    /// @notice Available liquidity (USDT balance minus reserved fees)
     function availableLiquidity() public view returns (uint256) {
         uint256 balance = IERC20(asset()).balanceOf(address(this));
         return balance > accumulatedFees ? balance - accumulatedFees : 0;
@@ -211,7 +211,7 @@ contract AgentVault is ERC4626, ReentrancyGuard, Pausable {
         return (totalBorrowed * 10000) / total;
     }
 
-    /// @notice Total assets = USDC balance + outstanding borrows - reserved fees
+    /// @notice Total assets = USDT balance + outstanding borrows - reserved fees
     /// @dev Returns 0 if accumulatedFees exceeds balance + totalBorrowed to prevent underflow
     function totalAssets() public view override returns (uint256) {
         uint256 gross = IERC20(asset()).balanceOf(address(this)) + totalBorrowed;

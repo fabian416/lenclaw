@@ -96,7 +96,7 @@ class PredictionResult:
     risk_tier: str  # AAA .. CCC
     default_probability: float  # 0.0 - 1.0
     confidence: float  # 0.0 - 1.0 (calibrated certainty)
-    recommended_credit_line: float  # USDC
+    recommended_credit_line: float  # USDT
     feature_importances: dict[str, float]
 
 

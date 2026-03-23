@@ -59,7 +59,7 @@ class X402Middleware(BaseHTTPMiddleware):
         self,
         path: str,
         amount: Decimal,
-        token: str = "USDC",
+        token: str = "USDT",
         description: str | None = None,
         recipient: str | None = None,
     ) -> None:
@@ -68,7 +68,7 @@ class X402Middleware(BaseHTTPMiddleware):
         Args:
             path: The URL path pattern to protect (e.g. "/api/v1/premium/data").
             amount: Payment amount in USD.
-            token: Token symbol (default USDC).
+            token: Token symbol (default USDT).
             description: Human-readable description of what is being paid for.
             recipient: Override default payment recipient.
         """
@@ -269,7 +269,7 @@ def setup_x402_middleware(
             middleware.protect_route(
                 path=path,
                 amount=Decimal(str(config.get("amount", "0.01"))),
-                token=config.get("token", "USDC"),
+                token=config.get("token", "USDT"),
                 description=config.get("description"),
                 recipient=config.get("recipient"),
             )

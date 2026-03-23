@@ -13,8 +13,8 @@ import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 /// @title DeployPolygon - Polygon PoS deployment script
 /// @notice Deploys the full Lenclaw protocol suite to Polygon (chain ID 137)
 contract DeployPolygon is Script {
-    // Polygon PoS native USDC
-    address constant USDC = 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359;
+    // Polygon PoS native USDT
+    address constant USDT = 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359;
 
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
@@ -24,7 +24,7 @@ contract DeployPolygon is Script {
         console.log("Deploying Lenclaw to Polygon PoS");
         console.log("Deployer:", deployer);
         console.log("Owner:", owner);
-        console.log("USDC:", USDC);
+        console.log("USDT:", USDT);
 
         vm.startBroadcast(deployerKey);
 
@@ -36,8 +36,8 @@ contract DeployPolygon is Script {
         AgentVaultFactory factory = new AgentVaultFactory(address(registry), owner);
         console.log("AgentVaultFactory:", address(factory));
 
-        // 2b. Whitelist USDC as allowed asset
-        factory.setAllowedAsset(USDC, true);
+        // 2b. Whitelist USDT as allowed asset
+        factory.setAllowedAsset(USDT, true);
 
         // 3. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), owner);
@@ -48,17 +48,17 @@ contract DeployPolygon is Script {
         console.log("AgentCreditLine:", address(creditLine));
 
         // 5. Deploy DutchAuction (owner as placeholder recoveryManager, updated below)
-        DutchAuction dutchAuction = new DutchAuction(USDC, owner, owner);
+        DutchAuction dutchAuction = new DutchAuction(USDT, owner, owner);
         console.log("DutchAuction:", address(dutchAuction));
 
         // 6. Deploy RecoveryManager
         RecoveryManager recoveryManager =
-            new RecoveryManager(USDC, address(dutchAuction), address(registry), address(factory), owner);
+            new RecoveryManager(USDT, address(dutchAuction), address(registry), address(factory), owner);
         console.log("RecoveryManager:", address(recoveryManager));
 
         // 7. Deploy LiquidationKeeper
         LiquidationKeeper keeper =
-            new LiquidationKeeper(address(creditLine), address(registry), USDC, address(recoveryManager), owner);
+            new LiquidationKeeper(address(creditLine), address(registry), USDT, address(recoveryManager), owner);
         console.log("LiquidationKeeper:", address(keeper));
 
         // 8. Wire everything
@@ -80,7 +80,7 @@ contract DeployPolygon is Script {
 
         // Write deployment addresses to JSON
         string memory json = "deployment";
-        vm.serializeAddress(json, "usdc", USDC);
+        vm.serializeAddress(json, "usdt", USDT);
         vm.serializeAddress(json, "agentRegistry", address(registry));
         vm.serializeAddress(json, "agentVaultFactory", address(factory));
         vm.serializeAddress(json, "creditScorer", address(scorer));

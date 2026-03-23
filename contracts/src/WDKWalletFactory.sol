@@ -11,7 +11,7 @@ import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 ///         Wallets are deployed at predictable addresses, which is standard for ERC-4337
 ///         account abstraction flows where the counterfactual address must be known in advance.
 contract WDKWalletFactory is Ownable {
-    address public immutable usdc;
+    address public immutable usdt;
     IAgentRegistry public registry;
     address public entryPoint;
 
@@ -33,9 +33,9 @@ contract WDKWalletFactory is Ownable {
     error NotAuthorized();
     error ZeroAddress();
 
-    constructor(address _usdc, address _registry, address _entryPoint, address _owner) Ownable(_owner) {
-        require(_usdc != address(0) && _registry != address(0) && _entryPoint != address(0), "zero address");
-        usdc = _usdc;
+    constructor(address _usdt, address _registry, address _entryPoint, address _owner) Ownable(_owner) {
+        require(_usdt != address(0) && _registry != address(0) && _entryPoint != address(0), "zero address");
+        usdt = _usdt;
         registry = IAgentRegistry(_registry);
         entryPoint = _entryPoint;
     }
@@ -154,7 +154,7 @@ contract WDKWalletFactory is Ownable {
     {
         return abi.encodePacked(
             type(WDKSmartWallet).creationCode,
-            abi.encode(_owner, address(this), _lockbox, usdc, _agentId, _repaymentRateBps, entryPoint)
+            abi.encode(_owner, address(this), _lockbox, usdt, _agentId, _repaymentRateBps, entryPoint)
         );
     }
 }

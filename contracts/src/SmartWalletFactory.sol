@@ -7,7 +7,7 @@ import {IAgentRegistry} from "./interfaces/IAgentRegistry.sol";
 
 /// @title SmartWalletFactory - Deploys revenue-routing smart wallets for agents
 contract SmartWalletFactory is Ownable {
-    address public immutable usdc;
+    address public immutable usdt;
     IAgentRegistry public registry;
 
     uint256 public defaultRepaymentRateBps = 5000; // 50%
@@ -22,9 +22,9 @@ contract SmartWalletFactory is Ownable {
     event DefaultTargetAdded(address indexed target);
     event DefaultTargetRemoved(address indexed target);
 
-    constructor(address _usdc, address _registry, address _owner) Ownable(_owner) {
-        require(_usdc != address(0) && _registry != address(0), "zero address");
-        usdc = _usdc;
+    constructor(address _usdt, address _registry, address _owner) Ownable(_owner) {
+        require(_usdt != address(0) && _registry != address(0), "zero address");
+        usdt = _usdt;
         registry = IAgentRegistry(_registry);
     }
 
@@ -43,7 +43,7 @@ contract SmartWalletFactory is Ownable {
             profile.wallet, // owner = agent operator
             address(this), // protocol = this factory
             profile.lockbox, // lockbox
-            usdc,
+            usdt,
             agentId,
             defaultRepaymentRateBps
         );

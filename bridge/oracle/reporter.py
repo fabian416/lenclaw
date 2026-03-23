@@ -159,7 +159,7 @@ class OracleReporter:
             return None
 
         try:
-            # Convert amount to uint256 (6 decimals for USDC)
+            # Convert amount to uint256 (6 decimals for USDT)
             amount_wei = int(attestation.total_amount * Decimal("1_000_000"))
             data_hash_bytes = bytes.fromhex(attestation.data_hash.replace("0x", ""))
             sig_bytes = bytes.fromhex(attestation.signature.replace("0x", ""))

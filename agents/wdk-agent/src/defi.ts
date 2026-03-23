@@ -13,7 +13,7 @@ import { type Address, encodeFunctionData, type PublicClient, parseGwei } from '
 import { AgentWallet } from './wallet';
 import { ERC20_ABI } from './contracts';
 import { getLogger } from './logger';
-import { AgentConfig, formatUSDC } from './config';
+import { AgentConfig, formatUSDT } from './config';
 
 const log = getLogger('defi');
 

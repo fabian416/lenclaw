@@ -71,7 +71,7 @@ def sample_agent_data():
     code_fields[4] = 0x6F  # 'o'
     return AgentData(
         agent_id=42,
-        actual_revenue=500_000_000,  # 500 USDC
+        actual_revenue=500_000_000,  # 500 USDT
         code_fields=code_fields,
         code_length=5,
         actual_reputation=800,
@@ -82,7 +82,7 @@ def sample_agent_data():
 def sample_public_inputs():
     """Sample PublicInputs for testing."""
     return PublicInputs(
-        revenue_threshold=100_000_000,  # 100 USDC
+        revenue_threshold=100_000_000,  # 100 USDT
         registered_code_hash="0x1234567890abcdef",
         min_reputation=600,
         agent_id=42,
@@ -491,7 +491,7 @@ class TestEndToEnd:
 
         exit_code = _do_generate(
             agent_id=42,
-            revenue=50_000_000,  # 50 USDC < 100 USDC threshold
+            revenue=50_000_000,  # 50 USDT < 100 USDT threshold
             code_file=None,
             reputation=800,
             revenue_threshold=100_000_000,

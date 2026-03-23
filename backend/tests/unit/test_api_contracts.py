@@ -114,7 +114,7 @@ class TestRevenueSchemas:
 
     def test_revenue_record_create_defaults(self):
         r = RevenueRecordCreate(amount=Decimal("100"))
-        assert r.currency == "USDC"
+        assert r.currency == "USDT"
         assert r.tx_hash is None
 
     def test_revenue_summary_shape(self):

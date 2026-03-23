@@ -20,8 +20,8 @@ pub fn verify_revenue_threshold(actual_revenue: u64, threshold: u64) -> bool {
     // Overflow / sanity check: revenue must be within a reasonable u64 range.
     // This prevents malicious provers from using wrapped arithmetic.
     // Max revenue: ~18.4 quintillion (u64 max), but we cap at 1 trillion (1e12)
-    // to represent realistic USDC amounts (6 decimals => 1e12 = 1,000,000 USDC).
-    let max_revenue: u64 = 1_000_000_000_000; // 1 trillion = 1M USDC in 6-decimal
+    // to represent realistic USDT amounts (6 decimals => 1e12 = 1,000,000 USDT).
+    let max_revenue: u64 = 1_000_000_000_000; // 1 trillion = 1M USDT in 6-decimal
     assert(actual_revenue <= max_revenue, "Revenue exceeds maximum allowed value");
     assert(threshold <= max_revenue, "Threshold exceeds maximum allowed value");
 
@@ -30,11 +30,11 @@ pub fn verify_revenue_threshold(actual_revenue: u64, threshold: u64) -> bool {
 
 /// Compute a revenue tier (0-4) without revealing the exact amount.
 /// Useful for interest rate determination without precise revenue disclosure.
-///   Tier 0: revenue < 10,000      (< 0.01 USDC)
-///   Tier 1: 10,000 <= revenue < 1,000,000     (< 1 USDC)
-///   Tier 2: 1,000,000 <= revenue < 100,000,000   (< 100 USDC)
-///   Tier 3: 100,000,000 <= revenue < 10,000,000,000 (< 10,000 USDC)
-///   Tier 4: revenue >= 10,000,000,000   (>= 10,000 USDC)
+///   Tier 0: revenue < 10,000      (< 0.01 USDT)
+///   Tier 1: 10,000 <= revenue < 1,000,000     (< 1 USDT)
+///   Tier 2: 1,000,000 <= revenue < 100,000,000   (< 100 USDT)
+///   Tier 3: 100,000,000 <= revenue < 10,000,000,000 (< 10,000 USDT)
+///   Tier 4: revenue >= 10,000,000,000   (>= 10,000 USDT)
 pub fn compute_revenue_tier(actual_revenue: u64) -> u8 {
     let mut tier: u8 = 0;
     if actual_revenue >= 10_000 {

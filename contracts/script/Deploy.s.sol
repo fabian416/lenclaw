@@ -13,9 +13,9 @@ import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 import {WDKWalletFactory} from "../src/WDKWalletFactory.sol";
 import {USDT0Bridge} from "../src/USDT0Bridge.sol";
 
-/// @notice Mock USDC for local testing
-contract MockUSDC is ERC20 {
-    constructor() ERC20("USD Coin", "USDC") {}
+/// @notice Mock USDT for local testing
+contract MockUSDT is ERC20 {
+    constructor() ERC20("USD Coin", "USDT") {}
 
     function decimals() public pure override returns (uint8) {
         return 6;
@@ -34,9 +34,9 @@ contract DeployLenclaw is Script {
 
         vm.startBroadcast(deployerKey);
 
-        // 1. Deploy mock USDC (use real USDC address on mainnet)
-        MockUSDC usdc = new MockUSDC();
-        console.log("MockUSDC deployed at:", address(usdc));
+        // 1. Deploy mock USDT (use real USDT address on mainnet)
+        MockUSDT usdt = new MockUSDT();
+        console.log("MockUSDT deployed at:", address(usdt));
 
         // 2. Deploy AgentRegistry
         AgentRegistry registry = new AgentRegistry(deployer);
@@ -46,8 +46,8 @@ contract DeployLenclaw is Script {
         AgentVaultFactory factory = new AgentVaultFactory(address(registry), deployer);
         console.log("AgentVaultFactory deployed at:", address(factory));
 
-        // 3b. Whitelist USDC as allowed asset
-        factory.setAllowedAsset(address(usdc), true);
+        // 3b. Whitelist USDT as allowed asset
+        factory.setAllowedAsset(address(usdt), true);
 
         // 4. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), deployer);
@@ -58,17 +58,17 @@ contract DeployLenclaw is Script {
         console.log("AgentCreditLine deployed at:", address(creditLine));
 
         // 6. Deploy DutchAuction (deployer as placeholder recoveryManager, updated below)
-        DutchAuction dutchAuction = new DutchAuction(address(usdc), deployer, deployer);
+        DutchAuction dutchAuction = new DutchAuction(address(usdt), deployer, deployer);
         console.log("DutchAuction deployed at:", address(dutchAuction));
 
         // 7. Deploy RecoveryManager
         RecoveryManager recoveryManager =
-            new RecoveryManager(address(usdc), address(dutchAuction), address(registry), address(factory), deployer);
+            new RecoveryManager(address(usdt), address(dutchAuction), address(registry), address(factory), deployer);
         console.log("RecoveryManager deployed at:", address(recoveryManager));
 
         // 8. Deploy LiquidationKeeper
         LiquidationKeeper keeper = new LiquidationKeeper(
-            address(creditLine), address(registry), address(usdc), address(recoveryManager), deployer
+            address(creditLine), address(registry), address(usdt), address(recoveryManager), deployer
         );
         console.log("LiquidationKeeper deployed at:", address(keeper));
 
@@ -87,19 +87,19 @@ contract DeployLenclaw is Script {
         // Use a placeholder EntryPoint for local testing; replace with real ERC-4337 EntryPoint on mainnet
         address entryPointPlaceholder = address(0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789); // ERC-4337 v0.6 EntryPoint
         WDKWalletFactory wdkFactory =
-            new WDKWalletFactory(address(usdc), address(registry), entryPointPlaceholder, deployer);
+            new WDKWalletFactory(address(usdt), address(registry), entryPointPlaceholder, deployer);
         console.log("WDKWalletFactory deployed at:", address(wdkFactory));
 
         // 12. Deploy USDT0Bridge
-        // Use mock USDC as USDT0 stand-in for local testing; replace with real USDT0 on mainnet
-        USDT0Bridge bridge = new USDT0Bridge(address(usdc), address(registry), address(0), deployer);
+        // Use mock USDT as USDT0 stand-in for local testing; replace with real USDT0 on mainnet
+        USDT0Bridge bridge = new USDT0Bridge(address(usdt), address(registry), address(0), deployer);
         console.log("USDT0Bridge deployed at:", address(bridge));
 
         // 12b. Configure bridge: enable Base Sepolia as supported chain (EID 40245)
         bridge.setSupportedChain(40245, true);
 
-        // 13. Mint some test USDC to deployer
-        usdc.mint(deployer, 1_000_000e6); // 1M USDC
+        // 13. Mint some test USDT to deployer
+        usdt.mint(deployer, 1_000_000e6); // 1M USDT
 
         vm.stopBroadcast();
 

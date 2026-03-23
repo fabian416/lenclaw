@@ -27,7 +27,7 @@ class RevenueService:
         record = RevenueRecord(
             agent_id=agent_id,
             amount=data["amount"],
-            currency=data.get("currency", "USDC"),
+            currency=data.get("currency", "USDT"),
             tx_hash=data.get("tx_hash"),
             block_number=data.get("block_number"),
             source=data.get("source"),

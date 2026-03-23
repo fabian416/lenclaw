@@ -100,7 +100,7 @@ class MLScoreResponse(BaseModel):
         ..., ge=0.0, le=1.0, description="Model confidence in prediction"
     )
     recommended_credit_line: float = Field(
-        ..., ge=0.0, description="Recommended credit line in USDC"
+        ..., ge=0.0, description="Recommended credit line in USDT"
     )
     feature_importances: list[FeatureImportanceItem]
     features_used: dict[str, float] = Field(

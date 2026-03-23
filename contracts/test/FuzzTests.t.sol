@@ -18,7 +18,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @notice Covers: drawdown amounts, interest accrual, auction price decay,
 ///         credit scoring bounds, SmartWallet revenue routing, vault accounting.
 contract FuzzTests is Test {
-    ERC20Mock public usdc;
+    ERC20Mock public usdt;
     AgentRegistry public registry;
     CreditScorer public scorer;
     AgentVaultFactory public factory;
@@ -34,11 +34,11 @@ contract FuzzTests is Test {
     address public lockboxAddr;
 
     function setUp() public {
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
-        factory.setAllowedAsset(address(usdc), true);
+        factory.setAllowedAsset(address(usdt), true);
         creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
 
         registry.setVaultFactory(address(factory));
@@ -47,7 +47,7 @@ contract FuzzTests is Test {
 
         // Register agent (auto-deploys vault + lockbox)
         agentId = registry.registerAgent(
-            agentWallet, keccak256("agent-code"), "FuzzAgent", address(0), 0, bytes32(0), address(usdc)
+            agentWallet, keccak256("agent-code"), "FuzzAgent", address(0), 0, bytes32(0), address(usdt)
         );
         agentVaultAddr = factory.getVault(agentId);
         lockboxAddr = factory.getLockbox(agentId);
@@ -56,19 +56,19 @@ contract FuzzTests is Test {
         factory.setVaultCreditLine(agentId, address(creditLine));
 
         // Seed lockbox with revenue to establish credit
-        usdc.mint(lockboxAddr, 50_000e6);
+        usdt.mint(lockboxAddr, 50_000e6);
         vm.prank(agentWallet);
         RevenueLockbox(payable(lockboxAddr)).processRevenue();
 
         // Seed vault with depositor liquidity (cap is 500K, lockbox already added 25K)
-        usdc.mint(depositor, 400_000e6);
+        usdt.mint(depositor, 400_000e6);
         vm.startPrank(depositor);
-        usdc.approve(agentVaultAddr, 400_000e6);
+        usdt.approve(agentVaultAddr, 400_000e6);
         AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
         vm.stopPrank();
 
         // Deploy DutchAuction for auction fuzz tests
-        dutchAuction = new DutchAuction(address(usdc), address(this), owner);
+        dutchAuction = new DutchAuction(address(usdt), address(this), owner);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -79,15 +79,15 @@ contract FuzzTests is Test {
         creditLine.refreshCreditLine(agentId);
         (,,,, uint256 creditLimit,) = creditLine.facilities(agentId);
 
-        // Bound between min drawdown (10 USDC) and credit limit
+        // Bound between min drawdown (10 USDT) and credit limit
         amount = bound(amount, 10e6, creditLimit);
 
-        uint256 balanceBefore = usdc.balanceOf(agentWallet);
+        uint256 balanceBefore = usdt.balanceOf(agentWallet);
 
         vm.prank(agentWallet);
         creditLine.drawdown(agentId, amount);
 
-        uint256 balanceAfter = usdc.balanceOf(agentWallet);
+        uint256 balanceAfter = usdt.balanceOf(agentWallet);
         assertEq(balanceAfter - balanceBefore, amount, "Agent should receive exact drawdown amount");
 
         uint256 outstanding = creditLine.getOutstanding(agentId);
@@ -129,7 +129,7 @@ contract FuzzTests is Test {
         assertGe(outstanding, amount, "Outstanding should be >= principal");
 
         // Interest formula: principal * rateBps * elapsed / (365 days * 10000)
-        // With max principal ~100K USDC (100_000e6), max rate 2500 bps, max time 10yr:
+        // With max principal ~100K USDT (100_000e6), max rate 2500 bps, max time 10yr:
         // 100_000e6 * 2500 * 3650 days / (365 days * 10000) = 250_000e6 — well within uint256
         assertLt(outstanding, type(uint128).max, "Outstanding should be reasonable");
     }
@@ -170,9 +170,9 @@ contract FuzzTests is Test {
         uint256 outstandingBefore = creditLine.getOutstanding(agentId);
         repayAmount = bound(repayAmount, 1, outstandingBefore);
 
-        usdc.mint(agentWallet, repayAmount);
+        usdt.mint(agentWallet, repayAmount);
         vm.startPrank(agentWallet);
-        usdc.approve(address(creditLine), repayAmount);
+        usdt.approve(address(creditLine), repayAmount);
         creditLine.repay(agentId, repayAmount);
         vm.stopPrank();
 
@@ -185,7 +185,7 @@ contract FuzzTests is Test {
     // ═══════════════════════════════════════════════════════════════
 
     function testFuzz_dutchAuction_priceAlwaysInRange(uint256 debtAmount, uint256 timeElapsed) public {
-        debtAmount = bound(debtAmount, 1e6, 10_000_000e6); // 1 USDC to 10M USDC
+        debtAmount = bound(debtAmount, 1e6, 10_000_000e6); // 1 USDT to 10M USDT
         timeElapsed = bound(timeElapsed, 0, 6 hours); // Within auction duration
 
         uint256 auctionId = dutchAuction.createAuction(agentId, debtAmount);
@@ -226,16 +226,16 @@ contract FuzzTests is Test {
         uint256 expectedPrice = dutchAuction.getCurrentPrice(auctionId);
 
         address bidder = makeAddr("bidder");
-        usdc.mint(bidder, expectedPrice);
+        usdt.mint(bidder, expectedPrice);
 
-        uint256 bidderBalBefore = usdc.balanceOf(bidder);
+        uint256 bidderBalBefore = usdt.balanceOf(bidder);
 
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), expectedPrice);
+        usdt.approve(address(dutchAuction), expectedPrice);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
-        uint256 bidderBalAfter = usdc.balanceOf(bidder);
+        uint256 bidderBalAfter = usdt.balanceOf(bidder);
         assertEq(bidderBalBefore - bidderBalAfter, expectedPrice, "Bidder should pay exact current price");
 
         DutchAuction.Auction memory auction = dutchAuction.getAuction(auctionId);
@@ -259,12 +259,12 @@ contract FuzzTests is Test {
             address(0),
             0,
             bytes32(0),
-            address(usdc)
+            address(usdt)
         );
 
         if (revenue > 0) {
             address fuzzLockbox = factory.getLockbox(fuzzId);
-            usdc.mint(fuzzLockbox, revenue);
+            usdt.mint(fuzzLockbox, revenue);
             vm.prank(fuzzAgent);
             RevenueLockbox(payable(fuzzLockbox)).processRevenue();
         }
@@ -289,12 +289,12 @@ contract FuzzTests is Test {
             address(0),
             0,
             bytes32(0),
-            address(usdc)
+            address(usdt)
         );
 
         if (revenue > 0) {
             address fuzzLockbox = factory.getLockbox(fuzzId);
-            usdc.mint(fuzzLockbox, revenue);
+            usdt.mint(fuzzLockbox, revenue);
             vm.prank(fuzzAgent);
             RevenueLockbox(payable(fuzzLockbox)).processRevenue();
         }
@@ -317,15 +317,15 @@ contract FuzzTests is Test {
 
         address fuzzAgent2 = makeAddr("swAgent");
         uint256 fuzzId2 =
-            registry.registerAgent(fuzzAgent2, keccak256("swCode"), "SWAgent", address(0), 0, bytes32(0), address(usdc));
+            registry.registerAgent(fuzzAgent2, keccak256("swCode"), "SWAgent", address(0), 0, bytes32(0), address(usdt));
         address fuzzLockbox2 = factory.getLockbox(fuzzId2);
 
         AgentSmartWallet wallet =
-            new AgentSmartWallet(fuzzAgent2, address(this), fuzzLockbox2, address(usdc), fuzzId2, rateBps);
+            new AgentSmartWallet(fuzzAgent2, address(this), fuzzLockbox2, address(usdt), fuzzId2, rateBps);
 
-        usdc.mint(address(wallet), balance);
+        usdt.mint(address(wallet), balance);
 
-        uint256 lockboxBalBefore = usdc.balanceOf(fuzzLockbox2);
+        uint256 lockboxBalBefore = usdt.balanceOf(fuzzLockbox2);
 
         wallet.routeRevenue();
 
@@ -333,11 +333,11 @@ contract FuzzTests is Test {
         uint256 expectedRemaining = balance - expectedToLockbox;
 
         assertEq(
-            usdc.balanceOf(fuzzLockbox2) - lockboxBalBefore,
+            usdt.balanceOf(fuzzLockbox2) - lockboxBalBefore,
             expectedToLockbox,
             "Lockbox should receive exact repayment portion"
         );
-        assertEq(usdc.balanceOf(address(wallet)), expectedRemaining, "Wallet should retain exact remainder");
+        assertEq(usdt.balanceOf(address(wallet)), expectedRemaining, "Wallet should retain exact remainder");
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -350,16 +350,16 @@ contract FuzzTests is Test {
         // Use a fresh vault for isolation
         address freshAgent = makeAddr("freshVaultAgent");
         uint256 freshId = registry.registerAgent(
-            freshAgent, keccak256("freshCode"), "FreshAgent", address(0), 0, bytes32(0), address(usdc)
+            freshAgent, keccak256("freshCode"), "FreshAgent", address(0), 0, bytes32(0), address(usdt)
         );
         address freshVaultAddr = factory.getVault(freshId);
         AgentVault freshVault = AgentVault(freshVaultAddr);
 
         address backer = makeAddr("backer");
-        usdc.mint(backer, depositAmount);
+        usdt.mint(backer, depositAmount);
 
         vm.startPrank(backer);
-        usdc.approve(freshVaultAddr, depositAmount);
+        usdt.approve(freshVaultAddr, depositAmount);
         uint256 shares = freshVault.deposit(depositAmount, backer);
         vm.stopPrank();
 
@@ -385,23 +385,23 @@ contract FuzzTests is Test {
 
         address freshAgent = makeAddr("multiBackerAgent");
         uint256 freshId = registry.registerAgent(
-            freshAgent, keccak256("multiCode"), "MultiAgent", address(0), 0, bytes32(0), address(usdc)
+            freshAgent, keccak256("multiCode"), "MultiAgent", address(0), 0, bytes32(0), address(usdt)
         );
         address freshVaultAddr = factory.getVault(freshId);
         AgentVault freshVault = AgentVault(freshVaultAddr);
 
         address backer1 = makeAddr("backer1");
         address backer2 = makeAddr("backer2");
-        usdc.mint(backer1, amount1);
-        usdc.mint(backer2, amount2);
+        usdt.mint(backer1, amount1);
+        usdt.mint(backer2, amount2);
 
         vm.startPrank(backer1);
-        usdc.approve(freshVaultAddr, amount1);
+        usdt.approve(freshVaultAddr, amount1);
         uint256 shares1 = freshVault.deposit(amount1, backer1);
         vm.stopPrank();
 
         vm.startPrank(backer2);
-        usdc.approve(freshVaultAddr, amount2);
+        usdt.approve(freshVaultAddr, amount2);
         uint256 shares2 = freshVault.deposit(amount2, backer2);
         vm.stopPrank();
 
@@ -427,14 +427,14 @@ contract FuzzTests is Test {
         address capAgent = makeAddr("capAgent");
 
         // Deploy a standalone vault (this test contract is the factory)
-        AgentVault capVault = new AgentVault(IERC20(address(usdc)), 99, "Cap Vault", "lcCAP", 0, type(uint256).max);
+        AgentVault capVault = new AgentVault(IERC20(address(usdt)), 99, "Cap Vault", "lcCAP", 0, type(uint256).max);
 
         // Create lockbox with cap — uses standalone vault so we can setLockbox
         RevenueLockbox capLockbox =
-            new RevenueLockbox(capAgent, address(capVault), 99, address(usdc), 5000, address(0), cap);
+            new RevenueLockbox(capAgent, address(capVault), 99, address(usdt), 5000, address(0), cap);
         capVault.setLockbox(address(capLockbox));
 
-        usdc.mint(address(capLockbox), revenue);
+        usdt.mint(address(capLockbox), revenue);
 
         vm.prank(capAgent);
         capLockbox.processRevenue();
@@ -443,7 +443,7 @@ contract FuzzTests is Test {
         assertEq(capLockbox.totalRevenueCapture(), cap, "Should only process up to cap");
 
         // Remaining should stay in lockbox
-        assertEq(usdc.balanceOf(address(capLockbox)), revenue - cap, "Excess should remain in lockbox");
+        assertEq(usdt.balanceOf(address(capLockbox)), revenue - cap, "Excess should remain in lockbox");
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -498,15 +498,15 @@ contract FuzzTests is Test {
 
         // Need to deposit first so vault has assets
         address feeBacker = makeAddr("feeBacker");
-        usdc.mint(feeBacker, 200_000e6);
+        usdt.mint(feeBacker, 200_000e6);
         vm.startPrank(feeBacker);
-        usdc.approve(agentVaultAddr, 200_000e6);
+        usdt.approve(agentVaultAddr, 200_000e6);
         vm.stopPrank();
 
-        // Mint USDC to credit line and have it call receiveRepayment
-        usdc.mint(cl, repayAmount);
+        // Mint USDT to credit line and have it call receiveRepayment
+        usdt.mint(cl, repayAmount);
         vm.startPrank(cl);
-        usdc.approve(agentVaultAddr, repayAmount);
+        usdt.approve(agentVaultAddr, repayAmount);
         AgentVault(agentVaultAddr).receiveRepayment(repayAmount, interestPortion);
         vm.stopPrank();
 

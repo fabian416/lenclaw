@@ -22,7 +22,7 @@ class CreateRampSessionRequest(BaseModel):
     fiat_amount: Decimal = Field(
         ..., gt=0, le=50_000, description="Amount in fiat currency"
     )
-    crypto_currency: str = Field("USDC", description="Target crypto currency")
+    crypto_currency: str = Field("USDT", description="Target crypto currency")
     wallet_address: str = Field(
         ..., min_length=42, max_length=42, description="Destination wallet address"
     )

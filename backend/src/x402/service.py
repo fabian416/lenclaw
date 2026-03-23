@@ -24,7 +24,7 @@ from src.x402.schemas import (
 logger = logging.getLogger(__name__)
 
 # Base mainnet constants
-USDC_BASE_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+USDT_BASE_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
 BASE_CHAIN_ID = 8453
 
 
@@ -69,7 +69,7 @@ class X402Service:
             payer: Wallet address of the payer.
             payee: Wallet address of the payee.
             amount: Payment amount in human-readable units.
-            token: Token symbol (e.g. USDC).
+            token: Token symbol (e.g. USDT).
             resource: The URL resource that was paid for.
             nonce: Unique payment nonce.
             tx_hash: On-chain settlement transaction hash, if settled.
@@ -260,7 +260,7 @@ class X402Service:
             payer=header.payload.sender,
             payee=header.payload.recipient,
             amount=Decimal(header.payload.amount) / Decimal(10**6),
-            token="USDC",
+            token="USDT",
             resource=resource,
             nonce=header.payload.nonce,
             tx_hash=tx_hash,
@@ -278,8 +278,8 @@ class X402Service:
             x402Version=1,
             supported_tokens=[
                 SupportedToken(
-                    symbol="USDC",
-                    address=USDC_BASE_ADDRESS,
+                    symbol="USDT",
+                    address=USDT_BASE_ADDRESS,
                     decimals=6,
                     chain_id=BASE_CHAIN_ID,
                 ),
@@ -298,11 +298,11 @@ class X402Service:
     async def _route_to_lockbox(self, receipt: PaymentReceipt) -> None:
         """Route settled payment revenue to the RevenueLockbox contract.
 
-        In the x402 flow, the facilitator settles the USDC transfer on-chain.
+        In the x402 flow, the facilitator settles the USDT transfer on-chain.
         If the recipient is the lockbox address, the revenue is automatically
         captured. This method logs the routing for tracking.
 
-        For direct-to-lockbox payments, the facilitator sends USDC directly
+        For direct-to-lockbox payments, the facilitator sends USDT directly
         to the lockbox contract. The lockbox's processRevenue() function
         then splits between debt repayment and agent payout.
         """

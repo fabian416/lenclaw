@@ -68,7 +68,7 @@ BN254_SCALAR_FIELD = (
 class AgentData:
     """Private agent data used as witness inputs to the circuit."""
     agent_id: int
-    actual_revenue: int        # In USDC with 6 decimals
+    actual_revenue: int        # In USDT with 6 decimals
     code_fields: list[int]     # Code packed into field elements
     code_length: int           # Number of valid code fields
     actual_reputation: int     # 0-1000
@@ -642,7 +642,7 @@ if click is not None:
 
     @cli.command()
     @click.option("--agent-id", required=True, type=int, help="Agent NFT ID")
-    @click.option("--revenue", required=True, type=int, help="Actual revenue (USDC 6 decimals)")
+    @click.option("--revenue", required=True, type=int, help="Actual revenue (USDT 6 decimals)")
     @click.option("--code-file", type=str, default=None, help="Path to agent code file")
     @click.option("--reputation", required=True, type=int, help="Actual reputation (0-1000)")
     @click.option("--revenue-threshold", required=True, type=int, help="Revenue threshold to prove")

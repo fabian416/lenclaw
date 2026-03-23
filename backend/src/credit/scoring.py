@@ -8,7 +8,7 @@ Inputs:
   - Code verification status (bool)
 
 Outputs:
-  - credit_line_amount: max credit in USDC
+  - credit_line_amount: max credit in USDT
   - interest_rate_bps: annual interest rate in basis points
   - repayment_rate_bps: percentage of revenue auto-repaid in bps
   - credit_score: composite score (0-1000)

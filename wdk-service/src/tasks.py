@@ -21,7 +21,7 @@ celery_app.conf.update(
 
 @celery_app.task(bind=True, max_retries=3)
 def monitor_agent_revenue(self, agent_id: int, lockbox_address: str, seed_phrase: str):
-    """Background task: check agent wallet for USDC and route to lockbox"""
+    """Background task: check agent wallet for USDT and route to lockbox"""
     import asyncio
     from src.wallet import derive_address
     from src.indexer import get_balances
@@ -29,12 +29,12 @@ def monitor_agent_revenue(self, agent_id: int, lockbox_address: str, seed_phrase
     address = derive_address(seed_phrase)
     balances = asyncio.run(get_balances(address))
 
-    usdc = int(balances.get("usdcBalance", "0"))
-    if usdc > 1_000_000:  # > 1 USDC
+    usdt = int(balances.get("usdtBalance", "0"))
+    if usdt > 1_000_000:  # > 1 USDT
         # TODO: trigger revenue routing transaction
-        return {"agent_id": agent_id, "address": address, "usdc_detected": usdc, "action": "route_to_lockbox"}
+        return {"agent_id": agent_id, "address": address, "usdt_detected": usdt, "action": "route_to_lockbox"}
 
-    return {"agent_id": agent_id, "address": address, "usdc_detected": usdc, "action": "none"}
+    return {"agent_id": agent_id, "address": address, "usdt_detected": usdt, "action": "none"}
 
 
 @celery_app.task

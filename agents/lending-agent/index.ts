@@ -37,7 +37,7 @@ const CONFIG = {
     agentVault: process.env.AGENT_VAULT_ADDRESS as Address,
     agentVaultFactory: process.env.AGENT_VAULT_FACTORY_ADDRESS as Address,
     zkVerifier: process.env.ZK_VERIFIER_ADDRESS as Address,
-    usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as Address,
+    usdt: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' as Address,
   },
   pollIntervalMs: 30_000,
   minScoreForApproval: 350,
@@ -119,10 +119,10 @@ async function initAgent(wallet: AgentWallet) {
 
           if (action === 'balance') {
             const target = (params.address as Address) || wallet.address
-            const [ethBalance, usdcBalance] = await Promise.all([
+            const [ethBalance, usdtBalance] = await Promise.all([
               publicClient.getBalance({ address: target }),
               publicClient.readContract({
-                address: CONFIG.contracts.usdc,
+                address: CONFIG.contracts.usdt,
                 abi: ERC20_ABI,
                 functionName: 'balanceOf',
                 args: [target],
@@ -130,9 +130,9 @@ async function initAgent(wallet: AgentWallet) {
             ])
             return {
               eth: formatUnits(ethBalance, 18),
-              usdc: formatUnits(usdcBalance as bigint, 6),
+              usdt: formatUnits(usdtBalance as bigint, 6),
               rawEth: ethBalance.toString(),
-              rawUsdc: (usdcBalance as bigint).toString(),
+              rawUsdt: (usdtBalance as bigint).toString(),
             }
           }
 
@@ -145,14 +145,14 @@ async function initAgent(wallet: AgentWallet) {
           if (action === 'send') {
             const to = params.to as Address
             const amount = BigInt(params.amount as string)
-            // Approve + transfer USDC
+            // Approve + transfer USDT
             const transferData = encodeFunctionData({
               abi: ERC20_ABI,
               functionName: 'transfer',
               args: [to, amount],
             })
             const txHash = await wallet.account.sendTransaction({
-              to: CONFIG.contracts.usdc,
+              to: CONFIG.contracts.usdt,
               data: transferData,
             })
             return { txHash, to, amount: amount.toString() }
@@ -301,9 +301,9 @@ async function initAgent(wallet: AgentWallet) {
           }
 
           if (action === 'poll') {
-            // Check lockbox USDC balance to see if new revenue has arrived
+            // Check lockbox USDT balance to see if new revenue has arrived
             const lockboxBalance = await publicClient.readContract({
-              address: CONFIG.contracts.usdc,
+              address: CONFIG.contracts.usdt,
               abi: ERC20_ABI,
               functionName: 'balanceOf',
               args: [lockbox],
@@ -504,7 +504,7 @@ async function initAgent(wallet: AgentWallet) {
               }
             }
             if (amount < 10_000_000n) {
-              return { approved: false, reason: 'BELOW_MIN_DRAWDOWN', minimum: '10 USDC' }
+              return { approved: false, reason: 'BELOW_MIN_DRAWDOWN', minimum: '10 USDT' }
             }
 
             // Check vault liquidity
@@ -679,6 +679,308 @@ async function initAgent(wallet: AgentWallet) {
         },
       },
 
+
+      // ---------------------------------------------------------------
+      // yield_optimizer — Cross-vault yield comparison and rebalancing
+      // ---------------------------------------------------------------
+      yield_optimizer: {
+        description: 'Cross-vault yield comparison and capital reallocation',
+        handler: async (action: string, params: Record<string, unknown>) => {
+          if (action === 'scan_yields') {
+            const agentIds = (params.agentIds as string[]) || []
+            const vaultData: Array<Record<string, unknown>> = []
+
+            for (const id of agentIds) {
+              const agentId = BigInt(id)
+              try {
+                const vaultAddr = await publicClient.readContract({
+                  address: CONFIG.contracts.agentVaultFactory,
+                  abi: AGENT_VAULT_FACTORY_ABI,
+                  functionName: 'getVault',
+                  args: [agentId],
+                }) as Address
+
+                const [totalAssets, totalBorrowed, utilization, frozen] = await Promise.all([
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'totalAssets' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'totalBorrowed' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'utilizationRate' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'frozen' }) as Promise<boolean>,
+                ])
+
+                // Get interest rate for this agent
+                const creditLineResult = await publicClient.readContract({
+                  address: CONFIG.contracts.creditScorer,
+                  abi: CREDIT_SCORER_ABI,
+                  functionName: 'calculateCreditLine',
+                  args: [agentId],
+                }) as [bigint, bigint]
+
+                // Get repayment rate from lockbox
+                const profile = await publicClient.readContract({
+                  address: CONFIG.contracts.agentRegistry,
+                  abi: AGENT_REGISTRY_ABI,
+                  functionName: 'getAgent',
+                  args: [agentId],
+                }) as { lockbox: Address }
+
+                const repaymentRateBps = await publicClient.readContract({
+                  address: profile.lockbox,
+                  abi: REVENUE_LOCKBOX_ABI,
+                  functionName: 'repaymentRateBps',
+                }) as bigint
+
+                // Effective APY = interest rate * utilization rate * repayment reliability
+                const interestRateBps = Number(creditLineResult[1])
+                const utilizationPct = Number(utilization) / 100
+                const estimatedApy = (interestRateBps / 100) * (utilizationPct / 100)
+
+                vaultData.push({
+                  agentId: id,
+                  vault: vaultAddr,
+                  totalAssets: formatUnits(totalAssets, 6),
+                  totalBorrowed: formatUnits(totalBorrowed, 6),
+                  utilizationPct: `${Number(utilization) / 100}%`,
+                  interestRateApr: `${interestRateBps / 100}%`,
+                  repaymentRateBps: repaymentRateBps.toString(),
+                  estimatedApyPct: `${estimatedApy.toFixed(2)}%`,
+                  frozen,
+                })
+              } catch (err) {
+                vaultData.push({ agentId: id, error: String(err) })
+              }
+            }
+
+            // Sort by estimated APY descending
+            vaultData.sort((a, b) => {
+              const apyA = parseFloat((a.estimatedApyPct as string) || '0')
+              const apyB = parseFloat((b.estimatedApyPct as string) || '0')
+              return apyB - apyA
+            })
+
+            return { vaults: vaultData, count: vaultData.length }
+          }
+
+          if (action === 'compare_vaults') {
+            const agentIds = (params.agentIds as string[]) || []
+            const comparisons: Array<Record<string, unknown>> = []
+
+            for (const id of agentIds) {
+              const agentId = BigInt(id)
+              try {
+                const [compositeScore, creditLineResult] = await Promise.all([
+                  publicClient.readContract({
+                    address: CONFIG.contracts.creditScorer,
+                    abi: CREDIT_SCORER_ABI,
+                    functionName: 'getCompositeScore',
+                    args: [agentId],
+                  }) as Promise<bigint>,
+                  publicClient.readContract({
+                    address: CONFIG.contracts.creditScorer,
+                    abi: CREDIT_SCORER_ABI,
+                    functionName: 'calculateCreditLine',
+                    args: [agentId],
+                  }) as Promise<[bigint, bigint]>,
+                ])
+
+                const vaultAddr = await publicClient.readContract({
+                  address: CONFIG.contracts.agentVaultFactory,
+                  abi: AGENT_VAULT_FACTORY_ABI,
+                  functionName: 'getVault',
+                  args: [agentId],
+                }) as Address
+
+                const [totalAssets, totalBorrowed, utilization] = await Promise.all([
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'totalAssets' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'totalBorrowed' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'utilizationRate' }) as Promise<bigint>,
+                ])
+
+                // Revenue consistency
+                const profile = await publicClient.readContract({
+                  address: CONFIG.contracts.agentRegistry,
+                  abi: AGENT_REGISTRY_ABI,
+                  functionName: 'getAgent',
+                  args: [agentId],
+                }) as { lockbox: Address }
+
+                const [epochsWithRevenue, currentEpoch] = await Promise.all([
+                  publicClient.readContract({ address: profile.lockbox, abi: REVENUE_LOCKBOX_ABI, functionName: 'epochsWithRevenue' }) as Promise<bigint>,
+                  publicClient.readContract({ address: profile.lockbox, abi: REVENUE_LOCKBOX_ABI, functionName: 'currentEpoch' }) as Promise<bigint>,
+                ])
+
+                const totalEpochs = currentEpoch + 1n
+                const consistencyPct = totalEpochs > 0n ? Number((epochsWithRevenue * 100n) / totalEpochs) : 0
+
+                const interestRateBps = Number(creditLineResult[1])
+                const utilizationPct = Number(utilization) / 100
+                const rawApy = (interestRateBps / 100) * (utilizationPct / 100)
+
+                // Risk-adjusted yield: raw APY * (credit score / 1000)
+                const riskAdjustedApy = rawApy * (Number(compositeScore) / 1000)
+
+                comparisons.push({
+                  agentId: id,
+                  vault: vaultAddr,
+                  compositeScore: compositeScore.toString(),
+                  interestRateApr: `${interestRateBps / 100}%`,
+                  utilizationPct: `${utilizationPct}%`,
+                  totalAssets: formatUnits(totalAssets, 6),
+                  totalBorrowed: formatUnits(totalBorrowed, 6),
+                  revenueConsistency: `${consistencyPct}%`,
+                  rawApyPct: `${rawApy.toFixed(2)}%`,
+                  riskAdjustedApyPct: `${riskAdjustedApy.toFixed(2)}%`,
+                })
+              } catch (err) {
+                comparisons.push({ agentId: id, error: String(err) })
+              }
+            }
+
+            // Sort by risk-adjusted APY descending
+            comparisons.sort((a, b) => {
+              const apyA = parseFloat((a.riskAdjustedApyPct as string) || '0')
+              const apyB = parseFloat((b.riskAdjustedApyPct as string) || '0')
+              return apyB - apyA
+            })
+
+            return { comparisons, count: comparisons.length }
+          }
+
+          if (action === 'recommend_rebalance') {
+            const agentIds = (params.agentIds as string[]) || []
+            const currentPositions = (params.currentPositions as Record<string, string>) || {}
+
+            // Gather vault data for all agents
+            const vaultSummaries: string[] = []
+            for (const id of agentIds) {
+              const agentId = BigInt(id)
+              try {
+                const vaultAddr = await publicClient.readContract({
+                  address: CONFIG.contracts.agentVaultFactory,
+                  abi: AGENT_VAULT_FACTORY_ABI,
+                  functionName: 'getVault',
+                  args: [agentId],
+                }) as Address
+
+                const [totalAssets, totalBorrowed, utilization, frozen] = await Promise.all([
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'totalAssets' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'totalBorrowed' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'utilizationRate' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'frozen' }) as Promise<boolean>,
+                ])
+
+                const compositeScore = await publicClient.readContract({
+                  address: CONFIG.contracts.creditScorer,
+                  abi: CREDIT_SCORER_ABI,
+                  functionName: 'getCompositeScore',
+                  args: [agentId],
+                }) as bigint
+
+                const creditLineResult = await publicClient.readContract({
+                  address: CONFIG.contracts.creditScorer,
+                  abi: CREDIT_SCORER_ABI,
+                  functionName: 'calculateCreditLine',
+                  args: [agentId],
+                }) as [bigint, bigint]
+
+                const currentPos = currentPositions[id] || '0'
+                vaultSummaries.push(
+                  `Agent ${id}: vault=${vaultAddr}, assets=${formatUnits(totalAssets, 6)}, borrowed=${formatUnits(totalBorrowed, 6)}, util=${Number(utilization) / 100}%, score=${compositeScore}, apr=${Number(creditLineResult[1]) / 100}%, frozen=${frozen}, currentPosition=${currentPos} USDT`
+                )
+              } catch (err) {
+                vaultSummaries.push(`Agent ${id}: error reading vault — ${String(err)}`)
+              }
+            }
+
+            // Use agent.think() to reason about optimal reallocation
+            const recommendation = await agent.think({
+              context: { vaultSummaries, currentPositions },
+              prompt:
+                'You are analyzing agent vault yields for capital reallocation. ' +
+                'Given the vault data below, recommend how to rebalance positions to maximize risk-adjusted yield. ' +
+                'Consider: credit scores (higher = safer), utilization rates (drives yield), frozen vaults (avoid), and revenue consistency. ' +
+                'Never recommend increasing exposure to agents with scores below 350. ' +
+                'Output a JSON rebalance plan with: moves (array of {from, to, amount, reason}), totalExpectedApyImprovement, and riskNotes.
+
+' +
+                vaultSummaries.join('
+'),
+            })
+
+            return { recommendation, vaultCount: agentIds.length }
+          }
+
+          if (action === 'execute_rebalance') {
+            const fromAgentId = BigInt(params.fromAgentId as string)
+            const toAgentId = BigInt(params.toAgentId as string)
+            const amount = BigInt(params.amount as string)
+
+            // Resolve vault addresses
+            const [fromVault, toVault] = await Promise.all([
+              publicClient.readContract({
+                address: CONFIG.contracts.agentVaultFactory,
+                abi: AGENT_VAULT_FACTORY_ABI,
+                functionName: 'getVault',
+                args: [fromAgentId],
+              }) as Promise<Address>,
+              publicClient.readContract({
+                address: CONFIG.contracts.agentVaultFactory,
+                abi: AGENT_VAULT_FACTORY_ABI,
+                functionName: 'getVault',
+                args: [toAgentId],
+              }) as Promise<Address>,
+            ])
+
+            // Safety checks
+            const [fromFrozen, toFrozen, toStatus] = await Promise.all([
+              publicClient.readContract({ address: fromVault, abi: AGENT_VAULT_ABI, functionName: 'frozen' }) as Promise<boolean>,
+              publicClient.readContract({ address: toVault, abi: AGENT_VAULT_ABI, functionName: 'frozen' }) as Promise<boolean>,
+              publicClient.readContract({
+                address: CONFIG.contracts.agentCreditLine,
+                abi: AGENT_CREDIT_LINE_ABI,
+                functionName: 'getStatus',
+                args: [toAgentId],
+              }) as Promise<number>,
+            ])
+
+            if (fromFrozen) {
+              return { success: false, reason: 'SOURCE_VAULT_FROZEN' }
+            }
+            if (toFrozen) {
+              return { success: false, reason: 'TARGET_VAULT_FROZEN' }
+            }
+            if (toStatus !== 0) {
+              const statusNames = ['ACTIVE', 'DELINQUENT', 'DEFAULT']
+              return { success: false, reason: `TARGET_AGENT_${statusNames[toStatus]}` }
+            }
+
+            // Prepare transaction data (not broadcasting — returns for WDK execution)
+            const withdrawData = encodeFunctionData({
+              abi: AGENT_VAULT_ABI,
+              functionName: 'withdraw' as any,
+              args: [amount, wallet.address, wallet.address],
+            })
+
+            const depositData = encodeFunctionData({
+              abi: AGENT_VAULT_ABI,
+              functionName: 'deposit' as any,
+              args: [amount, wallet.address],
+            })
+
+            return {
+              success: true,
+              rebalance: {
+                withdraw: { vault: fromVault, agentId: fromAgentId.toString(), data: withdrawData },
+                deposit: { vault: toVault, agentId: toAgentId.toString(), data: depositData },
+                amount: formatUnits(amount, 6),
+              },
+              note: 'Transaction data prepared. Execute via WDK wallet to complete rebalance.',
+            }
+          }
+
+          return { error: `Unknown yield_optimizer action: ${action}` }
+        },
+      },
+
       // ---------------------------------------------------------------
       // zk_verifier — ZK credit proof verification
       // ---------------------------------------------------------------
@@ -786,6 +1088,488 @@ async function initAgent(wallet: AgentWallet) {
           return { error: `Unknown zk_verifier action: ${action}` }
         },
       },
+
+      // ---------------------------------------------------------------
+      // loan_negotiator — LLM-powered loan term negotiation
+      // ---------------------------------------------------------------
+      loan_negotiator: {
+        description: 'LLM-powered loan term negotiation with borrowers',
+        handler: async (action: string, params: Record<string, unknown>) => {
+          const agentId = BigInt(params.agentId as string)
+
+          // Fetch the borrower's on-chain credit profile (shared across actions)
+          const [compositeScore, creditLineResult, loanStatus] = await Promise.all([
+            publicClient.readContract({
+              address: CONFIG.contracts.creditScorer,
+              abi: CREDIT_SCORER_ABI,
+              functionName: 'getCompositeScore',
+              args: [agentId],
+            }) as Promise<bigint>,
+            publicClient.readContract({
+              address: CONFIG.contracts.creditScorer,
+              abi: CREDIT_SCORER_ABI,
+              functionName: 'calculateCreditLine',
+              args: [agentId],
+            }) as Promise<[bigint, bigint]>,
+            publicClient.readContract({
+              address: CONFIG.contracts.agentCreditLine,
+              abi: AGENT_CREDIT_LINE_ABI,
+              functionName: 'getStatus',
+              args: [agentId],
+            }) as Promise<number>,
+          ])
+
+          const maxCreditLimit = creditLineResult[0]
+          const baseRateBps = creditLineResult[1]
+          const score = Number(compositeScore)
+          const statusNames = ['ACTIVE', 'DELINQUENT', 'DEFAULT']
+          const status = statusNames[loanStatus] || 'UNKNOWN'
+
+          if (action === 'negotiate') {
+            const proposedAmount = BigInt(params.amount as string)
+            const proposedDurationDays = Number(params.durationDays || 90)
+            const proposedRateBps = Number(params.preferredRateBps || 0)
+
+            // Hard guard: cannot negotiate with non-ACTIVE agents
+            if (loanStatus !== 0) {
+              return {
+                negotiated: false,
+                reason: `Agent status is ${status}. Negotiation requires ACTIVE status.`,
+              }
+            }
+
+            // Use LLM reasoning to evaluate the proposal and craft a counter-offer
+            const thinking = await agent.think({
+              context: {
+                borrowerProposal: {
+                  amount: formatUnits(proposedAmount, 6),
+                  durationDays: proposedDurationDays,
+                  preferredRateApr: proposedRateBps > 0 ? `${proposedRateBps / 100}%` : 'no preference',
+                },
+                creditProfile: {
+                  compositeScore: score,
+                  maxCreditLimit: formatUnits(maxCreditLimit, 6),
+                  baseInterestRateApr: `${Number(baseRateBps) / 100}%`,
+                  baseInterestRateBps: Number(baseRateBps),
+                  status,
+                },
+                protocolBounds: {
+                  minRateBps: 300,
+                  maxRateBps: 2500,
+                  minAmount: '10 USDT',
+                  maxAmount: formatUnits(maxCreditLimit, 6),
+                  minDurationDays: 7,
+                  maxDurationDays: 365,
+                },
+              },
+              prompt:
+                'You are negotiating loan terms with a borrower agent. ' +
+                'Analyze their proposal against their credit profile. ' +
+                'Decide: (1) approved amount — up to their credit limit, reduce if score is low; ' +
+                '(2) interest rate — start from the base rate, give a discount (up to 15% off base rate) if score > 700, add a premium (up to 20% above base rate) if score < 400; ' +
+                '(3) duration — allow requested duration if revenue is consistent, shorten if score < 500. ' +
+                'Return your decision as JSON with fields: approvedAmount (USDT string), approvedRateBps (number), approvedDurationDays (number), reasoning (string explaining each adjustment). ' +
+                'Be fair but protect the protocol. Respond ONLY with the JSON object.',
+            })
+
+            // Parse LLM response — fall back to deterministic defaults if parsing fails
+            let approvedAmount = proposedAmount > maxCreditLimit ? maxCreditLimit : proposedAmount
+            let approvedRateBps = Number(baseRateBps)
+            let approvedDurationDays = proposedDurationDays
+            let reasoning = 'Deterministic fallback: terms set to CreditScorer defaults.'
+
+            try {
+              const jsonMatch = (thinking as string).match(/\{[\s\S]*\}/)
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0])
+                if (parsed.approvedAmount) {
+                  const parsedAmt = BigInt(Math.round(parseFloat(parsed.approvedAmount) * 1e6))
+                  approvedAmount = parsedAmt > maxCreditLimit ? maxCreditLimit : parsedAmt
+                  if (approvedAmount < 10_000_000n) approvedAmount = 10_000_000n
+                }
+                if (parsed.approvedRateBps) {
+                  approvedRateBps = Math.max(300, Math.min(2500, Number(parsed.approvedRateBps)))
+                }
+                if (parsed.approvedDurationDays) {
+                  approvedDurationDays = Math.max(7, Math.min(365, Number(parsed.approvedDurationDays)))
+                }
+                if (parsed.reasoning) {
+                  reasoning = parsed.reasoning
+                }
+              }
+            } catch {
+              // Keep deterministic defaults
+            }
+
+            return {
+              negotiated: true,
+              agentId: agentId.toString(),
+              proposal: {
+                amount: formatUnits(proposedAmount, 6),
+                durationDays: proposedDurationDays,
+                preferredRateBps: proposedRateBps,
+              },
+              counterOffer: {
+                amount: formatUnits(approvedAmount, 6),
+                interestRateBps: approvedRateBps,
+                interestRateApr: `${approvedRateBps / 100}%`,
+                durationDays: approvedDurationDays,
+              },
+              creditProfile: {
+                compositeScore: score,
+                maxCreditLimit: formatUnits(maxCreditLimit, 6),
+                baseRateBps: Number(baseRateBps),
+              },
+              reasoning,
+            }
+          }
+
+          if (action === 'evaluate_proposal') {
+            const proposedAmount = BigInt(params.amount as string)
+            const proposedDurationDays = Number(params.durationDays || 90)
+            const proposedRateBps = Number(params.rateBps || 0)
+
+            // Compute a fit score: how well does the proposal match the profile?
+            let fitScore = 100
+
+            // Amount fit: penalize if over credit limit
+            if (proposedAmount > maxCreditLimit) {
+              const overPct = Number((proposedAmount - maxCreditLimit) * 100n / maxCreditLimit)
+              fitScore -= Math.min(50, overPct)
+            }
+
+            // Rate fit: penalize if below base rate
+            if (proposedRateBps > 0 && proposedRateBps < Number(baseRateBps)) {
+              const rateGap = Number(baseRateBps) - proposedRateBps
+              fitScore -= Math.min(30, Math.round(rateGap / 10))
+            }
+
+            // Duration fit: penalize long durations for low scores
+            if (score < 500 && proposedDurationDays > 90) {
+              fitScore -= Math.min(20, Math.round((proposedDurationDays - 90) / 10))
+            }
+
+            fitScore = Math.max(0, fitScore)
+
+            const flags: string[] = []
+            if (proposedAmount > maxCreditLimit) flags.push('AMOUNT_EXCEEDS_CREDIT_LIMIT')
+            if (proposedRateBps > 0 && proposedRateBps < Number(baseRateBps)) flags.push('RATE_BELOW_BASE')
+            if (score < 500 && proposedDurationDays > 180) flags.push('DURATION_TOO_LONG_FOR_SCORE')
+            if (loanStatus !== 0) flags.push(`AGENT_STATUS_${status}`)
+
+            return {
+              agentId: agentId.toString(),
+              fitScore,
+              flags,
+              profile: {
+                compositeScore: score,
+                maxCreditLimit: formatUnits(maxCreditLimit, 6),
+                baseRateBps: Number(baseRateBps),
+                status,
+              },
+              viable: fitScore >= 50 && loanStatus === 0,
+            }
+          }
+
+          if (action === 'finalize_terms') {
+            const amount = BigInt(params.amount as string)
+            const rateBps = Number(params.rateBps as string)
+            const durationDays = Number(params.durationDays as string)
+
+            // Validate finalized terms are within bounds
+            if (amount > maxCreditLimit) {
+              return { finalized: false, reason: 'AMOUNT_EXCEEDS_CREDIT_LIMIT' }
+            }
+            if (amount < 10_000_000n) {
+              return { finalized: false, reason: 'BELOW_MIN_DRAWDOWN' }
+            }
+            if (rateBps < 300 || rateBps > 2500) {
+              return { finalized: false, reason: 'RATE_OUT_OF_BOUNDS' }
+            }
+            if (loanStatus !== 0) {
+              return { finalized: false, reason: `AGENT_STATUS_${status}` }
+            }
+
+            const negotiationId = `neg-${agentId}-${Date.now()}`
+
+            return {
+              finalized: true,
+              negotiationId,
+              agentId: agentId.toString(),
+              terms: {
+                amount: formatUnits(amount, 6),
+                interestRateBps: rateBps,
+                interestRateApr: `${rateBps / 100}%`,
+                durationDays,
+              },
+              note: 'Terms locked. Use this negotiationId when submitting drawdown.',
+            }
+          }
+
+          return { error: `Unknown loan_negotiator action: ${action}` }
+        },
+      },
+
+      // ---------------------------------------------------------------
+      // peer_lending — Agent-to-agent lending across vaults
+      // ---------------------------------------------------------------
+      peer_lending: {
+        description: 'Agent-to-agent lending across vaults',
+        handler: async (action: string, params: Record<string, unknown>) => {
+          if (action === 'find_liquidity') {
+            const agentIds = (params.agentIds as string[]).map((id) => BigInt(id))
+
+            const results: { agentId: string; vault: Address; availableLiquidity: string; totalAssets: string }[] = []
+
+            for (const id of agentIds) {
+              try {
+                const isRegistered = await publicClient.readContract({
+                  address: CONFIG.contracts.agentRegistry,
+                  abi: AGENT_REGISTRY_ABI,
+                  functionName: 'isRegistered',
+                  args: [id],
+                }) as boolean
+                if (!isRegistered) continue
+
+                const vaultAddr = await publicClient.readContract({
+                  address: CONFIG.contracts.agentVaultFactory,
+                  abi: AGENT_VAULT_FACTORY_ABI,
+                  functionName: 'getVault',
+                  args: [id],
+                }) as Address
+
+                const [liquidity, totalAssets, frozen] = await Promise.all([
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'availableLiquidity' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'totalAssets' }) as Promise<bigint>,
+                  publicClient.readContract({ address: vaultAddr, abi: AGENT_VAULT_ABI, functionName: 'frozen' }) as Promise<boolean>,
+                ])
+
+                if (frozen || liquidity === 0n) continue
+
+                results.push({
+                  agentId: id.toString(),
+                  vault: vaultAddr,
+                  availableLiquidity: formatUnits(liquidity, 6),
+                  totalAssets: formatUnits(totalAssets, 6),
+                })
+              } catch {
+                // Skip agents whose vault lookup fails
+              }
+            }
+
+            // Sort by available liquidity descending
+            results.sort((a, b) => parseFloat(b.availableLiquidity) - parseFloat(a.availableLiquidity))
+
+            return {
+              vaultsScanned: agentIds.length,
+              vaultsWithLiquidity: results.length,
+              vaults: results,
+            }
+          }
+
+          if (action === 'request_peer_loan') {
+            const sourceAgentId = BigInt(params.sourceAgentId as string)
+            const destAgentId = BigInt(params.destAgentId as string)
+            const amount = BigInt(params.amount as string)
+
+            // Validate both agents are registered
+            const [sourceRegistered, destRegistered] = await Promise.all([
+              publicClient.readContract({ address: CONFIG.contracts.agentRegistry, abi: AGENT_REGISTRY_ABI, functionName: 'isRegistered', args: [sourceAgentId] }) as Promise<boolean>,
+              publicClient.readContract({ address: CONFIG.contracts.agentRegistry, abi: AGENT_REGISTRY_ABI, functionName: 'isRegistered', args: [destAgentId] }) as Promise<boolean>,
+            ])
+
+            if (!sourceRegistered) return { requested: false, reason: 'SOURCE_AGENT_NOT_REGISTERED' }
+            if (!destRegistered) return { requested: false, reason: 'DEST_AGENT_NOT_REGISTERED' }
+
+            // Check source vault has liquidity
+            const sourceVault = await publicClient.readContract({
+              address: CONFIG.contracts.agentVaultFactory,
+              abi: AGENT_VAULT_FACTORY_ABI,
+              functionName: 'getVault',
+              args: [sourceAgentId],
+            }) as Address
+
+            const sourceLiquidity = await publicClient.readContract({
+              address: sourceVault,
+              abi: AGENT_VAULT_ABI,
+              functionName: 'availableLiquidity',
+            }) as bigint
+
+            if (sourceLiquidity < amount) {
+              return {
+                requested: false,
+                reason: 'INSUFFICIENT_SOURCE_LIQUIDITY',
+                available: formatUnits(sourceLiquidity, 6),
+                requested_amount: formatUnits(amount, 6),
+              }
+            }
+
+            // Get destination agent's credit profile for terms
+            const [destScore, destCreditLine] = await Promise.all([
+              publicClient.readContract({ address: CONFIG.contracts.creditScorer, abi: CREDIT_SCORER_ABI, functionName: 'getCompositeScore', args: [destAgentId] }) as Promise<bigint>,
+              publicClient.readContract({ address: CONFIG.contracts.creditScorer, abi: CREDIT_SCORER_ABI, functionName: 'calculateCreditLine', args: [destAgentId] }) as Promise<[bigint, bigint]>,
+            ])
+
+            const requestId = `peer-${sourceAgentId}-${destAgentId}-${Date.now()}`
+
+            return {
+              requested: true,
+              requestId,
+              sourceAgentId: sourceAgentId.toString(),
+              destAgentId: destAgentId.toString(),
+              amount: formatUnits(amount, 6),
+              sourceVault,
+              sourceLiquidityAvailable: formatUnits(sourceLiquidity, 6),
+              destCreditProfile: {
+                compositeScore: destScore.toString(),
+                creditLimit: formatUnits(destCreditLine[0], 6),
+                interestRateBps: destCreditLine[1].toString(),
+              },
+              note: 'Peer loan request structured. Submit to approve_peer_loan for pre-flight checks.',
+            }
+          }
+
+          if (action === 'approve_peer_loan') {
+            const sourceAgentId = BigInt(params.sourceAgentId as string)
+            const destAgentId = BigInt(params.destAgentId as string)
+            const amount = BigInt(params.amount as string)
+
+            // Pre-flight: both registered
+            const [sourceRegistered, destRegistered] = await Promise.all([
+              publicClient.readContract({ address: CONFIG.contracts.agentRegistry, abi: AGENT_REGISTRY_ABI, functionName: 'isRegistered', args: [sourceAgentId] }) as Promise<boolean>,
+              publicClient.readContract({ address: CONFIG.contracts.agentRegistry, abi: AGENT_REGISTRY_ABI, functionName: 'isRegistered', args: [destAgentId] }) as Promise<boolean>,
+            ])
+            if (!sourceRegistered) return { approved: false, reason: 'SOURCE_AGENT_NOT_REGISTERED' }
+            if (!destRegistered) return { approved: false, reason: 'DEST_AGENT_NOT_REGISTERED' }
+
+            // Pre-flight: source has liquidity
+            const sourceVault = await publicClient.readContract({
+              address: CONFIG.contracts.agentVaultFactory,
+              abi: AGENT_VAULT_FACTORY_ABI,
+              functionName: 'getVault',
+              args: [sourceAgentId],
+            }) as Address
+
+            const [sourceLiquidity, sourceFrozen] = await Promise.all([
+              publicClient.readContract({ address: sourceVault, abi: AGENT_VAULT_ABI, functionName: 'availableLiquidity' }) as Promise<bigint>,
+              publicClient.readContract({ address: sourceVault, abi: AGENT_VAULT_ABI, functionName: 'frozen' }) as Promise<boolean>,
+            ])
+
+            if (sourceFrozen) return { approved: false, reason: 'SOURCE_VAULT_FROZEN' }
+            if (sourceLiquidity < amount) {
+              return {
+                approved: false,
+                reason: 'INSUFFICIENT_SOURCE_LIQUIDITY',
+                available: formatUnits(sourceLiquidity, 6),
+                requested: formatUnits(amount, 6),
+              }
+            }
+
+            // Pre-flight: destination agent is ACTIVE with good credit
+            const [destStatus, destScore] = await Promise.all([
+              publicClient.readContract({ address: CONFIG.contracts.agentCreditLine, abi: AGENT_CREDIT_LINE_ABI, functionName: 'getStatus', args: [destAgentId] }) as Promise<number>,
+              publicClient.readContract({ address: CONFIG.contracts.creditScorer, abi: CREDIT_SCORER_ABI, functionName: 'getCompositeScore', args: [destAgentId] }) as Promise<bigint>,
+            ])
+
+            const statusNames = ['ACTIVE', 'DELINQUENT', 'DEFAULT']
+            if (destStatus !== 0) {
+              return { approved: false, reason: `DEST_AGENT_STATUS_${statusNames[destStatus]}` }
+            }
+            if (Number(destScore) < CONFIG.minScoreForApproval) {
+              return {
+                approved: false,
+                reason: 'DEST_AGENT_SCORE_BELOW_THRESHOLD',
+                score: destScore.toString(),
+                threshold: CONFIG.minScoreForApproval,
+              }
+            }
+
+            // Get destination credit line for terms
+            const destCreditLine = await publicClient.readContract({
+              address: CONFIG.contracts.creditScorer,
+              abi: CREDIT_SCORER_ABI,
+              functionName: 'calculateCreditLine',
+              args: [destAgentId],
+            }) as [bigint, bigint]
+
+            return {
+              approved: true,
+              sourceAgentId: sourceAgentId.toString(),
+              destAgentId: destAgentId.toString(),
+              amount: formatUnits(amount, 6),
+              sourceVault,
+              destCreditProfile: {
+                compositeScore: destScore.toString(),
+                creditLimit: formatUnits(destCreditLine[0], 6),
+                interestRateBps: destCreditLine[1].toString(),
+              },
+              note: 'Peer loan approved. Source agent can deposit into destination agent vault via AgentVault.deposit().',
+            }
+          }
+
+          if (action === 'track_peer_exposure') {
+            // Track exposure across a list of agent pairs
+            const pairs = params.pairs as { sourceAgentId: string; destAgentId: string }[]
+
+            const exposures: {
+              sourceAgentId: string
+              destAgentId: string
+              destOutstanding: string
+              sourceVaultTotalAssets: string
+              concentrationPct: string
+              warning: boolean
+            }[] = []
+
+            let totalExposure = 0n
+
+            for (const pair of pairs) {
+              try {
+                const sourceId = BigInt(pair.sourceAgentId)
+                const destId = BigInt(pair.destAgentId)
+
+                const sourceVault = await publicClient.readContract({
+                  address: CONFIG.contracts.agentVaultFactory,
+                  abi: AGENT_VAULT_FACTORY_ABI,
+                  functionName: 'getVault',
+                  args: [sourceId],
+                }) as Address
+
+                const [destOutstanding, sourceTotalAssets] = await Promise.all([
+                  publicClient.readContract({ address: CONFIG.contracts.agentCreditLine, abi: AGENT_CREDIT_LINE_ABI, functionName: 'getOutstanding', args: [destId] }) as Promise<bigint>,
+                  publicClient.readContract({ address: sourceVault, abi: AGENT_VAULT_ABI, functionName: 'totalAssets' }) as Promise<bigint>,
+                ])
+
+                const concentrationPct = sourceTotalAssets > 0n
+                  ? Number((destOutstanding * 10000n) / sourceTotalAssets) / 100
+                  : 0
+
+                totalExposure += destOutstanding
+
+                exposures.push({
+                  sourceAgentId: pair.sourceAgentId,
+                  destAgentId: pair.destAgentId,
+                  destOutstanding: formatUnits(destOutstanding, 6),
+                  sourceVaultTotalAssets: formatUnits(sourceTotalAssets, 6),
+                  concentrationPct: `${concentrationPct.toFixed(2)}%`,
+                  warning: concentrationPct > 50,
+                })
+              } catch {
+                // Skip pairs with lookup failures
+              }
+            }
+
+            return {
+              pairsTracked: pairs.length,
+              pairsResolved: exposures.length,
+              totalPeerExposure: formatUnits(totalExposure, 6),
+              exposures,
+              hasConcentrationWarning: exposures.some((e) => e.warning),
+            }
+          }
+
+          return { error: `Unknown peer_lending action: ${action}` }
+        },
+      },
     },
   })
 
@@ -805,7 +1589,7 @@ async function runLendingLoop(agent: InstanceType<typeof OpenClaw>) {
       const loanStatus = await agent.tool('loan_manager', 'status', {
         agentId: CONFIG.agentId,
       })
-      console.log(`[lending-agent] Status: ${loanStatus.status} | Outstanding: ${loanStatus.outstanding} USDC`)
+      console.log(`[lending-agent] Status: ${loanStatus.status} | Outstanding: ${loanStatus.outstanding} USDT`)
 
       // 2. Score the agent
       const score = await agent.tool('credit_scorer', 'score', {
@@ -832,7 +1616,7 @@ async function runLendingLoop(agent: InstanceType<typeof OpenClaw>) {
         const repayment = await agent.tool('loan_manager', 'track_repayment', {
           agentId: CONFIG.agentId,
         })
-        console.log(`[lending-agent] Repayment: ${repayment.repaymentPct} of ${repayment.totalBorrowed} USDC`)
+        console.log(`[lending-agent] Repayment: ${repayment.repaymentPct} of ${repayment.totalBorrowed} USDT`)
       }
 
       // 7. Detect delinquency and take action
@@ -971,6 +1755,8 @@ const AGENT_VAULT_ABI = [
   { inputs: [], name: 'availableLiquidity', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'utilizationRate', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'frozen', outputs: [{ type: 'bool' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'assets', type: 'uint256' }, { name: 'receiver', type: 'address' }], name: 'deposit', outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'assets', type: 'uint256' }, { name: 'receiver', type: 'address' }, { name: 'owner', type: 'address' }], name: 'withdraw', outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
 ] as const
 
 const AGENT_VAULT_FACTORY_ABI = [

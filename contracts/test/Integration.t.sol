@@ -15,7 +15,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @notice Tests the complete lifecycle: register agent -> vault deployed -> get credit -> borrow -> earn revenue ->
 /// auto-repay
 contract IntegrationTest is Test {
-    ERC20Mock public usdc;
+    ERC20Mock public usdt;
     AgentRegistry public registry;
     CreditScorer public scorer;
     AgentVaultFactory public factory;
@@ -28,11 +28,11 @@ contract IntegrationTest is Test {
 
     function setUp() public {
         // Deploy protocol
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
-        factory.setAllowedAsset(address(usdc), true);
+        factory.setAllowedAsset(address(usdt), true);
         creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
 
         // Link registry to factory
@@ -42,8 +42,8 @@ contract IntegrationTest is Test {
         creditLine.setRequireSmartWallet(false);
 
         // Fund depositors
-        usdc.mint(depositorA, 500_000e6);
-        usdc.mint(depositorB, 200_000e6);
+        usdt.mint(depositorA, 500_000e6);
+        usdt.mint(depositorB, 200_000e6);
     }
 
     /// @notice Full lifecycle: register -> vault deployed -> revenue -> credit -> borrow -> repay
@@ -51,7 +51,7 @@ contract IntegrationTest is Test {
         // 1. Register agent (auto-deploys vault)
         bytes32 codeHash = keccak256("autonomous-trading-agent-v1");
         uint256 agentId =
-            registry.registerAgent(agentWallet, codeHash, "AutoTrader-v3", address(0), 0, bytes32(0), address(usdc));
+            registry.registerAgent(agentWallet, codeHash, "AutoTrader-v3", address(0), 0, bytes32(0), address(usdt));
         assertTrue(registry.isRegistered(agentId), "Agent should be registered");
 
         address agentVaultAddr = factory.getVault(agentId);
@@ -64,8 +64,8 @@ contract IntegrationTest is Test {
         address lockboxAddr = factory.getLockbox(agentId);
         RevenueLockbox lockbox = RevenueLockbox(payable(lockboxAddr));
 
-        // 3. Agent earns revenue (simulated by minting USDC to lockbox)
-        usdc.mint(lockboxAddr, 20_000e6);
+        // 3. Agent earns revenue (simulated by minting USDT to lockbox)
+        usdt.mint(lockboxAddr, 20_000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
@@ -79,9 +79,9 @@ contract IntegrationTest is Test {
 
         // 5. Seed vault with depositor liquidity
         // (vault has 10K from lockbox revenue, cap is 500K, so deposit up to 400K)
-        usdc.mint(depositorA, 400_000e6);
+        usdt.mint(depositorA, 400_000e6);
         vm.startPrank(depositorA);
-        usdc.approve(agentVaultAddr, 400_000e6);
+        usdt.approve(agentVaultAddr, 400_000e6);
         AgentVault(agentVaultAddr).deposit(400_000e6, depositorA);
         vm.stopPrank();
 
@@ -96,7 +96,7 @@ contract IntegrationTest is Test {
 
         vm.prank(agentWallet);
         creditLine.drawdown(agentId, borrowAmount);
-        assertGe(usdc.balanceOf(agentWallet), borrowAmount, "Agent received USDC");
+        assertGe(usdt.balanceOf(agentWallet), borrowAmount, "Agent received USDT");
 
         // 8. Verify outstanding debt
         uint256 outstanding = creditLine.getOutstanding(agentId);
@@ -108,9 +108,9 @@ contract IntegrationTest is Test {
         assertGt(outstandingWithInterest, borrowAmount, "Interest accrued");
 
         // 10. Agent earns more revenue and repays
-        usdc.mint(agentWallet, outstandingWithInterest);
+        usdt.mint(agentWallet, outstandingWithInterest);
         vm.startPrank(agentWallet);
-        usdc.approve(address(creditLine), outstandingWithInterest);
+        usdt.approve(address(creditLine), outstandingWithInterest);
         creditLine.repay(agentId, outstandingWithInterest);
         vm.stopPrank();
 
@@ -123,7 +123,7 @@ contract IntegrationTest is Test {
     function test_delinquencyToDefaultFlow() public {
         // Register and setup agent
         uint256 agentId =
-            registry.registerAgent(agentWallet, keccak256("code"), "BadAgent", address(0), 0, bytes32(0), address(usdc));
+            registry.registerAgent(agentWallet, keccak256("code"), "BadAgent", address(0), 0, bytes32(0), address(usdt));
         address agentVaultAddr = factory.getVault(agentId);
 
         // Set credit line on the vault
@@ -131,15 +131,15 @@ contract IntegrationTest is Test {
 
         // Use the factory-deployed lockbox (auto-created during registerAgent)
         address lockboxAddr = factory.getLockbox(agentId);
-        usdc.mint(lockboxAddr, 20_000e6);
+        usdt.mint(lockboxAddr, 20_000e6);
         vm.prank(agentWallet);
         RevenueLockbox(payable(lockboxAddr)).processRevenue();
 
         // Seed vault with liquidity
         // (vault has 10K from lockbox revenue, cap is 500K, so deposit up to 400K)
-        usdc.mint(depositorA, 400_000e6);
+        usdt.mint(depositorA, 400_000e6);
         vm.startPrank(depositorA);
-        usdc.approve(agentVaultAddr, 400_000e6);
+        usdt.approve(agentVaultAddr, 400_000e6);
         AgentVault(agentVaultAddr).deposit(400_000e6, depositorA);
         vm.stopPrank();
 
@@ -172,22 +172,22 @@ contract IntegrationTest is Test {
     /// @notice Test revenue lockbox immutability - multiple processings
     function test_lockboxRevenueAccumulation() public {
         uint256 agentId_ =
-            registry.registerAgent(agentWallet, keccak256("code"), "Agent", address(0), 0, bytes32(0), address(usdc));
+            registry.registerAgent(agentWallet, keccak256("code"), "Agent", address(0), 0, bytes32(0), address(usdt));
 
         // Use the factory-deployed lockbox
         address lockboxAddr = factory.getLockbox(agentId_);
         RevenueLockbox lockbox = RevenueLockbox(payable(lockboxAddr));
 
         // Process 3 rounds of revenue
-        usdc.mint(lockboxAddr, 1000e6);
+        usdt.mint(lockboxAddr, 1000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
-        usdc.mint(lockboxAddr, 2000e6);
+        usdt.mint(lockboxAddr, 2000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 
-        usdc.mint(lockboxAddr, 3000e6);
+        usdt.mint(lockboxAddr, 3000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 

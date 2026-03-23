@@ -9,7 +9,7 @@ import WDK from '@tetherto/wdk';
 import { WalletManagerEvm } from '@tetherto/wdk-wallet-evm';
 import { createPublicClient, http, type PublicClient, type Address, formatUnits } from 'viem';
 import { base } from 'viem/chains';
-import { AgentConfig, USDC_DECIMALS } from './config';
+import { AgentConfig, USDT_DECIMALS } from './config';
 import { ERC20_ABI } from './contracts';
 import { logger } from './logger';
 
@@ -76,15 +76,15 @@ export function getWalletAddress(wallet: AgentWallet): Address {
 }
 
 /**
- * Query the USDC balance of the agent's wallet.
+ * Query the USDT balance of the agent's wallet.
  * Returns the raw balance (6 decimals).
  */
-export async function getUSDCBalance(
+export async function getUSDTBalance(
   wallet: AgentWallet,
-  usdcAddress: Address,
+  usdtAddress: Address,
 ): Promise<bigint> {
   const balance = await wallet.publicClient.readContract({
-    address: usdcAddress,
+    address: usdtAddress,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: [wallet.address],
@@ -93,15 +93,15 @@ export async function getUSDCBalance(
 }
 
 /**
- * Query the USDC balance of any address.
+ * Query the USDT balance of any address.
  */
-export async function getUSDCBalanceOf(
+export async function getUSDTBalanceOf(
   wallet: AgentWallet,
-  usdcAddress: Address,
+  usdtAddress: Address,
   targetAddress: Address,
 ): Promise<bigint> {
   const balance = await wallet.publicClient.readContract({
-    address: usdcAddress,
+    address: usdtAddress,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: [targetAddress],
@@ -117,8 +117,8 @@ export async function getETHBalance(wallet: AgentWallet): Promise<bigint> {
 }
 
 /**
- * Format a USDC raw amount to a human-readable string.
+ * Format a USDT raw amount to a human-readable string.
  */
-export function formatUSDCBalance(raw: bigint): string {
-  return formatUnits(raw, USDC_DECIMALS);
+export function formatUSDTBalance(raw: bigint): string {
+  return formatUnits(raw, USDT_DECIMALS);
 }

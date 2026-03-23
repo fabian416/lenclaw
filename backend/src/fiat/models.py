@@ -52,7 +52,7 @@ class FiatTransaction(Base):
         String(10), nullable=False, default="USD"
     )
     crypto_currency: Mapped[str] = mapped_column(
-        String(10), nullable=False, default="USDC"
+        String(10), nullable=False, default="USDT"
     )
     status: Mapped[FiatTransactionStatus] = mapped_column(
         Enum(FiatTransactionStatus), default=FiatTransactionStatus.CREATED

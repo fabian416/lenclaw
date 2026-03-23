@@ -10,7 +10,7 @@ import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {AgentVault} from "../src/AgentVault.sol";
 
 contract AgentSmartWalletTest is Test {
-    ERC20Mock usdc;
+    ERC20Mock usdt;
     AgentRegistry registry;
     AgentVaultFactory vaultFactory;
     SmartWalletFactory walletFactory;
@@ -24,23 +24,23 @@ contract AgentSmartWalletTest is Test {
     address lockboxAddr;
 
     function setUp() public {
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         registry = new AgentRegistry(owner);
         vaultFactory = new AgentVaultFactory(address(registry), owner);
-        vaultFactory.setAllowedAsset(address(usdc), true);
+        vaultFactory.setAllowedAsset(address(usdt), true);
 
         // Link registry to factory
         registry.setVaultFactory(address(vaultFactory));
 
         // Register agent (auto-deploys vault + lockbox)
         agentId = registry.registerAgent(
-            agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdc)
+            agentWallet, keccak256("code"), "TestAgent", address(0), 0, bytes32(0), address(usdt)
         );
         vaultAddr = vaultFactory.getVault(agentId);
         lockboxAddr = vaultFactory.getLockbox(agentId);
 
         // Deploy smart wallet factory
-        walletFactory = new SmartWalletFactory(address(usdc), address(registry), owner);
+        walletFactory = new SmartWalletFactory(address(usdt), address(registry), owner);
     }
 
     // ── Factory Tests ──────────────────────────────────
@@ -101,15 +101,15 @@ contract AgentSmartWalletTest is Test {
         address walletAddr = walletFactory.createWallet(agentId);
         AgentSmartWallet wallet = AgentSmartWallet(payable(walletAddr));
 
-        // Send USDC to the smart wallet
-        usdc.mint(walletAddr, 1000e6);
+        // Send USDT to the smart wallet
+        usdt.mint(walletAddr, 1000e6);
 
         // Route revenue (callable by anyone)
         wallet.routeRevenue();
 
         // 50% to lockbox, 50% remains in wallet
-        assertEq(usdc.balanceOf(lockboxAddr), 500e6, "500 to lockbox");
-        assertEq(usdc.balanceOf(walletAddr), 500e6, "500 remains in wallet");
+        assertEq(usdt.balanceOf(lockboxAddr), 500e6, "500 to lockbox");
+        assertEq(usdt.balanceOf(walletAddr), 500e6, "500 remains in wallet");
         assertEq(wallet.totalRouted(), 500e6);
     }
 
@@ -126,7 +126,7 @@ contract AgentSmartWalletTest is Test {
         address walletAddr = walletFactory.createWallet(agentId);
         AgentSmartWallet wallet = AgentSmartWallet(payable(walletAddr));
 
-        usdc.mint(walletAddr, 1000e6);
+        usdt.mint(walletAddr, 1000e6);
 
         (uint256 toLockbox, uint256 toAgent) = wallet.pendingRevenue();
         assertEq(toLockbox, 500e6);
@@ -230,13 +230,13 @@ contract AgentSmartWalletTest is Test {
         AgentSmartWallet wallet = AgentSmartWallet(payable(walletAddr));
 
         // Fund wallet with revenue
-        usdc.mint(walletAddr, 500e6);
+        usdt.mint(walletAddr, 500e6);
 
         // Manually route revenue (since execute targets are restricted)
         wallet.routeRevenue();
 
         // 50% of 500 = 250 routed to lockbox
-        assertEq(usdc.balanceOf(lockboxAddr), 250e6);
+        assertEq(usdt.balanceOf(lockboxAddr), 250e6);
         assertEq(wallet.totalRouted(), 250e6);
     }
 

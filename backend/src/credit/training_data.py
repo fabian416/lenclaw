@@ -60,7 +60,7 @@ BASE_DEFAULT_RATES = {
 def _generate_steady(rng: np.random.Generator, n_days: int = 90) -> np.ndarray:
     """Steady earner: constant base with small Gaussian noise.
 
-    Mean daily revenue ~50-500 USDC; CV < 0.2.
+    Mean daily revenue ~50-500 USDT; CV < 0.2.
     """
     base = rng.uniform(50, 500)
     noise_scale = base * rng.uniform(0.03, 0.15)

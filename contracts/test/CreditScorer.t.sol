@@ -12,7 +12,7 @@ import {AgentVaultFactory} from "../src/AgentVaultFactory.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract CreditScorerTest is Test {
-    ERC20Mock public usdc;
+    ERC20Mock public usdt;
     AgentRegistry public registry;
     CreditScorer public scorer;
     AgentVaultFactory public factory;
@@ -22,11 +22,11 @@ contract CreditScorerTest is Test {
     address public agentWallet = makeAddr("agent");
 
     function setUp() public {
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
-        factory.setAllowedAsset(address(usdc), true);
+        factory.setAllowedAsset(address(usdt), true);
         creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
         registry.setVaultFactory(address(factory));
         scorer.setCreditLine(address(creditLine));
@@ -37,14 +37,14 @@ contract CreditScorerTest is Test {
 
     function _registerAgent(address wallet, uint256 revenue) internal returns (uint256 agentId) {
         bytes32 codeHash = keccak256(abi.encodePacked("code", wallet));
-        agentId = registry.registerAgent(wallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdc));
+        agentId = registry.registerAgent(wallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdt));
 
         // Use the factory-deployed lockbox
         address lockboxAddr = factory.getLockbox(agentId);
 
         // Simulate revenue
         if (revenue > 0) {
-            usdc.mint(lockboxAddr, revenue);
+            usdt.mint(lockboxAddr, revenue);
             vm.prank(wallet);
             RevenueLockbox(payable(lockboxAddr)).processRevenue();
         }
@@ -109,19 +109,19 @@ contract CreditScorerTest is Test {
         address lockbox2Addr = factory.getLockbox(id2);
 
         // Epoch 0
-        usdc.mint(lockbox2Addr, 3_000e6);
+        usdt.mint(lockbox2Addr, 3_000e6);
         vm.prank(agent2);
         RevenueLockbox(payable(lockbox2Addr)).processRevenue();
 
         // Epoch 1
         vm.warp(block.timestamp + 31 days);
-        usdc.mint(lockbox2Addr, 3_500e6);
+        usdt.mint(lockbox2Addr, 3_500e6);
         vm.prank(agent2);
         RevenueLockbox(payable(lockbox2Addr)).processRevenue();
 
         // Epoch 2
         vm.warp(block.timestamp + 31 days);
-        usdc.mint(lockbox2Addr, 3_500e6);
+        usdt.mint(lockbox2Addr, 3_500e6);
         vm.prank(agent2);
         RevenueLockbox(payable(lockbox2Addr)).processRevenue();
 
@@ -146,8 +146,8 @@ contract CreditScorerTest is Test {
 
         // Seed vault with liquidity for agent 2
         address vaultAddr2 = factory.getVault(id2);
-        usdc.mint(address(this), 200_000e6);
-        usdc.approve(vaultAddr2, 200_000e6);
+        usdt.mint(address(this), 200_000e6);
+        usdt.approve(vaultAddr2, 200_000e6);
         AgentVault(vaultAddr2).deposit(200_000e6, address(this));
 
         // Agent 2 completes a loan cycle (borrow + full repay)
@@ -155,9 +155,9 @@ contract CreditScorerTest is Test {
         vm.prank(agent2);
         creditLine.drawdown(id2, 1000e6);
 
-        usdc.mint(agent2, 1000e6);
+        usdt.mint(agent2, 1000e6);
         vm.startPrank(agent2);
-        usdc.approve(address(creditLine), 1000e6);
+        usdt.approve(address(creditLine), 1000e6);
         creditLine.repay(id2, 1000e6);
         vm.stopPrank();
 
@@ -239,7 +239,7 @@ contract CreditScorerTest is Test {
 
         // Advance to epoch 1
         vm.warp(block.timestamp + 31 days);
-        usdc.mint(lockboxAddr, 2_000e6);
+        usdt.mint(lockboxAddr, 2_000e6);
         vm.prank(agentWallet);
         lockbox.processRevenue();
 

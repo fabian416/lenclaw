@@ -14,7 +14,7 @@ import {LiquidationKeeper} from "../src/LiquidationKeeper.sol";
 /// @notice Deploys the full Lenclaw protocol suite to Base (chain ID 8453)
 contract DeployBase is Script {
     // Base mainnet bridged USDT (USD₮)
-    address constant USDC = 0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2;
+    address constant USDT = 0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2;
 
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
@@ -24,7 +24,7 @@ contract DeployBase is Script {
         console.log("Deploying Lenclaw to Base mainnet");
         console.log("Deployer:", deployer);
         console.log("Owner:", owner);
-        console.log("USDC:", USDC);
+        console.log("USDT:", USDT);
 
         vm.startBroadcast(deployerKey);
 
@@ -36,8 +36,8 @@ contract DeployBase is Script {
         AgentVaultFactory factory = new AgentVaultFactory(address(registry), owner);
         console.log("AgentVaultFactory:", address(factory));
 
-        // 2b. Whitelist USDC as allowed asset
-        factory.setAllowedAsset(USDC, true);
+        // 2b. Whitelist USDT as allowed asset
+        factory.setAllowedAsset(USDT, true);
 
         // 3. Deploy CreditScorer
         CreditScorer scorer = new CreditScorer(address(registry), owner);
@@ -48,17 +48,17 @@ contract DeployBase is Script {
         console.log("AgentCreditLine:", address(creditLine));
 
         // 5. Deploy DutchAuction (owner as placeholder recoveryManager, updated below)
-        DutchAuction dutchAuction = new DutchAuction(USDC, owner, owner);
+        DutchAuction dutchAuction = new DutchAuction(USDT, owner, owner);
         console.log("DutchAuction:", address(dutchAuction));
 
         // 6. Deploy RecoveryManager
         RecoveryManager recoveryManager =
-            new RecoveryManager(USDC, address(dutchAuction), address(registry), address(factory), owner);
+            new RecoveryManager(USDT, address(dutchAuction), address(registry), address(factory), owner);
         console.log("RecoveryManager:", address(recoveryManager));
 
         // 7. Deploy LiquidationKeeper
         LiquidationKeeper keeper =
-            new LiquidationKeeper(address(creditLine), address(registry), USDC, address(recoveryManager), owner);
+            new LiquidationKeeper(address(creditLine), address(registry), USDT, address(recoveryManager), owner);
         console.log("LiquidationKeeper:", address(keeper));
 
         // 8. Wire everything
@@ -81,7 +81,7 @@ contract DeployBase is Script {
         console.log("Registry linked to VaultFactory");
 
         // NOTE: LiquidationKeeper bounty pool must be funded manually
-        // with real USDC post-deployment (transfer USDC to keeper address).
+        // with real USDT post-deployment (transfer USDT to keeper address).
 
         vm.stopBroadcast();
 
@@ -89,7 +89,7 @@ contract DeployBase is Script {
 
         // Write deployment addresses to JSON
         string memory json = "deployment";
-        vm.serializeAddress(json, "usdc", USDC);
+        vm.serializeAddress(json, "usdt", USDT);
         vm.serializeAddress(json, "agentRegistry", address(registry));
         vm.serializeAddress(json, "agentVaultFactory", address(factory));
         vm.serializeAddress(json, "creditScorer", address(scorer));

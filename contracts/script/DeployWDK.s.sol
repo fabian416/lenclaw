@@ -31,7 +31,7 @@ contract DeployWDK is Script {
         vm.startBroadcast(deployerKey);
 
         // 1. Deploy WDKWalletFactory
-        //    constructor(address _usdc, address _registry, address _entryPoint, address _owner)
+        //    constructor(address _usdt, address _registry, address _entryPoint, address _owner)
         WDKWalletFactory walletFactory = new WDKWalletFactory(USDT, AGENT_REGISTRY, ENTRY_POINT_V06, owner);
         console.log("WDKWalletFactory:", address(walletFactory));
 

@@ -33,7 +33,7 @@ El ecosistema de agentes de IA on-chain se puede categorizar en las siguientes v
 |-----------|-------------|------------------------|
 | **Virtuals Protocol** | Plataforma para tokenizar agentes de IA en Base. Cada agente tiene su propio token (modelo bonding curve). Los "backers" compran tokens del agente, ganando con la apreciacion del token si el agente tiene exito. Modelo de equity, no de deuda. Genesis Launch para nuevos agentes. | Alta - opera en Base, permite "respaldar" agentes, pero modelo equity vs. deuda |
 
-**Conclusion**: Virtuals es el competidor mas cercano en espiritu - permite que humanos respalden agentes de IA especificos. Pero el modelo es fundamentalmente diferente: equity (comprar tokens) vs. deuda (prestar USDC). En Virtuals, el "backer" es un especulador de tokens; en Lenclaw, el lender es un acreedor con rendimiento fijo (APY). Los riesgos son diferentes: en Virtuals, riesgo de precio del token; en Lenclaw, riesgo de default del agente.
+**Conclusion**: Virtuals es el competidor mas cercano en espiritu - permite que humanos respalden agentes de IA especificos. Pero el modelo es fundamentalmente diferente: equity (comprar tokens) vs. deuda (prestar USDT). En Virtuals, el "backer" es un especulador de tokens; en Lenclaw, el lender es un acreedor con rendimiento fijo (APY). Los riesgos son diferentes: en Virtuals, riesgo de precio del token; en Lenclaw, riesgo de default del agente.
 
 ### 1.4 Frameworks de Agentes con Capas Economicas
 
@@ -103,7 +103,7 @@ Ranking por similitud con Lenclaw (de mayor a menor):
 1. **Virtuals Protocol** (9/10 similitud conceptual)
    - Ambos permiten a humanos "respaldar" agentes de IA especificos en Base
    - Ambos aíslan el riesgo por agente individual
-   - Diferencia clave: equity (tokens) vs. deuda (USDC lending)
+   - Diferencia clave: equity (tokens) vs. deuda (USDT lending)
    - Virtuals tiene traccion masiva (miles de agentes tokenizados)
    - Lenclaw ofrece rendimiento predecible (APY); Virtuals ofrece apreciacion especulativa
 
@@ -173,12 +173,12 @@ Ranking por similitud con Lenclaw (de mayor a menor):
 
 ### 4.1 Vault-per-Agent (ERC-4626) -- Riesgo Aislado
 
-**Que es**: Cada agente de IA tiene su propio vault ERC-4626. Los lenders depositan USDC especificamente en el vault de un agente que eligen.
+**Que es**: Cada agente de IA tiene su propio vault ERC-4626. Los lenders depositan USDT especificamente en el vault de un agente que eligen.
 
 **Por que es diferenciador**:
 - En Aave/Compound, un pool compartido significa que el riesgo esta socializado. Si un borrower hace default, todos los lenders absorben la perdida.
 - En Morpho Blue, los mercados son aislados pero no estan atados a entidades individuales.
-- En Virtuals, el token por agente es especulativo y volátil. Un vault USDC ofrece rendimiento mas predecible.
+- En Virtuals, el token por agente es especulativo y volátil. Un vault USDT ofrece rendimiento mas predecible.
 - El vault-per-agent permite que cada lender elija su exposicion al riesgo. Un lender conservador puede elegir agentes con historial comprobado; un lender agresivo puede elegir agentes nuevos con APY alto.
 
 **Defensibilidad**: Media-alta. El concepto es replicable tecnicamente, pero la combinacion con credit scoring y revenue lockbox crea un moat. Ademas, el efecto de red (mas lenders = mas capital = mejores agentes = mas revenue = mas lenders) es dificil de replicar.
@@ -210,7 +210,7 @@ Ranking por similitud con Lenclaw (de mayor a menor):
 
 **Por que es diferenciador**:
 - Ningun protocolo DeFi usa gamificacion de esta manera para lending.
-- Transforma una decision financiera (donde depositar USDC) en una experiencia enganchante similar a fantasy sports o apuestas deportivas.
+- Transforma una decision financiera (donde depositar USDT) en una experiencia enganchante similar a fantasy sports o apuestas deportivas.
 - Reduce la barrera cognitiva: en vez de "analizar parametros de un vault", el usuario "elige su caballo".
 - Crea engagement y retencion - los lenders vuelven a ver como van "sus caballos".
 
@@ -239,7 +239,7 @@ Ranking por similitud con Lenclaw (de mayor a menor):
 - Terminos de repago
 
 **Por que es diferenciador**:
-- En lending DeFi tradicional, las tasas son por activo (ETH, USDC) no por borrower.
+- En lending DeFi tradicional, las tasas son por activo (ETH, USDT) no por borrower.
 - Permite pricing de riesgo granular - un agente con buen historial tiene APY bajo (bajo riesgo), un agente nuevo tiene APY alto (alto riesgo).
 - Crea un mercado eficiente donde el capital fluye hacia agentes con mejor relacion riesgo/rendimiento.
 

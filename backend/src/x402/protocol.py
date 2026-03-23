@@ -2,7 +2,7 @@
 
 Handles parsing 402 Payment Required responses, constructing PAYMENT-SIGNATURE
 headers, and verifying payment signatures per the Coinbase x402 standard.
-Supports USDC on Base chain.
+Supports USDT on Base chain.
 """
 
 from __future__ import annotations
@@ -27,9 +27,9 @@ from src.x402.schemas import (
 
 logger = logging.getLogger(__name__)
 
-# Base mainnet USDC contract address
-USDC_BASE_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
-USDC_DECIMALS = 6
+# Base mainnet USDT contract address
+USDT_BASE_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+USDT_DECIMALS = 6
 BASE_CHAIN_ID = 8453
 
 # EIP-712 domain and types for x402 payment signing
@@ -37,7 +37,7 @@ X402_DOMAIN = {
     "name": "x402",
     "version": "1",
     "chainId": BASE_CHAIN_ID,
-    "verifyingContract": USDC_BASE_ADDRESS,
+    "verifyingContract": USDT_BASE_ADDRESS,
 }
 
 X402_PAYMENT_TYPES = {
@@ -59,12 +59,12 @@ class X402Protocol:
         self,
         recipient: str,
         chain_id: int = BASE_CHAIN_ID,
-        usdc_address: str = USDC_BASE_ADDRESS,
+        usdt_address: str = USDT_BASE_ADDRESS,
         facilitator_url: str | None = None,
     ) -> None:
         self.recipient = recipient.lower()
         self.chain_id = chain_id
-        self.usdc_address = usdc_address
+        self.usdt_address = usdt_address
         self.facilitator_url = facilitator_url
 
     def create_payment_required(
@@ -78,18 +78,18 @@ class X402Protocol:
 
         Args:
             resource: URL of the resource requiring payment.
-            amount_usd: Amount in USD (will be converted to USDC smallest unit).
+            amount_usd: Amount in USD (will be converted to USDT smallest unit).
             description: Human-readable description.
             max_timeout: Seconds before the payment offer expires.
         """
-        amount_raw = str(int(amount_usd * Decimal(10**USDC_DECIMALS)))
+        amount_raw = str(int(amount_usd * Decimal(10**USDT_DECIMALS)))
 
         return PaymentRequired(
             x402Version=1,
             scheme="exact",
             network="base-mainnet",
             recipient=self.recipient,
-            token=self.usdc_address,
+            token=self.usdt_address,
             amount=amount_raw,
             description=description or f"Payment for {resource}",
             resource=resource,
@@ -103,12 +103,12 @@ class X402Protocol:
         return "0x" + raw.hex()
 
     def amount_to_raw(self, amount_usd: Decimal) -> str:
-        """Convert a human-readable USD amount to USDC smallest unit string."""
-        return str(int(amount_usd * Decimal(10**USDC_DECIMALS)))
+        """Convert a human-readable USD amount to USDT smallest unit string."""
+        return str(int(amount_usd * Decimal(10**USDT_DECIMALS)))
 
     def raw_to_amount(self, raw: str) -> Decimal:
-        """Convert a USDC smallest-unit string to human-readable Decimal."""
-        return Decimal(raw) / Decimal(10**USDC_DECIMALS)
+        """Convert a USDT smallest-unit string to human-readable Decimal."""
+        return Decimal(raw) / Decimal(10**USDT_DECIMALS)
 
 
 def parse_payment_required(response_body: dict[str, Any]) -> PaymentRequired:

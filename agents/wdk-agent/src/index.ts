@@ -3,7 +3,7 @@
  *
  * An autonomous, long-lived agent that:
  *   1. Creates/restores a self-custodial wallet via Tether WDK
- *   2. Monitors the wallet for incoming USDC revenue
+ *   2. Monitors the wallet for incoming USDT revenue
  *   3. Routes revenue to the RevenueLockbox for automatic debt repayment
  *   4. Exposes DeFi operations (bridges, swaps) via WDK protocol modules
  *
@@ -13,8 +13,8 @@
  */
 
 import { type Address } from 'viem';
-import { loadConfig, formatUSDC, AgentConfig } from './config';
-import { createAgentWallet, getUSDCBalance, getETHBalance, formatUSDCBalance, AgentWallet } from './wallet';
+import { loadConfig, formatUSDT, AgentConfig } from './config';
+import { createAgentWallet, getUSDTBalance, getETHBalance, formatUSDTBalance, AgentWallet } from './wallet';
 import { RevenueMonitor, getLockboxStats, getCreditStatus } from './revenue';
 import { DeFiOperations } from './defi';
 import { logger, setLogLevel, getLogger } from './logger';
@@ -82,7 +82,7 @@ async function printStartupDiagnostics(
   log.info(`Vault: ${config.contracts.agentVault}`);
   log.info(`Registry: ${config.contracts.agentRegistry}`);
   log.info(`Poll interval: ${config.pollIntervalMs}ms`);
-  log.info(`Min revenue threshold: ${formatUSDC(config.minRevenueThreshold)} USDC`);
+  log.info(`Min revenue threshold: ${formatUSDT(config.minRevenueThreshold)} USDT`);
 
   // Check ETH balance for gas
   const ethBalance = await getETHBalance(wallet);
@@ -92,9 +92,9 @@ async function printStartupDiagnostics(
     log.warn('Agent wallet has no ETH for gas! Fund it before revenue can be routed.');
   }
 
-  // Check USDC balance
-  const usdcBalance = await getUSDCBalance(wallet, config.contracts.usdc as Address);
-  log.info(`USDC balance: ${formatUSDCBalance(usdcBalance)} USDC`);
+  // Check USDT balance
+  const usdtBalance = await getUSDTBalance(wallet, config.contracts.usdt as Address);
+  log.info(`USDT balance: ${formatUSDTBalance(usdtBalance)} USDT`);
 
   // Check agent registration
   try {
@@ -151,10 +151,10 @@ async function printStartupDiagnostics(
       config.contracts.revenueLockbox as Address,
     );
     log.info('Lockbox stats', {
-      totalRevenueCaptured: formatUSDC(stats.totalRevenueCapture),
-      totalRepaid: formatUSDC(stats.totalRepaid),
+      totalRevenueCaptured: formatUSDT(stats.totalRevenueCapture),
+      totalRepaid: formatUSDT(stats.totalRepaid),
       repaymentRateBps: stats.repaymentRateBps.toString(),
-      pendingRepayment: formatUSDC(stats.pendingRepayment),
+      pendingRepayment: formatUSDT(stats.pendingRepayment),
       currentEpoch: stats.currentEpoch.toString(),
       epochsWithRevenue: stats.epochsWithRevenue.toString(),
     });
@@ -189,8 +189,8 @@ async function printStartupDiagnostics(
     ]);
 
     log.info('Vault stats', {
-      totalAssets: formatUSDC(totalAssets),
-      totalBorrowed: formatUSDC(totalBorrowed),
+      totalAssets: formatUSDT(totalAssets),
+      totalBorrowed: formatUSDT(totalBorrowed),
       utilizationBps: utilization.toString(),
       frozen,
     });
@@ -212,7 +212,7 @@ async function printStartupDiagnostics(
     if (creditStatus) {
       const statusNames = ['ACTIVE', 'DELINQUENT', 'DEFAULT'];
       log.info('Credit status', {
-        outstanding: formatUSDC(creditStatus.outstanding),
+        outstanding: formatUSDT(creditStatus.outstanding),
         status: statusNames[creditStatus.status] || `UNKNOWN(${creditStatus.status})`,
       });
     }
@@ -231,13 +231,13 @@ async function printStatusReport(
   monitor: RevenueMonitor,
 ): Promise<void> {
   const state = monitor.getState();
-  const usdcBalance = await getUSDCBalance(wallet, config.contracts.usdc as Address);
+  const usdtBalance = await getUSDTBalance(wallet, config.contracts.usdt as Address);
   const ethBalance = await getETHBalance(wallet);
 
   log.info('--- Status Report ---', {
-    usdcBalance: formatUSDCBalance(usdcBalance),
+    usdtBalance: formatUSDTBalance(usdtBalance),
     ethBalance: (Number(ethBalance) / 1e18).toFixed(6),
-    totalProcessed: formatUSDC(state.totalProcessed),
+    totalProcessed: formatUSDT(state.totalProcessed),
     processCount: state.processCount,
     errors: state.errors,
     lastProcessed: state.lastProcessedAt?.toISOString() || 'never',

@@ -16,7 +16,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAgentRegistry} from "../src/interfaces/IAgentRegistry.sol";
 
 contract LiquidationTest is Test {
-    ERC20Mock public usdc;
+    ERC20Mock public usdt;
     AgentRegistry public registry;
     CreditScorer public scorer;
     AgentVaultFactory public factory;
@@ -36,11 +36,11 @@ contract LiquidationTest is Test {
 
     function setUp() public {
         // Deploy core contracts
-        usdc = new ERC20Mock("USD Coin", "USDC", 6);
+        usdt = new ERC20Mock("USD Coin", "USDT", 6);
         registry = new AgentRegistry(owner);
         scorer = new CreditScorer(address(registry), owner);
         factory = new AgentVaultFactory(address(registry), owner);
-        factory.setAllowedAsset(address(usdc), true);
+        factory.setAllowedAsset(address(usdt), true);
         creditLine = new AgentCreditLine(address(registry), address(scorer), address(factory), owner);
 
         // Link registry to factory
@@ -53,11 +53,11 @@ contract LiquidationTest is Test {
         // RecoveryManager still forwards proceeds to the agent's vault.
         // For these tests we pass address(0) as the vault param since RecoveryManager
         // sends funds to a configured address. We'll use the agent's vault address.
-        dutchAuction = new DutchAuction(address(usdc), address(this), owner);
+        dutchAuction = new DutchAuction(address(usdt), address(this), owner);
 
         // Register agent (auto-deploys vault)
         bytes32 codeHash = keccak256("agent-code");
-        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdc));
+        agentId = registry.registerAgent(agentWallet, codeHash, "Test Agent", address(0), 0, bytes32(0), address(usdt));
         agentVaultAddr = factory.getVault(agentId);
 
         // Set credit line on vault
@@ -65,7 +65,7 @@ contract LiquidationTest is Test {
 
         // RecoveryManager uses vaultFactory to look up per-agent vaults
         recoveryManager =
-            new RecoveryManager(address(usdc), address(dutchAuction), address(registry), address(factory), owner);
+            new RecoveryManager(address(usdt), address(dutchAuction), address(registry), address(factory), owner);
 
         // Update the DutchAuction to point at the real RecoveryManager
         dutchAuction.setRecoveryManager(address(recoveryManager));
@@ -74,7 +74,7 @@ contract LiquidationTest is Test {
         factory.setRecoveryManager(address(recoveryManager));
 
         keeper = new LiquidationKeeper(
-            address(creditLine), address(registry), address(usdc), address(recoveryManager), owner
+            address(creditLine), address(registry), address(usdt), address(recoveryManager), owner
         );
 
         // Wire up permissions
@@ -85,9 +85,9 @@ contract LiquidationTest is Test {
 
         // Seed agent vault with depositor liquidity FIRST (before lockbox revenue)
         // so the ERC-4626 vault mints shares at 1:1 ratio on the initial deposit.
-        usdc.mint(depositor, 400_000e6);
+        usdt.mint(depositor, 400_000e6);
         vm.startPrank(depositor);
-        usdc.approve(agentVaultAddr, 400_000e6);
+        usdt.approve(agentVaultAddr, 400_000e6);
         AgentVault(agentVaultAddr).deposit(400_000e6, depositor);
         vm.stopPrank();
 
@@ -95,15 +95,15 @@ contract LiquidationTest is Test {
         address lockboxAddr = factory.getLockbox(agentId);
 
         // Give lockbox revenue so credit line is non-zero
-        usdc.mint(lockboxAddr, 50_000e6);
+        usdt.mint(lockboxAddr, 50_000e6);
         vm.prank(agentWallet);
         RevenueLockbox(payable(lockboxAddr)).processRevenue();
 
         // Fund keeper bounty pool
-        usdc.mint(address(keeper), 10_000e6);
+        usdt.mint(address(keeper), 10_000e6);
 
         // Fund bidder
-        usdc.mint(bidder, 500_000e6);
+        usdt.mint(bidder, 500_000e6);
     }
 
     // Helper: put agent into DEFAULT status
@@ -162,7 +162,7 @@ contract LiquidationTest is Test {
 
         // Bidder bids
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), currentPrice);
+        usdt.approve(address(dutchAuction), currentPrice);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
@@ -179,7 +179,7 @@ contract LiquidationTest is Test {
         vm.warp(block.timestamp + 7 hours);
 
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), 15_000e6);
+        usdt.approve(address(dutchAuction), 15_000e6);
         vm.expectRevert("DutchAuction: expired");
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
@@ -282,12 +282,12 @@ contract LiquidationTest is Test {
     function test_keeper_triggerLiquidation_paysBounty() public {
         _defaultAgent(5_000e6);
 
-        uint256 keeperBalanceBefore = usdc.balanceOf(keeperBot);
+        uint256 keeperBalanceBefore = usdt.balanceOf(keeperBot);
 
         vm.prank(keeperBot);
         keeper.triggerLiquidation(agentId);
 
-        uint256 keeperBalanceAfter = usdc.balanceOf(keeperBot);
+        uint256 keeperBalanceAfter = usdt.balanceOf(keeperBot);
         assertGt(keeperBalanceAfter, keeperBalanceBefore, "Keeper should receive bounty");
 
         // Bounty should be 1% of debt, capped at 1000e6
@@ -307,18 +307,18 @@ contract LiquidationTest is Test {
     }
 
     function test_keeper_fundAndWithdrawBountyPool() public {
-        uint256 initialBalance = usdc.balanceOf(address(keeper));
+        uint256 initialBalance = usdt.balanceOf(address(keeper));
 
         // Fund more
-        usdc.mint(owner, 5_000e6);
-        usdc.approve(address(keeper), 5_000e6);
+        usdt.mint(owner, 5_000e6);
+        usdt.approve(address(keeper), 5_000e6);
         keeper.fundBountyPool(5_000e6);
 
-        assertEq(usdc.balanceOf(address(keeper)), initialBalance + 5_000e6);
+        assertEq(usdt.balanceOf(address(keeper)), initialBalance + 5_000e6);
 
         // Withdraw
         keeper.withdrawBountyPool(owner, 1_000e6);
-        assertEq(usdc.balanceOf(address(keeper)), initialBalance + 4_000e6);
+        assertEq(usdt.balanceOf(address(keeper)), initialBalance + 4_000e6);
     }
 
     function test_keeper_setKeeperBounty() public {
@@ -373,15 +373,15 @@ contract LiquidationTest is Test {
         uint256 currentPrice = dutchAuction.getCurrentPrice(auctionId);
 
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), currentPrice);
+        usdt.approve(address(dutchAuction), currentPrice);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         // Finalize recovery
-        uint256 vaultBalBefore = usdc.balanceOf(agentVaultAddr);
+        uint256 vaultBalBefore = usdt.balanceOf(agentVaultAddr);
         uint256 bidderSharesBefore = AgentVault(agentVaultAddr).balanceOf(bidder);
         recoveryManager.finalizeRecovery(recoveryId);
-        uint256 vaultBalAfter = usdc.balanceOf(agentVaultAddr);
+        uint256 vaultBalAfter = usdt.balanceOf(agentVaultAddr);
         uint256 bidderSharesAfter = AgentVault(agentVaultAddr).balanceOf(bidder);
 
         // Proceeds should be forwarded to vault (via deposit)
@@ -433,7 +433,7 @@ contract LiquidationTest is Test {
         uint256 currentPrice = dutchAuction.getCurrentPrice(auctionId);
 
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), currentPrice);
+        usdt.approve(address(dutchAuction), currentPrice);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
@@ -516,10 +516,10 @@ contract LiquidationTest is Test {
         (bool eligible,) = keeper.checkLiquidation(agentId);
         assertTrue(eligible, "Agent should be eligible for liquidation");
 
-        uint256 keeperBalBefore = usdc.balanceOf(keeperBot);
+        uint256 keeperBalBefore = usdt.balanceOf(keeperBot);
         vm.prank(keeperBot);
         keeper.triggerLiquidation(agentId);
-        uint256 keeperBounty = usdc.balanceOf(keeperBot) - keeperBalBefore;
+        uint256 keeperBounty = usdt.balanceOf(keeperBot) - keeperBalBefore;
         assertGt(keeperBounty, 0, "Keeper should receive bounty");
 
         // 4. Dutch auction is running
@@ -534,17 +534,17 @@ contract LiquidationTest is Test {
         assertGt(bidPrice, 0);
 
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), bidPrice);
+        usdt.approve(address(dutchAuction), bidPrice);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         assertFalse(dutchAuction.hasActiveAuction(agentId));
 
         // 6. Recovery manager finalizes and distributes proceeds
-        uint256 vaultBalBefore = usdc.balanceOf(agentVaultAddr);
+        uint256 vaultBalBefore = usdt.balanceOf(agentVaultAddr);
         uint256 bidderSharesBefore = AgentVault(agentVaultAddr).balanceOf(bidder);
         recoveryManager.finalizeRecovery(recoveryId);
-        uint256 vaultBalAfter = usdc.balanceOf(agentVaultAddr);
+        uint256 vaultBalAfter = usdt.balanceOf(agentVaultAddr);
         uint256 bidderSharesAfter = AgentVault(agentVaultAddr).balanceOf(bidder);
 
         assertEq(vaultBalAfter - vaultBalBefore, bidPrice, "Vault should receive proceeds");
@@ -572,7 +572,7 @@ contract LiquidationTest is Test {
 
         // Bid should still work at exact end time
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), price);
+        usdt.approve(address(dutchAuction), price);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
@@ -621,21 +621,21 @@ contract LiquidationTest is Test {
 
         // Bidder bids on the auction
         vm.startPrank(bidder);
-        usdc.approve(address(dutchAuction), currentPrice);
+        usdt.approve(address(dutchAuction), currentPrice);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
         // Still no shares — shares are minted on finalization, not on bid
         assertEq(AgentVault(agentVaultAddr).balanceOf(bidder), 0, "No shares yet before finalization");
 
-        // Finalize recovery — this should deposit USDC into vault on behalf of buyer
+        // Finalize recovery — this should deposit USDT into vault on behalf of buyer
         recoveryManager.finalizeRecovery(recoveryId);
 
         // Buyer should now have vault shares
         uint256 bidderSharesAfter = AgentVault(agentVaultAddr).balanceOf(bidder);
         assertGt(bidderSharesAfter, 0, "Buyer should receive vault shares after finalization");
 
-        // Vault should have received the USDC
+        // Vault should have received the USDT
         // The buyer's shares represent their claim on vault assets
         uint256 buyerAssets = AgentVault(agentVaultAddr).convertToAssets(bidderSharesAfter);
         assertGt(buyerAssets, 0, "Buyer shares should be redeemable for assets");
@@ -652,15 +652,15 @@ contract LiquidationTest is Test {
     function test_auctionProceedsGoToRecoveryManager() public {
         uint256 auctionId = dutchAuction.createAuction(agentId, 10_000e6);
 
-        uint256 rmBalBefore = usdc.balanceOf(address(recoveryManager));
+        uint256 rmBalBefore = usdt.balanceOf(address(recoveryManager));
 
         vm.startPrank(bidder);
         uint256 price = dutchAuction.getCurrentPrice(auctionId);
-        usdc.approve(address(dutchAuction), price);
+        usdt.approve(address(dutchAuction), price);
         dutchAuction.bid(auctionId, type(uint256).max);
         vm.stopPrank();
 
-        uint256 rmBalAfter = usdc.balanceOf(address(recoveryManager));
+        uint256 rmBalAfter = usdt.balanceOf(address(recoveryManager));
         assertEq(rmBalAfter - rmBalBefore, price, "Proceeds go to RecoveryManager");
     }
 }

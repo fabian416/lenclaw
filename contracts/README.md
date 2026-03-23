@@ -12,7 +12,7 @@ Solidity smart contracts for the Lenclaw protocol. Built with Foundry.
 | `RevenueLockbox` | Immutable per-agent revenue capture; splits between repayment and agent wallet |
 | `AgentCreditLine` | Per-agent borrow/repay facility with ACTIVE/DELINQUENT/DEFAULT status tracking |
 | `CreditScorer` | On-chain behavioral scoring (30% revenue, 25% consistency, 20% credit history, 15% time, 10% debt ratio) for credit lines and rates |
-| `AgentSmartWallet` | Revenue-routing wallet that auto-splits USDC to lockbox before any execution |
+| `AgentSmartWallet` | Revenue-routing wallet that auto-splits USDT to lockbox before any execution |
 | `SmartWalletFactory` | Deploys AgentSmartWallet instances per agent |
 | `DutchAuction` | Linear price-decay auction for defaulted positions |
 | `RecoveryManager` | Coordinates post-default recovery and distributes auction proceeds to vault backers |
